@@ -352,6 +352,74 @@ const CHAMPIONS = [
 ];
 const CHAMPIONS_BASS = [98,131,147,98, 98,131,147,98, 98,131,147,98, 98,131,147,98];
 
+// ══════════════════════════════════════════════════════════════
+// MP3 TRACKS — fichiers à placer dans public/musiques/
+// ══════════════════════════════════════════════════════════════
+// 📁 Mettre ces 6 fichiers dans le dossier public/musiques/ du projet :
+//    gala.mp3               → Gala - Freed from Desire
+//    survive.mp3            → Gloria Gaynor - I Will Survive
+//    pile.mp3               → Mauvais Djo - Pilé
+//    dai-dai.mp3            → Shakira & Burna Boy - Dai Dai
+//    ramenez.mp3            → Vegedream - Ramenez la coupe à la maison
+//    mechants.mp3           → World Cup Baguette - C'est nous les méchants
+
+const MP3_TRACKS = [
+  { name:"🎉 Freed from Desire",     file:"/musiques/gala.mp3"     },
+  { name:"💪 I Will Survive",         file:"/musiques/survive.mp3"  },
+  { name:"🔥 Pilé",                   file:"/musiques/pile.mp3"     },
+  { name:"⚽ Dai Dai",                file:"/musiques/dai-dai.mp3"  },
+  { name:"🏆 Ramenez la coupe",       file:"/musiques/ramenez.mp3"  },
+  { name:"😈 C'est nous les méchants",file:"/musiques/mechants.mp3" },
+];
+
+// Globals MP3
+let mp3El        = null;   // HTMLAudioElement courant
+let mp3Playing   = false;
+let mp3LoopMode  = false;  // false = playlist, true = boucle
+let currentMp3Idx = 0;
+
+function stopMp3() {
+  mp3Playing = false;
+  if (mp3El) {
+    mp3El.onended = null;
+    mp3El.onerror = null;
+    try { mp3El.pause(); } catch(e){}
+    mp3El = null;
+  }
+}
+
+function playMp3(idx, loopMode) {
+  stopMp3();
+  if (_isMuted) return;
+  currentMp3Idx = Math.max(0, Math.min(idx, MP3_TRACKS.length - 1));
+  mp3LoopMode = loopMode;
+  mp3Playing = true;
+  try {
+    const el = new Audio(MP3_TRACKS[currentMp3Idx].file);
+    mp3El = el;
+    el.volume = 0.55;
+    el.onended = () => {
+      if (!mp3Playing || el !== mp3El) return;
+      if (mp3LoopMode) {
+        // Boucle : rejoue la même piste
+        playMp3(currentMp3Idx, true);
+      } else {
+        // Playlist : piste suivante (wrap around)
+        playMp3((currentMp3Idx + 1) % MP3_TRACKS.length, false);
+      }
+    };
+    el.onerror = () => {
+      if (el === mp3El) mp3Playing = false;
+    };
+    el.play().catch(() => { if (el === mp3El) mp3Playing = false; });
+  } catch(e) { mp3Playing = false; }
+}
+
+function switchMp3Track(idx) {
+  if (mp3Playing || !_isMuted) playMp3(idx, mp3LoopMode);
+}
+
+
 const TRACKS = [
   { name:"🎵 Fiesta Mundial", melody:WAKA_WAKA,     bass:WAKA_BASS,     bpm:104 },
   { name:"🎶 Victoire", melody:WAVIN,        bass:WAVIN_BASS,    bpm:96  },
@@ -610,6 +678,7 @@ function stopAllMusic() {
   stopBgMusic();
   stopLoginMusic();
   stopEggMusic();
+  stopMp3();
 }
 
 async function celebrate(phase) {
@@ -1200,7 +1269,15 @@ function resolveTeam(ph, results, scores = {}) {
   if (vMatch) {
     const refId = vMatch[1];
     const official = results[refId];
-    if (!official) return ph;
+    if (!official) {
+      // Pas encore de résultat : afficher les équipes du match source pour que l'utilisateur comprenne
+      const ref = MATCHES.find(m => m.id === refId);
+      if (!ref) return ph;
+      // Retourner un placeholder avec les équipes attendues
+      const homeTeam = resolveTeam(ref.home, results, scores);
+      const awayTeam = resolveTeam(ref.away, results, scores);
+      return `${homeTeam} ou ${awayTeam}`;
+    }
     const ref = MATCHES.find(m => m.id === refId);
     if (!ref) return ph;
     const team = official === "1" ? ref.home : ref.away;
@@ -1249,6 +1326,13 @@ function resolveTeam(ph, results, scores = {}) {
     return resolveTeam(official === "1" ? ref.away : ref.home, results, scores);
   }
 
+  // Placeholder non résolu → label lisible
+  if (ph.startsWith("V. R")) return `Vainq. 1/16 #${ph.slice(4)}`;
+  if (ph.startsWith("V. Q")) return `Vainq. 1/8 #${ph.slice(4)}`;
+  if (ph.startsWith("V. SF")) return `Vainq. 1/4 #${ph.slice(5)}`;
+  if (ph.startsWith("V. S")) return `Vainq. 1/2 #${ph.slice(4)}`;
+  if (ph.startsWith("Perdant SF")) return `3e place`;
+  if (ph.startsWith("3e ")) return `3e du groupe`;
   return ph;
 }
 
@@ -1281,10 +1365,10 @@ function scoreLabel(score) {
 // ║  REMPLIS TES CLÉS ICI (récupérées depuis console.firebase)  ║
 // ╚══════════════════════════════════════════════════════════════╝
 const FB_CONFIG = {
-  apiKey:      "AIzaSyAS9MO_m0hdvcAnbh-Y2ne6lFLpTfRIdrI",   // ex: "AIzaSy..."
-  authDomain:  "worldcup2026-59020.firebaseapp.com",   // ex: "worldcup2026-xxxx.firebaseapp.com"
-  databaseURL: "https://worldcup2026-59020-default-rtdb.europe-west1.firebasedatabase.app",   // ex: "https://worldcup2026-xxxx-default-rtdb.europe-west1.firebasedatabase.app"
-  projectId:   "worldcup2026-59020",   // ex: "worldcup2026-xxxx"
+  apiKey:      "",   // ex: "AIzaSy..."
+  authDomain:  "",   // ex: "worldcup2026-xxxx.firebaseapp.com"
+  databaseURL: "",   // ex: "https://worldcup2026-xxxx-default-rtdb.europe-west1.firebasedatabase.app"
+  projectId:   "",   // ex: "worldcup2026-xxxx"
 };
 
 // ── Ne touche pas à ce qui suit ──────────────────────────────────────
@@ -1307,7 +1391,7 @@ async function _initFirebase() {
 
 // Fallback localStorage (si Firebase non configuré ou hors ligne)
 const KEY = "wc2026_v2";
-const blank = () => ({ users:{}, predictions:{}, results:{}, scores:{}, validatedGroups:{}, finalLock:{}, seenAnim:{}, officialThirds:{}, thirdPicks:{}, seenEgg:{} });
+const blank = () => ({ users:{}, predictions:{}, results:{}, scores:{}, validatedGroups:{}, finalLock:{}, seenAnim:{}, officialThirds:{}, thirdPicks:{}, seenEgg:{}, presence:{}, chat:[], matchComments:{} });
 function load() {
   try { const s = localStorage.getItem(KEY); return s ? {...blank(),...JSON.parse(s)} : blank(); }
   catch { return blank(); }
@@ -1328,6 +1412,8 @@ async function persistFirebase(ns) {
         officialThirds:  ns.officialThirds  || {},
         thirdPicks:      ns.thirdPicks      || {},
         seenEgg:         ns.seenEgg         || {},
+        chat:            ns.chat            || [],
+        matchComments:   ns.matchComments   || {},
       });
     } catch(e) { console.warn("Firebase write error:", e); persist(ns); }
   } else { persist(ns); }
@@ -1337,14 +1423,72 @@ async function persistFirebase(ns) {
 // CALC SCORES
 // ══════════════════════════════════════════
 function calcScores(st) {
+  // Points par phase (crescendo)
+  const phasePoints = {
+    "poules":    1,   // Poules        = 1 point
+    "seiziemes": 2,   // 1/16          = 2 points
+    "huitiemes": 3,   // 1/8           = 3 points
+    "quarts":    4,   // 1/4           = 4 points
+    "demis":     5,   // 1/2           = 5 points
+    "p3":        6,   // Petite finale = 6 points
+    "finale":    10   // Finale        = 10 points
+  };
+
+  const officialResults = st.results || {};
+
   const sc = {};
   Object.keys(st.users).forEach(u => {
     let pts = 0;
-    Object.keys(st.scores||{}).forEach(id => {
+    const userPreds = st.predictions[u] || {};
+
+    // Résultats "mixtes" : base officielle (groupes + élims joués),
+    // surchargée par les pronos du joueur pour les élims.
+    // Permet de résoudre "qui le joueur pensait avoir en QF, demi…"
+    // en suivant SA chaîne de prédictions depuis les 16es.
+    const mixedResults = { ...officialResults, ...userPreds };
+
+    Object.keys(st.scores || {}).forEach(id => {
       const score = st.scores[id];
-      const match = MATCHES.find(m=>m.id===id);
-      const outcome = outcomeOf(score, match?.phase !== "poules");
-      if (outcome && (st.predictions[u]||{})[id] === outcome) pts += 3;
+      const match = MATCHES.find(m => m.id === id);
+      if (!match) return;
+
+      const outcome = outcomeOf(score, match.phase !== "poules");
+      const pred    = userPreds[id];
+      if (!outcome || !pred) return;
+
+      if (match.phase === "poules") {
+        // ── Poules : comparaison directe (équipes toujours connues) ──
+        if (pred === outcome) pts += phasePoints["poules"];
+
+      } else {
+        // ── Phases éliminatoires : vérifier que le joueur a prédit
+        //    la BONNE équipe gagnante, pas seulement le bon côté ──
+        //
+        //  actualWinner    = équipe réellement victorieuse (bracket officiel)
+        //  predictedWinner = équipe que le joueur pensait victorieuse
+        //                    (sa chaîne de pronos depuis les 16es)
+        //
+        //  Ex : Finale officielle Espagne–Colombie, Espagne gagne ("1").
+        //       Joueur avait prédit France–USA et pris "1" (côté gauche).
+        //       predictedWinner = France ≠ Espagne = actualWinner → 0 pt ✓
+        //
+        //       Si le joueur avait correctement suivi le bracket jusqu'à
+        //       prédire Espagne gagnante → pts attribués ✓
+
+        const actualWinner = resolveTeam(
+          outcome === "1" ? match.home : match.away,
+          officialResults
+        );
+        const predictedWinner = resolveTeam(
+          pred === "1" ? match.home : match.away,
+          mixedResults
+        );
+
+        // Points uniquement si les deux équipes sont identifiables ET identiques
+        if (FLAGS[actualWinner] && FLAGS[predictedWinner] && actualWinner === predictedWinner) {
+          pts += phasePoints[match.phase] || 2;
+        }
+      }
     });
     sc[u] = pts;
   });
@@ -1798,7 +1942,7 @@ export default function App() {
   
   // ═══ CONSOLIDATED STATE — Groupé pour moins de re-renders ═══
   // Audio settings grouped
-  const [audio, setAudio] = useState({ muted: false, trackIdx: 0, loginMuted: false });
+  const [audio, setAudio] = useState({ muted: false, trackIdx: 0, loginMuted: false, musicSource: "synth", playMode: "playlist", mp3Idx: 0 });
   
   // UI & App state grouped
   const [appState, setAppState] = useState({
@@ -1818,7 +1962,7 @@ export default function App() {
   });
 
   // Login form grouped
-  const [login, setLogin] = useState({ uname: "", pw: "" });
+  const [login, setLogin] = useState({ uname: "", pw: "", pwConfirm: "", fname: "", lname: "" });
   
   // Other states
   const eggTimer = useRef(null);
@@ -1833,9 +1977,9 @@ export default function App() {
   }, []);
   
   // Destructure for compatibility
-  const { muted, trackIdx, loginMuted } = audio;
+  const { muted, trackIdx, loginMuted, musicSource, playMode, mp3Idx } = audio;
   const { tab, grp, ePhase, aPhase, adminSub, adminPronoGroup, showCal, showTrophy, modal, confirmReset, shareCopied, eggClicks, eggActive } = appState;
-  const { uname, pw } = login;
+  const { uname, pw, pwConfirm, fname, lname } = login;
   
   // Helper setters for backward compatibility
   const setTab = useCallback((v) => setAppState(s => ({...s, tab: v})), []);
@@ -1851,9 +1995,17 @@ export default function App() {
   const setShowTrophy = useCallback((v) => setAppState(s => ({...s, showTrophy: v})), []);
   const setModal = useCallback((v) => setAppState(s => ({...s, modal: v})), []);
   const setConfirmReset = useCallback((v) => setAppState(s => ({...s, confirmReset: v})), []);
+  const [adminConfirmUser, setAdminConfirmUser] = useState(null);
+  const [adminPronoView, setAdminPronoView] = useState("tableau");
+  const [adminPronoPlayer, setAdminPronoPlayer] = useState(null);
+  const [chatMsg, setChatMsg] = useState("");
+  const [chatMatchId, setChatMatchId] = useState(null);
   const setShareCopied = useCallback((v) => setAppState(s => ({...s, shareCopied: v})), []);
   const setUname = useCallback((v) => setLogin(l => ({...l, uname: v})), []);
   const setPw = useCallback((v) => setLogin(l => ({...l, pw: v})), []);
+  const setPwConfirm = useCallback((v) => setLogin(l => ({...l, pwConfirm: v})), []);
+  const setFname = useCallback((v) => setLogin(l => ({...l, fname: v})), []);
+  const setLname = useCallback((v) => setLogin(l => ({...l, lname: v})), []);
   
   // Initialisé depuis le localStorage pour survivre aux refreshs
   const seen = useRef(new Set());
@@ -1880,6 +2032,21 @@ export default function App() {
     });
     return () => { if (fbListenerRef.current) fbListenerRef.current(); };
   }, []);
+
+  // ── Presence heartbeat : écrit lastSeen toutes les 30s ──────────
+  useEffect(() => {
+    if (!user || user === "admin" || !FB_ENABLED) return;
+    const writePresence = () => {
+      if (_fbReady) _fbUpdate(`/presence/${user}`, { lastSeen: Date.now(), online: true });
+    };
+    writePresence();
+    const iv = setInterval(writePresence, 30000);
+    presenceRef.current = iv;
+    return () => {
+      clearInterval(iv);
+      if (_fbReady) _fbUpdate(`/presence/${user}`, { lastSeen: Date.now(), online: false });
+    };
+  }, [user]);
 
   // Écran waiting : se met à jour automatiquement via Firebase
   useEffect(() => {
@@ -2062,7 +2229,14 @@ export default function App() {
       return team;                                       // pas encore officiel
     }
 
-    return off;                                          // non résolu → placeholder
+    // Non résolu → rendre le placeholder lisible
+    // "V. R3" → "Vainq. 1/16 #3", "V. Q2" → "Vainq. 1/8 #2", etc.
+    if (off.startsWith("V. R")) return `Vainq. 1/16 #${off.slice(4)}`;
+    if (off.startsWith("V. Q")) return `Vainq. 1/8 #${off.slice(4)}`;
+    if (off.startsWith("V. SF")) return `Vainq. 1/4 #${off.slice(5)}`;
+    if (off.startsWith("V. S")) return `Vainq. 1/2 #${off.slice(4)}`;
+    if (off.startsWith("Perdant SF")) return `3e place match`;
+    return off;
   }
 
   // Auto-lock le 10 juin 23h59 — verrouille TOUS les joueurs non-admin
@@ -2102,8 +2276,13 @@ export default function App() {
     } else if (scr === "app") {
       stopLoginMusic();
       if (!_isMuted) {
-        currentTrackIdx = trackIdx;
-        setTimeout(() => { try { _getMusicCtx(); playBgMusic(); } catch(e){} }, 400);
+        if (musicSource === "mp3") {
+          mp3LoopMode = playMode === "loop";
+          setTimeout(() => playMp3(mp3Idx, mp3LoopMode), 400);
+        } else {
+          currentTrackIdx = trackIdx;
+          setTimeout(() => { try { _getMusicCtx(); playBgMusic(); } catch(e){} }, 400);
+        }
       }
     } else {
       stopAllMusic();
@@ -2150,11 +2329,10 @@ export default function App() {
   // ── LOGIN ──
   function doLogin() {
     const u = uname.trim().toLowerCase();
-    if (!u) return;
+    if (!u) { showNotif("error", "❌ Entre ton pseudo"); return; }
     if (u === "admin") {
       if (pw !== "2026") { showNotif("error", "❌ Mot de passe incorrect"); return; }
       let ns = {...st, users:{...st.users, admin:{role:"admin"}}};
-      // Quand l'admin se connecte après la deadline : verrouille tous les joueurs
       const deadline = new Date("2026-06-10T23:59:00");
       if (new Date() >= deadline) {
         const allKeys = [...GROUPS, "ELIM_seiziemes","ELIM_huitiemes","ELIM_quarts","ELIM_demis","ELIM_p3","ELIM_finale"];
@@ -2170,11 +2348,49 @@ export default function App() {
       showNotif("success", "✅ Connecté en tant qu'Admin");
       setTab("home"); setScr("app"); return;
     }
+
+    const existingUser = st.users[u];
+
+    // ── Nouveau joueur ──
+    if (!existingUser) {
+      if (!pw) { showNotif("error", "❌ Choisis un mot de passe"); return; }
+      if (pw.length < 4) { showNotif("error", "❌ Mot de passe trop court (min 4 caractères)"); return; }
+      if (pw !== (login.pwConfirm||"")) { showNotif("error", "❌ Les mots de passe ne correspondent pas"); return; }
+      const ns = {...st, users:{...st.users, [u]:{role:"waiting", pw, fname, lname}}};
+      save(ns); setUser(u);
+      soundLogin(); stopLoginMusic();
+      seen.current = new Set(Object.keys(ns.seenAnim||{}));
+      setLogin({uname: "", pw: "", pwConfirm: ""}); // Reset fields
+      setScr("waiting");
+      showNotif("info", "⏳ Compte créé ! En attente d'assignation par l'admin");
+      return;
+    }
+
+    // ── Joueur existant sans mot de passe (première connexion) ──
+    if (!existingUser.pw) {
+      // Première connexion : doit créer un mot de passe (peu importe si assigné ou pas)
+      if (!pw) { showNotif("error", "❌ Première connexion : choisis un mot de passe"); return; }
+      if (pw.length < 4) { showNotif("error", "❌ Mot de passe trop court (min 4 caractères)"); return; }
+      if (pw !== (login.pwConfirm||"")) { showNotif("error", "❌ Les mots de passe ne correspondent pas"); return; }
+      const ns = {...st, users:{...st.users, [u]:{...existingUser, pw, fname: fname || existingUser.fname, lname: lname || existingUser.lname}}};
+      save(ns); setUser(u);
+      soundLogin(); stopLoginMusic();
+      seen.current = new Set(Object.keys(ns.seenAnim||{}));
+      setLogin({uname: "", pw: "", pwConfirm: ""}); // Reset fields
+      showNotif("success", "✅ Mot de passe créé !");
+      if (ns.users[u].role === "waiting") { setScr("waiting"); return; }
+      setTab("home"); setScr("app"); return;
+    }
+
+    // ── Joueur existant avec mot de passe ──
+    if (!pw) { showNotif("error", "❌ Entre ton mot de passe"); return; }
+    if (pw !== existingUser.pw) { showNotif("error", "❌ Mot de passe incorrect"); return; }
+
     const ns = {...st};
-    if (!ns.users[u]) ns.users[u] = {role:"waiting"};
     save(ns); setUser(u);
     soundLogin(); stopLoginMusic();
     seen.current = new Set(Object.keys(ns.seenAnim||{}));
+    setLogin({uname: "", pw: "", pwConfirm: ""}); // Reset fields
     if (ns.users[u].role === "waiting") {
       setScr("waiting");
       showNotif("info", "⏳ En attente d'assignation par l'admin");
@@ -2262,7 +2478,10 @@ export default function App() {
   }
 
   // ── ADMIN ──
-  function setRole(u,r) { const ns={...st,users:{...st.users,[u]:{role:r}}}; save(ns); }
+  function setRole(u,r) { 
+    const ns={...st,users:{...st.users,[u]:{...(st.users[u]||{}), role:r}}}; 
+    save(ns); 
+  }
   function setScore(id, side, val) {
     // side = "h" ou "a", val = string chiffre
     const cur = (st.scores||{})[id] || {h:"", a:""};
@@ -2374,9 +2593,163 @@ export default function App() {
     };
   }, [scr, muted]);
 
+  // ── HELPERS PRÉSENCE ──────────────────────────────────────────
+  const onlinePlayers = Object.keys(st.presence || {}).filter(u => {
+    const p = st.presence[u];
+    return p && p.online && (Date.now() - (p.lastSeen || 0)) < 60000;
+  });
+
+  // ── SEND CHAT MESSAGE ──────────────────────────────────────────
+  function sendChat(matchId) {
+    const txt = chatMsg.trim();
+    if (!txt || !user) return;
+    const msg = { user, text: txt, ts: Date.now(), reactions: {} };
+    let ns;
+    if (matchId) {
+      const prev = st.matchComments[matchId] || [];
+      ns = { ...st, matchComments: { ...st.matchComments, [matchId]: [...prev, msg] } };
+    } else {
+      const prev = st.chat || [];
+      ns = { ...st, chat: [...prev, msg] };
+    }
+    save(ns);
+    setChatMsg("");
+  }
+
+  function addReaction(emoji, msgIdx, matchId) {
+    let ns;
+    if (matchId) {
+      const msgs = [...(st.matchComments[matchId] || [])];
+      const msg = { ...msgs[msgIdx], reactions: { ...(msgs[msgIdx].reactions || {}) } };
+      msg.reactions[emoji] = (msg.reactions[emoji] || 0) + 1;
+      msgs[msgIdx] = msg;
+      ns = { ...st, matchComments: { ...st.matchComments, [matchId]: msgs } };
+    } else {
+      const msgs = [...(st.chat || [])];
+      const msg = { ...msgs[msgIdx], reactions: { ...(msgs[msgIdx].reactions || {}) } };
+      msg.reactions[emoji] = (msg.reactions[emoji] || 0) + 1;
+      msgs[msgIdx] = msg;
+      ns = { ...st, chat: msgs };
+    }
+    save(ns);
+  }
+  // ── SEND CHAT MESSAGE ──────────────────────────────────────────
+  function sendChat(matchId) {
+    const txt = chatMsg.trim();
+    if (!txt || !user) return;
+    const msg = { user, text: txt, ts: Date.now(), reactions: {} };
+    let ns;
+    if (matchId) {
+      const prev = (st.matchComments||{})[matchId] || [];
+      ns = { ...st, matchComments: { ...(st.matchComments||{}), [matchId]: [...prev, msg] } };
+    } else {
+      const prev = st.chat || [];
+      ns = { ...st, chat: [...prev, msg] };
+    }
+    save(ns); setChatMsg("");
+  }
+
+  function addReaction(emoji, msgIdx, matchId) {
+    let ns;
+    if (matchId) {
+      const msgs = [...((st.matchComments||{})[matchId] || [])];
+      const msg = { ...msgs[msgIdx], reactions: { ...(msgs[msgIdx].reactions || {}) } };
+      msg.reactions[emoji] = (msg.reactions[emoji] || 0) + 1;
+      msgs[msgIdx] = msg;
+      ns = { ...st, matchComments: { ...(st.matchComments||{}), [matchId]: msgs } };
+    } else {
+      const msgs = [...(st.chat || [])];
+      const msg = { ...msgs[msgIdx], reactions: { ...(msgs[msgIdx].reactions || {}) } };
+      msg.reactions[emoji] = (msg.reactions[emoji] || 0) + 1;
+      msgs[msgIdx] = msg;
+      ns = { ...st, chat: msgs };
+    }
+    save(ns);
+  }
+
   // ─────────────────────────────────
   // SUB-VIEWS
   // ─────────────────────────────────
+
+  // ── CHATBOX COMPONENT ─────────────────────────────────────────
+  function ChatBox({ matchId, title }) {
+    const msgs = matchId ? ((st.matchComments||{})[matchId]||[]) : (st.chat||[]);
+    const EMOJIS = ["👍","🔥","😂","😮","👏","💪","🎉","😢"];
+    const endRef = React.useRef(null);
+    React.useEffect(() => { endRef.current?.scrollIntoView({behavior:"smooth"}); }, [msgs.length]);
+    const role = (st.users[user]||{}).role;
+    return (
+      <div style={{display:"flex",flexDirection:"column",gap:0}}>
+        {/* Header */}
+        <div style={{padding:"10px 14px",borderBottom:`1px solid ${BRD}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <span style={{fontWeight:700,fontSize:13,color:TXT}}>{title || "💬 Chat général"}</span>
+          <span style={{fontSize:11,color:MUTED}}>{msgs.length} message{msgs.length>1?"s":""}</span>
+        </div>
+        {/* Messages */}
+        <div style={{maxHeight:280,overflowY:"auto",padding:"10px 12px",display:"flex",flexDirection:"column",gap:8}}>
+          {msgs.length === 0 && <div style={{textAlign:"center",color:MUTED,fontSize:12,padding:"20px 0"}}>Sois le premier à écrire ! 👋</div>}
+          {msgs.map((msg, i) => {
+            const isMe = msg.user === user;
+            const totalReactions = Object.values(msg.reactions||{}).reduce((a,b)=>a+b,0);
+            return (
+              <div key={i} style={{display:"flex",flexDirection:"column",alignItems:isMe?"flex-end":"flex-start"}}>
+                <div style={{
+                  maxWidth:"80%",
+                  background:isMe?"linear-gradient(135deg,#FFD234,#FF8C00)":"rgba(255,255,255,.07)",
+                  color:isMe?"#0a0e1a":TXT,
+                  borderRadius:isMe?"16px 16px 4px 16px":"16px 16px 16px 4px",
+                  padding:"8px 12px",fontSize:13,lineHeight:1.4,
+                }}>
+                  {!isMe && <div style={{fontSize:10,fontWeight:700,color:GOLD,marginBottom:3}}>{msg.user.toUpperCase()}</div>}
+                  {msg.text}
+                </div>
+                {/* Réactions existantes */}
+                {totalReactions > 0 && (
+                  <div style={{display:"flex",gap:4,marginTop:3,flexWrap:"wrap",justifyContent:isMe?"flex-end":"flex-start"}}>
+                    {Object.entries(msg.reactions||{}).filter(([,v])=>v>0).map(([emoji,count])=>(
+                      <span key={emoji} onClick={()=>addReaction(emoji,i,matchId)}
+                        style={{background:"rgba(255,255,255,.08)",border:`1px solid ${BRD}`,borderRadius:10,padding:"2px 6px",fontSize:11,cursor:"pointer",userSelect:"none"}}>
+                        {emoji} {count}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {/* Picker réactions */}
+                <div style={{display:"flex",gap:3,marginTop:3,justifyContent:isMe?"flex-end":"flex-start"}}>
+                  {EMOJIS.map(e=>(
+                    <span key={e} onClick={()=>addReaction(e,i,matchId)}
+                      style={{fontSize:14,cursor:"pointer",opacity:.5,transition:"opacity .15s"}}
+                      onMouseEnter={el=>el.target&&(el.target.style.opacity="1")}
+                      onMouseLeave={el=>el.target&&(el.target.style.opacity=".5")}
+                    >{e}</span>
+                  ))}
+                </div>
+                <div style={{fontSize:9,color:MUTED,marginTop:2}}>{new Date(msg.ts).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}</div>
+              </div>
+            );
+          })}
+          <div ref={endRef}/>
+        </div>
+        {/* Input */}
+        {role && role !== "waiting" && (
+          <div style={{padding:"10px 12px",borderTop:`1px solid ${BRD}`,display:"flex",gap:8}}>
+            <input
+              style={{flex:1,background:"rgba(255,255,255,.06)",border:`1px solid ${BRD}`,borderRadius:12,padding:"10px 12px",color:TXT,fontSize:13,fontFamily:"inherit",outline:"none"}}
+              placeholder="Ton message..."
+              value={chatMsg}
+              onChange={e=>setChatMsg(e.target.value)}
+              onKeyDown={e=>e.key==="Enter"&&sendChat(matchId)}
+            />
+            <button onClick={()=>sendChat(matchId)}
+              style={{background:GRAD_SUN,border:"none",borderRadius:12,padding:"10px 14px",color:"#0a0e1a",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>
+              ➤
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   function GroupStandings({g}) {
     const teams={};
     const official = st.results||{};
@@ -2770,35 +3143,106 @@ export default function App() {
           }}
             placeholder="✏️  Ton pseudo"
             value={uname}
-            onChange={e=>setUname(e.target.value)}
+            onChange={e=>{ setUname(e.target.value); setPw(""); }}
             onKeyDown={e=>e.key==="Enter"&&doLogin()}
             autoCapitalize="none" autoCorrect="off" autoComplete="off"
             aria-label="Pseudo du joueur"
             tabIndex={0}
           />
-          {uname.trim().toLowerCase()==="admin" && (
-            <input style={{
-              ...t.input,
-              background:"rgba(0,0,0,.4)",
-              border:"1px solid rgba(255,255,255,.12)",
-              borderRadius:14,fontSize:16,padding:"14px 16px",
-              color:"#fff",
-            }}
-              type="password" placeholder="🔑  Mot de passe admin"
-              value={pw}
-              onChange={e=>setPw(e.target.value)}
-              onKeyDown={e=>e.key==="Enter"&&doLogin()}
-            />
-          )}
+          {(()=>{
+            const u = uname.trim().toLowerCase();
+            if (!u) return null;
+            const isAdmin = u === "admin";
+            const existingUser = st.users[u];
+            const needsNewPw = !isAdmin && (!existingUser || !existingUser.pw);
+            const placeholder = isAdmin ? "🔑  Mot de passe admin"
+              : needsNewPw ? "🔑  Choisis un mot de passe (min 4 car.)"
+              : "🔑  Ton mot de passe";
+            return (
+              <>
+                <input style={{
+                  ...t.input,
+                  background:"rgba(0,0,0,.4)",
+                  border:"1px solid rgba(255,255,255,.12)",
+                  borderRadius:14,fontSize:16,padding:"14px 16px",
+                  color:"#fff",
+                }}
+                  type="password" placeholder={placeholder}
+                  value={pw}
+                  onChange={e=>setPw(e.target.value)}
+                  onKeyDown={e=>e.key==="Enter"&&doLogin()}
+                  autoComplete="new-password"
+                />
+                {needsNewPw && (
+                  <>
+                    <input style={{
+                      ...t.input,
+                      background:"rgba(0,0,0,.4)",
+                      border:"1px solid rgba(255,255,255,.12)",
+                      borderRadius:14,fontSize:16,padding:"14px 16px",
+                      color:"#fff",
+                    }}
+                      type="password" placeholder="🔑  Confirme ton mot de passe"
+                      value={pwConfirm}
+                      onChange={e=>setPwConfirm(e.target.value)}
+                      onKeyDown={e=>e.key==="Enter"&&doLogin()}
+                      autoComplete="new-password"
+                    />
+                    {/* Nom et Prénom pour identification admin */}
+                    <input style={{
+                      ...t.input,
+                      background:"rgba(0,0,0,.4)",
+                      border:"1px solid rgba(255,255,255,.12)",
+                      borderRadius:14,fontSize:16,padding:"14px 16px",
+                      color:"#fff",
+                    }}
+                      placeholder="👤 Ton prénom"
+                      value={fname}
+                      onChange={e=>setFname(e.target.value)}
+                      onKeyDown={e=>e.key==="Enter"&&doLogin()}
+                      autoComplete="given-name"
+                    />
+                    <input style={{
+                      ...t.input,
+                      background:"rgba(0,0,0,.4)",
+                      border:"1px solid rgba(255,255,255,.12)",
+                      borderRadius:14,fontSize:16,padding:"14px 16px",
+                      color:"#fff",
+                    }}
+                      placeholder="👤 Ton nom"
+                      value={lname}
+                      onChange={e=>setLname(e.target.value)}
+                      onKeyDown={e=>e.key==="Enter"&&doLogin()}
+                      autoComplete="family-name"
+                    />
+                    {!existingUser && (
+                      <div style={{fontSize:11,color:"rgba(0,212,170,.8)",textAlign:"center",lineHeight:1.6}}>
+                        ✨ Ce pseudo n'existe pas encore — tu vas créer ton compte.<br/>
+                        <span style={{color:"rgba(255,255,255,.4)"}}>Tu pourras jouer dès que l'admin t'aura assigné à un groupe.</span>
+                      </div>
+                    )}
+                    {existingUser && !existingUser.pw && (
+                      <div style={{fontSize:11,color:AMB,textAlign:"center",lineHeight:1.5}}>
+                        👋 Première connexion — crée ton mot de passe pour accéder à ton compte
+                      </div>
+                    )}
+                  </>
+                )}
+              </>
+            );
+          })()}
           {/* RAPPEL DEADLINE */}
           <div style={{
             background:"rgba(239,68,68,.1)",border:"1px solid rgba(239,68,68,.3)",
-            borderRadius:12,padding:"10px 12px",fontSize:12,lineHeight:1.6,
+            borderRadius:12,padding:"12px 14px",fontSize:12,lineHeight:1.8,
             color:"rgba(255,100,100,.9)",textAlign:"center"
           }}>
-            ⚠️ <strong>Important</strong> — Tous les pronostics seront<br/>
-            automatiquement verrouillés le<br/>
-            <strong>10 juin à 23h59</strong>, avant le coup d'envoi.
+            ⚠️ <strong>Important</strong><br/>
+            Tu dois remplir <strong>tous tes pronostics</strong> :<br/>
+            les matchs de poules <strong>ET</strong> toutes les phases éliminatoires<br/>
+            jusqu'à la <strong>finale</strong> — avant le<br/>
+            <strong>10 juin à 23h59</strong> ⏰<br/>
+            <span style={{fontSize:11,color:"rgba(255,150,150,.7)"}}>Après cette date, plus aucune modification possible.</span>
           </div>
 
           <button style={{
@@ -2859,40 +3303,102 @@ export default function App() {
           </div>
         </div>
         <div style={{display:"flex",gap:6,alignItems:"center"}}>
-          {/* Sélecteur de musique */}
+          {/* ── Contrôles musique ── */}
           {!muted && (
-            <select
-              value={trackIdx}
-              onChange={e=>{
-                const idx = parseInt(e.target.value);
-                setTrackIdx(idx);
-                currentTrackIdx = idx;
-                if (!_isMuted) switchTrack(idx);
-              }}
-              style={{
-                background:SURF2,border:`1px solid ${BRD}`,color:GOLD,
-                borderRadius:8,padding:"5px 6px",fontSize:11,fontWeight:700,
-                fontFamily:"inherit",cursor:"pointer",maxWidth:110,
-                WebkitAppearance:"none",outline:"none"
-              }}>
-              {TRACKS.map((tr,i)=>(
-                <option key={i} value={i}>{tr.name}</option>
-              ))}
-            </select>
+            <div style={{display:"flex",gap:4,alignItems:"center"}}>
+
+              {/* Toggle source : Synth ↔ MP3 */}
+              <button
+                title={musicSource==="synth" ? "Passer aux MP3" : "Passer aux musiques synthétisées"}
+                onClick={()=>{
+                  const nextSrc = musicSource === "synth" ? "mp3" : "synth";
+                  stopAllMusic();
+                  setAudio(a => ({...a, musicSource: nextSrc}));
+                  if (!_isMuted) {
+                    setTimeout(() => {
+                      if (nextSrc === "mp3") {
+                        mp3LoopMode = playMode === "loop";
+                        playMp3(mp3Idx, mp3LoopMode);
+                      } else {
+                        currentTrackIdx = trackIdx;
+                        playBgMusic();
+                      }
+                    }, 150);
+                  }
+                }}
+                style={{
+                  ...t.btnXS, fontSize:10, padding:"4px 7px",
+                  background: musicSource==="mp3" ? "rgba(245,200,66,.18)" : SURF2,
+                  border: `1px solid ${musicSource==="mp3" ? GOLD : BRD}`,
+                  color: musicSource==="mp3" ? GOLD : TXT,
+                }}>
+                {musicSource==="synth" ? "🎵" : "🎤"}
+              </button>
+
+              {/* Sélecteur de piste */}
+              <select
+                value={musicSource==="synth" ? trackIdx : mp3Idx}
+                onChange={e=>{
+                  const idx = parseInt(e.target.value);
+                  if (musicSource === "synth") {
+                    setAudio(a => ({...a, trackIdx: idx}));
+                    currentTrackIdx = idx;
+                    if (!_isMuted) switchTrack(idx);
+                  } else {
+                    setAudio(a => ({...a, mp3Idx: idx}));
+                    currentMp3Idx = idx;
+                    if (!_isMuted) playMp3(idx, playMode === "loop");
+                  }
+                }}
+                style={{
+                  background:SURF2, border:`1px solid ${BRD}`, color:GOLD,
+                  borderRadius:8, padding:"5px 6px", fontSize:11, fontWeight:700,
+                  fontFamily:"inherit", cursor:"pointer", maxWidth:120,
+                  WebkitAppearance:"none", outline:"none",
+                }}>
+                {(musicSource==="synth" ? TRACKS : MP3_TRACKS).map((tr,i)=>(
+                  <option key={i} value={i}>{tr.name}</option>
+                ))}
+              </select>
+
+              {/* Mode playlist / boucle (MP3 uniquement) */}
+              {musicSource === "mp3" && (
+                <button
+                  title={playMode==="loop" ? "Mode : boucle — cliquer pour playlist" : "Mode : playlist — cliquer pour boucle"}
+                  onClick={()=>{
+                    const next = playMode === "loop" ? "playlist" : "loop";
+                    mp3LoopMode = next === "loop";
+                    setAudio(a => ({...a, playMode: next}));
+                  }}
+                  style={{
+                    ...t.btnXS, fontSize:14, padding:"4px 7px", minWidth:30,
+                    background: playMode==="loop" ? "rgba(34,197,94,.15)" : SURF2,
+                    border: `1px solid ${playMode==="loop" ? "#22c55e" : BRD}`,
+                    color: playMode==="loop" ? "#22c55e" : MUTED,
+                  }}>
+                  {playMode==="loop" ? "🔁" : "▶︎▶︎"}
+                </button>
+              )}
+            </div>
           )}
           {/* Toggle son */}
           <button style={{...t.btnXS,fontSize:16,padding:"5px 8px",minWidth:34}}
             onClick={()=>{
               if (!muted) {
-                // Couper tout
                 _isMuted = true;
                 stopAllMusic();
                 setAudio(a => ({...a, muted: true}));
               } else {
-                // Réactiver
                 _isMuted = false;
                 setAudio(a => ({...a, muted: false}));
-                setTimeout(playBgMusic, 100);
+                setTimeout(() => {
+                  if (musicSource === "mp3") {
+                    mp3LoopMode = playMode === "loop";
+                    playMp3(mp3Idx, mp3LoopMode);
+                  } else {
+                    playBgMusic();
+                  }
+                }, 100);
               }
             }}>
             {muted?"🔇":"🔊"}
@@ -3175,7 +3681,7 @@ export default function App() {
             })()}
 
             {/* CALENDRIER PAR DATE */}
-            <button onClick={()=>setShowCal(s=>!s)} style={{
+            <button onClick={()=>setShowCal(!showCal)} style={{
               width:"100%",marginBottom:10,
               background:"transparent",border:`1px solid ${BRD}`,
               borderRadius:12,padding:"9px",fontSize:13,fontWeight:700,
@@ -3445,6 +3951,46 @@ export default function App() {
         </>}
 
         {/* ── SCORES ── */}
+        {tab==="chat" && (
+          <div style={{...t.sec,animation:"waveIn .25s ease"}}>
+            <div style={{...t.card,padding:0,overflow:"hidden",marginBottom:12}}>
+              {onlinePlayers.length > 0 && (
+                <div style={{padding:"8px 14px",background:"rgba(46,204,113,.06)",borderBottom:`1px solid ${BRD}`,display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
+                  <span style={{fontSize:10,color:GREEN,fontWeight:700}}>🟢 En ligne :</span>
+                  {onlinePlayers.map(u=>(
+                    <span key={u} style={{fontSize:11,background:"rgba(46,204,113,.12)",border:"1px solid rgba(46,204,113,.25)",borderRadius:10,padding:"2px 8px",color:GREEN,fontWeight:600}}>
+                      {u}
+                    </span>
+                  ))}
+                </div>
+              )}
+              <ChatBox matchId={null} title="💬 Chat général"/>
+            </div>
+            <div style={t.stitle}>🏟️ Commentaires par match</div>
+            {MATCHES.filter(m=>(st.results||{})[m.id]).map(m=>{
+              const rH=resolveTeam(m.home,st.results||{});
+              const rA=resolveTeam(m.away,st.results||{});
+              const comments=(st.matchComments||{})[m.id]||[];
+              return (
+                <div key={m.id} style={{...t.card,padding:0,overflow:"hidden",marginBottom:10}}>
+                  <div onClick={()=>setChatMatchId(chatMatchId===m.id?null:m.id)}
+                    style={{padding:"10px 14px",display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer"}}>
+                    <span style={{fontSize:13,fontWeight:700}}>{F(rH)} {rH} vs {rA} {F(rA)}</span>
+                    <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                      {comments.length>0&&<span style={{fontSize:11,color:MUTED}}>{comments.length} 💬</span>}
+                      <span style={{fontSize:12,color:MUTED}}>{chatMatchId===m.id?"▲":"▼"}</span>
+                    </div>
+                  </div>
+                  {chatMatchId===m.id&&<ChatBox matchId={m.id} title={`${rH} vs ${rA}`}/>}
+                </div>
+              );
+            })}
+            {!MATCHES.some(m=>(st.results||{})[m.id])&&(
+              <div style={t.empty}>Les commentaires par match seront disponibles dès le premier résultat. ⚽</div>
+            )}
+          </div>
+        )}
+
         {tab==="scores" && (()=>{
           // Son si on est en tête
           const myScore = scores[user]||0;
@@ -3485,18 +4031,28 @@ export default function App() {
               const fam  = allP.filter(u=>st.users[u].role==="famille");
               const col  = allP.filter(u=>st.users[u].role==="collegues");
               const wait = allP.filter(u=>st.users[u].role==="waiting");
-              const played = Object.keys(st.results||{}).length;
+              const scoresEntered = Object.keys(st.scores||{}).filter(id=>{const sc=st.scores[id];return sc&&sc.h!==""&&sc.h!=null&&sc.a!==""&&sc.a!=null;}).length;
+              const totalPoolMatches = MATCHES.filter(m=>m.phase==="poules").length;
+              const completionPercent = Math.round((scoresEntered / totalPoolMatches) * 100);
+              
+              const stats = [
+                {label:"Famille",  val:fam.length,  color:"#3b82f6", tooltip:"Joueurs en groupe Famille"},
+                {label:"Collègues",val:col.length,  color:"#7c3aed", tooltip:"Joueurs en groupe Collègues"},
+                {label:"Attente",  val:wait.length, color:AMB, tooltip:"Joueurs en attente d'assignation"},
+                {label:"Matchs ✓", val:`${scoresEntered}/${totalPoolMatches}`, color:GREEN, tooltip:`${completionPercent}% des matchs de poules avec scores`},
+              ];
+              
               return (
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:6,marginBottom:14}}>
-                  {[
-                    {label:"Famille",  val:fam.length,  color:"#3b82f6"},
-                    {label:"Collègues",val:col.length,  color:"#7c3aed"},
-                    {label:"Attente",  val:wait.length, color:AMB},
-                    {label:"Scores ✓", val:Object.keys(st.scores||{}).filter(id=>{const sc=st.scores[id];return sc&&sc.h!==""&&sc.h!=null&&sc.a!==""&&sc.a!=null;}).length, color:GREEN},
-                  ].map(s=>(
-                    <div key={s.label} style={{background:SURF2,borderRadius:10,padding:"8px 4px",textAlign:"center"}}>
+                  {stats.map(s=>(
+                    <div key={s.label} style={{background:SURF2,borderRadius:10,padding:"8px 4px",textAlign:"center",cursor:"help",position:"relative",group:"hover"}} title={s.tooltip}>
                       <div style={{fontSize:20,fontWeight:900,color:s.color}}>{s.val}</div>
                       <div style={{fontSize:9,color:MUTED,marginTop:2}}>{s.label}</div>
+                      {s.label === "Matchs ✓" && (
+                        <div style={{height:3,background:SURF,borderRadius:2,marginTop:4,overflow:"hidden"}}>
+                          <div style={{height:"100%",width:completionPercent+"%",background:GREEN,transition:"width .3s"}}/>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -3506,7 +4062,7 @@ export default function App() {
             {/* Sous-onglets admin */}
             <div style={{...t.tabs, paddingLeft:0, paddingRight:0, marginBottom:8}}>
               {[{k:"users",l:"👥 Joueurs"},{k:"pronos",l:"🔍 Pronos"},{k:"results",l:"✏️ Résultats"}].map(s=>(
-                <button key={s.k} style={{...t.tab,...(adminSub===s.k?t.tabOn:{})}} onClick={()=>setAdminSub(s.k)}>{s.l}</button>
+                <button key={s.k} style={{...t.tab,...(adminSub===s.k?t.tabOn:{})}} onClick={()=>{ setAdminSub(s.k); setAdminConfirmUser(null); }}>{s.l}</button>
               ))}
             </div>
 
@@ -3516,15 +4072,113 @@ export default function App() {
                 ? <div style={t.empty}>Aucun joueur.</div>
                 : Object.keys(st.users).filter(u=>u!=="admin").map(u=>{
                     const r=st.users[u].role;
+                    const isConfirming = adminConfirmUser?.name === u;
                     return (
                       <div key={u} style={t.ucard}>
-                        <div style={{fontWeight:700,fontSize:13}}>{u.toUpperCase()} {st.finalLock[u]?"🔒":""}</div>
-                        <div style={{fontSize:11,color:MUTED,marginTop:2}}>Rôle : {r} · {scores[u]||0} pts</div>
+                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                          <div>
+                            <div style={{fontWeight:700,fontSize:13}}>{onlinePlayers.includes(u)&&<span style={{color:GREEN,marginRight:3}}>🟢</span>}{u.toUpperCase()} {st.finalLock[u]?"🔒":""}</div>
+                            <div style={{fontSize:11,color:MUTED,marginTop:2}}>Rôle : {r} · {scores[u]||0} pts{onlinePlayers.includes(u)?" · en ligne":""}</div>
+                          </div>
+                          <div style={{display:"flex",gap:6}}>
+                            <button
+                              title="Remettre les pronos à zéro"
+                              style={{background:"rgba(245,158,11,.1)",border:"1px solid rgba(245,158,11,.3)",color:AMB,borderRadius:8,padding:"5px 8px",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}
+                              onClick={()=>setAdminConfirmUser({name:u,action:"reset"})}>
+                              🔄 Reset
+                            </button>
+                            <button
+                              title="Supprimer ce joueur"
+                              style={{background:"rgba(239,68,68,.1)",border:"1px solid rgba(239,68,68,.3)",color:RED,borderRadius:8,padding:"5px 8px",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}
+                              onClick={()=>setAdminConfirmUser({name:u,action:"delete"})}>
+                              🗑️
+                            </button>
+                          </div>
+                        </div>
                         <div style={t.rrow}>
                           <button style={{...t.brole,...(r==="famille"?t.bFam:{})}} onClick={()=>setRole(u,"famille")}>Famille</button>
                           <button style={{...t.brole,...(r==="collegues"?t.bCol:{})}} onClick={()=>setRole(u,"collegues")}>Collègues</button>
                           <button style={{...t.brole,...(r==="waiting"?{background:SURF2,color:TXT}:{})}} onClick={()=>setRole(u,"waiting")}>Attente</button>
                         </div>
+
+                        {/* Confirmation inline */}
+                        {isConfirming && (
+                          <div style={{marginTop:10,background:adminConfirmUser.action==="delete"?"rgba(239,68,68,.08)":"rgba(245,158,11,.08)",border:`1px solid ${adminConfirmUser.action==="delete"?"rgba(239,68,68,.3)":"rgba(245,158,11,.3)"}`,borderRadius:10,padding:10}}>
+                            {adminConfirmUser.action==="delete" ? (
+                              <>
+                                <div style={{fontSize:12,color:TXT,marginBottom:8,lineHeight:1.4}}>
+                                  Supprimer <strong>{u.toUpperCase()}</strong> définitivement ?<br/>
+                                  <span style={{fontSize:11,color:MUTED}}>Compte, pronos et historique effacés.</span>
+                                </div>
+                                <div style={{display:"flex",gap:8}}>
+                                  <button style={{flex:1,background:"rgba(239,68,68,.8)",border:"none",color:"#fff",borderRadius:8,padding:"8px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}
+                                    onClick={()=>{
+                                      const ns={...st};
+                                      const {[u]:_u,...restUsers}=ns.users;
+                                      const {[u]:_p,...restPreds}=ns.predictions||{};
+                                      const {[u]:_v,...restVG}=ns.validatedGroups||{};
+                                      const {[u]:_f,...restFL}=ns.finalLock||{};
+                                      const {[u]:_s,...restSA}=ns.seenAnim||{};
+                                      ns.users=restUsers; ns.predictions=restPreds;
+                                      ns.validatedGroups=restVG; ns.finalLock=restFL; ns.seenAnim=restSA;
+                                      save(ns); showNotif("success",`✅ ${u.toUpperCase()} supprimé`);
+                                      setAdminConfirmUser(null);
+                                    }}>🗑️ Supprimer</button>
+                                  <button style={{flex:1,background:"rgba(255,255,255,.06)",border:"1px solid rgba(255,255,255,.15)",color:TXT,borderRadius:8,padding:"8px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}
+                                    onClick={()=>setAdminConfirmUser(null)}>Annuler</button>
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <div style={{fontSize:12,color:TXT,marginBottom:8,lineHeight:1.5}}>
+                                  Que veux-tu remettre à zéro pour <strong>{u.toUpperCase()}</strong> ?
+                                </div>
+                                <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                                  {[
+                                    {label:"⚽ Poules uniquement",      scope:"poules",  color:"rgba(59,130,246,.8)"},
+                                    {label:"🏆 Phases éliminatoires",   scope:"elim",    color:"rgba(124,58,237,.8)"},
+                                    {label:"🔄 Tout remettre à zéro",   scope:"all",     color:"rgba(239,68,68,.8)"},
+                                  ].map(opt=>(
+                                    <button key={opt.scope}
+                                      style={{background:opt.color,border:"none",color:"#fff",borderRadius:8,padding:"8px 10px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}
+                                      onClick={()=>{
+                                        const ns={...st};
+                                        const ELIM_KEYS = ["ELIM_seiziemes","ELIM_huitiemes","ELIM_quarts","ELIM_demis","ELIM_p3","ELIM_finale"];
+                                        const POULE_KEYS = GROUPS;
+                                        if (opt.scope==="all") {
+                                          const {[u]:_p,...rP}=ns.predictions||{};
+                                          const {[u]:_v,...rV}=ns.validatedGroups||{};
+                                          const {[u]:_f,...rF}=ns.finalLock||{};
+                                          const {[u]:_s,...rS}=ns.seenAnim||{};
+                                          ns.predictions=rP; ns.validatedGroups=rV; ns.finalLock=rF; ns.seenAnim=rS;
+                                        } else if (opt.scope==="poules") {
+                                          // Supprimer uniquement les pronos de poules + groupes validés
+                                          const userPreds = {...(ns.predictions[u]||{})};
+                                          MATCHES.filter(m=>m.phase==="poules").forEach(m=>{ delete userPreds[m.id]; });
+                                          ns.predictions={...ns.predictions,[u]:userPreds};
+                                          const vg = (ns.validatedGroups[u]||[]).filter(k=>!POULE_KEYS.includes(k));
+                                          ns.validatedGroups={...ns.validatedGroups,[u]:vg};
+                                        } else { // elim
+                                          const userPreds = {...(ns.predictions[u]||{})};
+                                          MATCHES.filter(m=>m.phase!=="poules").forEach(m=>{ delete userPreds[m.id]; });
+                                          ns.predictions={...ns.predictions,[u]:userPreds};
+                                          const vg = (ns.validatedGroups[u]||[]).filter(k=>!ELIM_KEYS.includes(k));
+                                          ns.validatedGroups={...ns.validatedGroups,[u]:vg};
+                                          const {[u]:_f,...rF}=ns.finalLock||{};
+                                          ns.finalLock=rF;
+                                        }
+                                        save(ns);
+                                        showNotif("success",`✅ Reset ${opt.label} pour ${u.toUpperCase()}`);
+                                        setAdminConfirmUser(null);
+                                      }}>{opt.label}</button>
+                                  ))}
+                                  <button style={{background:"rgba(255,255,255,.06)",border:"1px solid rgba(255,255,255,.15)",color:TXT,borderRadius:8,padding:"8px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}
+                                    onClick={()=>setAdminConfirmUser(null)}>Annuler</button>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        )}
                       </div>
                     );
                   })
@@ -3571,10 +4225,77 @@ export default function App() {
                       fontSize:12,fontWeight:800,color:"#fff",
                       textTransform:"uppercase",letterSpacing:1,
                       marginBottom:10,padding:"6px 10px",
-                      background:"rgba(255,255,255,.06)",borderRadius:8
-                    }}>{groupTitle}</div>
+                      background:"rgba(255,255,255,.06)",borderRadius:8,
+                      display:"flex",justifyContent:"space-between",alignItems:"center"
+                    }}>
+                      <span>{groupTitle}</span>
+                      <span style={{fontSize:10,color:MUTED,fontWeight:400}}>{players.length} joueur{players.length>1?"s":""}</span>
+                    </div>
 
-                    {/* Sélecteur poules + phases élim */}
+                    {/* Toggle vue tableau / joueur */}
+                    <div style={{display:"flex",gap:6,marginBottom:10}}>
+                      {[{k:"tableau",l:"📊 Tableau"},{k:"joueur",l:"👤 Par joueur"}].map(v=>(
+                        <button key={v.k}
+                          style={{...t.tab,flex:1,fontSize:12,...(adminPronoView===v.k?t.tabOn:{})}}
+                          onClick={()=>{ setAdminPronoView(v.k); setAdminPronoPlayer(null); }}>
+                          {v.l}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Vue par joueur */}
+                    {adminPronoView==="joueur" && (
+                      <div style={{marginBottom:10}}>
+                        <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:8}}>
+                          {players.map(u=>(
+                            <button key={u}
+                              style={{...t.tab,padding:"5px 10px",fontSize:12,...(adminPronoPlayer===u?t.tabOn:{}),
+                                borderColor:onlinePlayers.includes(u)?"rgba(46,204,113,.6)":undefined}}
+                              onClick={()=>setAdminPronoPlayer(u)}>
+                              {onlinePlayers.includes(u)&&<span style={{color:GREEN,marginRight:3}}>🟢</span>}
+                              {u.toUpperCase()}
+                              <span style={{fontSize:10,marginLeft:4,color:adminPronoPlayer===u?"#0a0e1a":MUTED}}>({scores[u]||0}pts)</span>
+                            </button>
+                          ))}
+                        </div>
+                        {adminPronoPlayer ? (()=>{
+                          const uPreds = (st.predictions[adminPronoPlayer]||{});
+                          const isElimP = ["seiziemes","huitiemes","quarts","demis","p3","finale"].includes(adminPronoGroup);
+                          const ml = isElimP
+                            ? MATCHES.filter(m=>m.group==="ELIM"&&m.phase===adminPronoGroup)
+                            : MATCHES.filter(m=>m.group===adminPronoGroup&&m.phase==="poules");
+                          return (
+                            <div style={t.card}>
+                              <div style={{fontWeight:800,fontSize:14,marginBottom:10,display:"flex",justifyContent:"space-between"}}>
+                                <span>{adminPronoPlayer.toUpperCase()} {onlinePlayers.includes(adminPronoPlayer)?"🟢":""}</span>
+                                <span style={{color:GOLD}}>{scores[adminPronoPlayer]||0} pts</span>
+                              </div>
+                              {ml.map(m=>{
+                                const p=uPreds[m.id];
+                                const off=(st.results||{})[m.id];
+                                const ok=p&&off&&p===off;
+                                const ko=p&&off&&p!==off;
+                                const rH=resolveTeam(m.home,st.results||{});
+                                const rA=resolveTeam(m.away,st.results||{});
+                                return (
+                                  <div key={m.id} style={{display:"flex",alignItems:"center",padding:"7px 0",borderBottom:`1px solid ${BRD}`,gap:6}}>
+                                    <span style={{fontSize:11,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{F(rH)} {rH}</span>
+                                    <span style={{fontSize:13,fontWeight:900,minWidth:32,textAlign:"center",
+                                      color:ok?GREEN:ko?RED:p?AMB:MUTED,
+                                      textShadow:ok?`0 0 8px ${GREEN}`:ko?`0 0 8px ${RED}`:"none"}}>
+                                      {p||(off?"—":"·")}
+                                    </span>
+                                    <span style={{fontSize:11,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",textAlign:"right"}}>{rA} {F(rA)}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          );
+                        })() : <div style={t.empty}>Sélectionne un joueur</div>}
+                      </div>
+                    )}
+
+                    {/* Sélecteur poules + phases élim (visible dans les deux modes) */}
                     <div style={{...t.tabs,paddingLeft:0,paddingRight:0,marginBottom:10}}>
                       {GROUPS.map(g=>(
                         <button key={g}
@@ -3980,7 +4701,7 @@ export default function App() {
           </div>
 
           <button
-            onClick={()=>{ setEggActive(false); stopEggMusic(); if(!_isMuted){ setTimeout(()=>{ try{_getMusicCtx();playBgMusic();}catch(e){} },200); } }}
+            onClick={()=>{ setEggActive(false); stopEggMusic(); if(!_isMuted){ setTimeout(()=>{ if(musicSource==="mp3"){mp3LoopMode=playMode==="loop";playMp3(mp3Idx,mp3LoopMode);}else{try{_getMusicCtx();playBgMusic();}catch(e){}} },200); } }}
             style={{
               background:"linear-gradient(135deg,#7c3aed,#4f46e5)",
               border:"none",color:"#fff",
