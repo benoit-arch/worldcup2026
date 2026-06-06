@@ -1950,6 +1950,171 @@ function MatchCard({ m, pred, official, score, locked, onPick, isAdmin, onScore,
 // ══════════════════════════════════════════
 // APP
 // ══════════════════════════════════════════
+
+
+// ── CHAT COMPONENTS (top-level pour éviter hook violations) ──────
+function ChatInput({ onSend }) {
+  const [localMsg, setLocalMsg] = useState("");
+  return (
+    <div style={{padding:"10px 12px",borderTop:`1px solid ${BRD}`,display:"flex",gap:8}}>
+      <input
+        style={{flex:1,background:"rgba(255,255,255,.06)",border:`1px solid ${BRD}`,borderRadius:12,padding:"10px 12px",color:TXT,fontSize:13,fontFamily:"inherit",outline:"none"}}
+        placeholder="Ton message..."
+        value={localMsg}
+        onChange={e=>setLocalMsg(e.target.value)}
+        onKeyDown={e=>{ if(e.key==="Enter"&&localMsg.trim()){ onSend(localMsg); setLocalMsg(""); } }}
+        autoComplete="off" autoCorrect="off" spellCheck="false"
+      />
+      <button
+        onClick={()=>{ if(localMsg.trim()){ onSend(localMsg); setLocalMsg(""); } }}
+        style={{background:GRAD_SUN,border:"none",borderRadius:12,padding:"10px 14px",color:"#0a0e1a",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"inherit",flexShrink:0}}>
+        ➤
+      </button>
+    </div>
+  );
+}
+
+function ChatBox({ matchId, title, getChatMsgs, addReaction, validChatRole, user, st, save, chatEnabled }) {
+  const msgs = getChatMsgs(matchId);
+  const EMOJIS = ["👍","🔥","😂","😮","👏","💪","🎉","😢"];
+  const endRef = useRef(null);
+  const [showPickers, setShowPickers] = useState({}); // { "msgIdx": true/false }
+  const [hoveredMsg, setHoveredMsg] = useState(null); // Track which message is hovered
+  useEffect(() => { endRef.current?.scrollIntoView({behavior:"smooth"}); }, [msgs.length]);
+  const role = (st.users[user]||{}).role;
+  return (
+    <div style={{display:"flex",flexDirection:"column",gap:0}}>
+      {/* Header */}
+      <div style={{padding:"10px 14px",borderBottom:`1px solid ${BRD}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <span style={{fontWeight:700,fontSize:13,color:TXT}}>{title || "💬 Chat général"}</span>
+        <span style={{fontSize:11,color:MUTED}}>{msgs.length} message{msgs.length>1?"s":""}</span>
+      </div>
+      {/* Messages */}
+      <div style={{maxHeight:280,overflowY:"auto",padding:"10px 12px",display:"flex",flexDirection:"column",gap:8}}>
+        {msgs.length === 0 && <div style={{textAlign:"center",color:MUTED,fontSize:12,padding:"20px 0"}}>Sois le premier à écrire ! 👋</div>}
+        {msgs.map((msg, i) => {
+          const isMe = msg.user === user;
+          const usedEmojis = Object.entries(msg.reactions||{}).filter(([e, users]) => Array.isArray(users) && users.length > 0);
+          const showPicker = showPickers[i];
+          return (
+            <div key={i} 
+              onMouseEnter={() => setHoveredMsg(i)}
+              onMouseLeave={() => setHoveredMsg(null)}
+              style={{display:"flex",flexDirection:"column",alignItems:isMe?"flex-end":"flex-start"}}>
+              <div style={{
+                maxWidth:"80%",
+                background:isMe?"linear-gradient(135deg,#FFD234,#FF8C00)":"rgba(255,255,255,.07)",
+                color:isMe?"#0a0e1a":TXT,
+                borderRadius:isMe?"16px 16px 4px 16px":"16px 16px 16px 4px",
+                padding:"8px 12px",fontSize:13,lineHeight:1.4,
+              }}>
+                {!isMe && <div style={{fontSize:10,fontWeight:700,color:GOLD,marginBottom:3}}>{msg.user.toUpperCase()}</div>}
+                {msg.text}
+              </div>
+              
+              {/* Réactions utilisées + bouton ajouter */}
+              <div style={{display:"flex",gap:3,marginTop:4,flexWrap:"wrap",justifyContent:isMe?"flex-end":"flex-start"}}>
+                {/* Afficher seulement les emojis avec réactions */}
+                {usedEmojis.map(([e, users]) => (
+                  <span key={e} onClick={()=>addReaction(e,i,matchId)}
+                    style={{
+                      fontSize:13,cursor:"pointer",userSelect:"none",
+                      padding:"2px 7px",borderRadius:10,
+                      background: users.includes(user) ? "rgba(255,210,52,.2)" : "rgba(255,255,255,.07)",
+                      border: users.includes(user) ? `1px solid rgba(255,210,52,.5)` : `1px solid ${BRD}`,
+                      color: users.includes(user) ? GOLD : TXT,
+                      fontWeight: users.includes(user) ? 700 : 400,
+                      transition:"all .15s",
+                    }}>
+                    {e} {users.length}
+                  </span>
+                ))}
+                
+                {/* Bouton "+" — TOUJOURS visible pour indiquer l'interaction */}
+                {!showPicker && (
+                  <span onClick={()=>setShowPickers(p=>({...p,[i]:true}))}
+                    style={{
+                      fontSize:13,cursor:"pointer",userSelect:"none",
+                      padding:"2px 7px",borderRadius:10,
+                      background:"rgba(251,191,36,.15)",
+                      border:"1px solid rgba(251,191,36,.5)",
+                      color:"#fbbf24",
+                      transition:"all .15s",
+                      fontWeight:700,
+                      opacity: hoveredMsg === i ? 1 : 0.65,
+                    }}>
+                    +
+                  </span>
+                )}
+              </div>
+              
+              {/* Picker des emojis — affiche seulement si demandé */}
+              {showPicker && (
+                <div style={{display:"flex",gap:2,marginTop:4,flexWrap:"wrap",justifyContent:isMe?"flex-end":"flex-start"}}>
+                  {EMOJIS.map(e=>(
+                    <span key={e} onClick={()=>{addReaction(e,i,matchId); setShowPickers(p=>({...p,[i]:false}));}}
+                      style={{
+                        fontSize:13,cursor:"pointer",userSelect:"none",
+                        padding:"2px 6px",borderRadius:8,
+                        background:"rgba(255,255,255,.1)",
+                        border:`1px solid ${BRD}`,
+                        color:TXT,
+                        transition:"all .15s",
+                        hover:{background:"rgba(255,255,255,.15)"},
+                      }}>
+                      {e}
+                    </span>
+                  ))}
+                  <span onClick={()=>setShowPickers(p=>({...p,[i]:false}))}
+                    style={{
+                      fontSize:13,cursor:"pointer",userSelect:"none",
+                      padding:"2px 6px",borderRadius:8,
+                      background:"rgba(255,0,0,.1)",
+                      border:`1px solid rgba(255,0,0,.3)`,
+                      color:"#ff6b6b",
+                      fontWeight:700,
+                      transition:"all .15s",
+                    }}>
+                    ✕
+                  </span>
+                </div>
+              )}
+              
+              <div style={{fontSize:9,color:MUTED,marginTop:2}}>{new Date(msg.ts).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}</div>
+            </div>
+          );
+        })}
+        <div ref={endRef}/>
+      </div>
+      {/* Input — state local pour éviter le re-render du clavier */}
+      {role && role !== "waiting" && chatEnabled!==false && (
+        <ChatInput onSend={txt => {
+          if (!txt.trim() || !user || !validChatRole) return;
+          const msg = { user, text: txt.trim(), ts: Date.now(), reactions: {} };
+          let ns;
+          if (matchId) {
+            const mcPrev = (st.matchComments||{})[matchId] || {};
+            const groupPrev = Array.isArray(mcPrev) ? [] : (mcPrev[validChatRole] || []);
+            ns = { ...st, matchComments: { ...(st.matchComments||{}),
+              [matchId]: { ...(Array.isArray(mcPrev)?{}:mcPrev), [validChatRole]: [...groupPrev, msg] }
+            }};
+          } else {
+            const chatPrev = st.chat || {};
+            const groupPrev = Array.isArray(chatPrev) ? [] : (chatPrev[validChatRole] || []);
+            ns = { ...st, chat: { ...(Array.isArray(chatPrev)?{}:chatPrev), [validChatRole]: [...groupPrev, msg] }};
+          }
+          save(ns);
+        }}/>
+      )}
+      {role && role !== "waiting" && chatEnabled===false && (
+        <div style={{padding:"12px 14px",borderTop:`1px solid ${BRD}`,textAlign:"center",fontSize:12,color:MUTED}}>
+          🔒 Le chat est temporairement fermé par l'administrateur
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function App() {
   const [st, setSt]     = useState(load);
   const [user, setUser] = useState("");
@@ -2744,168 +2909,6 @@ export default function App() {
   // ── CHATBOX COMPONENT ─────────────────────────────────────────
 
   // ── CHATINPUT — state local pour éviter re-render clavier ──────
-  function ChatInput({ onSend }) {
-    const [localMsg, setLocalMsg] = useState("");
-    return (
-      <div style={{padding:"10px 12px",borderTop:`1px solid ${BRD}`,display:"flex",gap:8}}>
-        <input
-          style={{flex:1,background:"rgba(255,255,255,.06)",border:`1px solid ${BRD}`,borderRadius:12,padding:"10px 12px",color:TXT,fontSize:13,fontFamily:"inherit",outline:"none"}}
-          placeholder="Ton message..."
-          value={localMsg}
-          onChange={e=>setLocalMsg(e.target.value)}
-          onKeyDown={e=>{ if(e.key==="Enter"&&localMsg.trim()){ onSend(localMsg); setLocalMsg(""); } }}
-          autoComplete="off" autoCorrect="off" spellCheck="false"
-        />
-        <button
-          onClick={()=>{ if(localMsg.trim()){ onSend(localMsg); setLocalMsg(""); } }}
-          style={{background:GRAD_SUN,border:"none",borderRadius:12,padding:"10px 14px",color:"#0a0e1a",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"inherit",flexShrink:0}}>
-          ➤
-        </button>
-      </div>
-    );
-  }
-
-  function ChatBox({ matchId, title }) {
-    const msgs = getChatMsgs(matchId);
-    const EMOJIS = ["👍","🔥","😂","😮","👏","💪","🎉","😢"];
-    const endRef = React.useRef(null);
-    const [showPickers, setShowPickers] = React.useState({}); // { "msgIdx": true/false }
-    const [hoveredMsg, setHoveredMsg] = React.useState(null); // Track which message is hovered
-    React.useEffect(() => { endRef.current?.scrollIntoView({behavior:"smooth"}); }, [msgs.length]);
-    const role = (st.users[user]||{}).role;
-    return (
-      <div style={{display:"flex",flexDirection:"column",gap:0}}>
-        {/* Header */}
-        <div style={{padding:"10px 14px",borderBottom:`1px solid ${BRD}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <span style={{fontWeight:700,fontSize:13,color:TXT}}>{title || "💬 Chat général"}</span>
-          <span style={{fontSize:11,color:MUTED}}>{msgs.length} message{msgs.length>1?"s":""}</span>
-        </div>
-        {/* Messages */}
-        <div style={{maxHeight:280,overflowY:"auto",padding:"10px 12px",display:"flex",flexDirection:"column",gap:8}}>
-          {msgs.length === 0 && <div style={{textAlign:"center",color:MUTED,fontSize:12,padding:"20px 0"}}>Sois le premier à écrire ! 👋</div>}
-          {msgs.map((msg, i) => {
-            const isMe = msg.user === user;
-            const usedEmojis = Object.entries(msg.reactions||{}).filter(([e, users]) => Array.isArray(users) && users.length > 0);
-            const showPicker = showPickers[i];
-            return (
-              <div key={i} 
-                onMouseEnter={() => setHoveredMsg(i)}
-                onMouseLeave={() => setHoveredMsg(null)}
-                style={{display:"flex",flexDirection:"column",alignItems:isMe?"flex-end":"flex-start"}}>
-                <div style={{
-                  maxWidth:"80%",
-                  background:isMe?"linear-gradient(135deg,#FFD234,#FF8C00)":"rgba(255,255,255,.07)",
-                  color:isMe?"#0a0e1a":TXT,
-                  borderRadius:isMe?"16px 16px 4px 16px":"16px 16px 16px 4px",
-                  padding:"8px 12px",fontSize:13,lineHeight:1.4,
-                }}>
-                  {!isMe && <div style={{fontSize:10,fontWeight:700,color:GOLD,marginBottom:3}}>{msg.user.toUpperCase()}</div>}
-                  {msg.text}
-                </div>
-                
-                {/* Réactions utilisées + bouton ajouter */}
-                <div style={{display:"flex",gap:3,marginTop:4,flexWrap:"wrap",justifyContent:isMe?"flex-end":"flex-start"}}>
-                  {/* Afficher seulement les emojis avec réactions */}
-                  {usedEmojis.map(([e, users]) => (
-                    <span key={e} onClick={()=>addReaction(e,i,matchId)}
-                      style={{
-                        fontSize:13,cursor:"pointer",userSelect:"none",
-                        padding:"2px 7px",borderRadius:10,
-                        background: users.includes(user) ? "rgba(255,210,52,.2)" : "rgba(255,255,255,.07)",
-                        border: users.includes(user) ? `1px solid rgba(255,210,52,.5)` : `1px solid ${BRD}`,
-                        color: users.includes(user) ? GOLD : TXT,
-                        fontWeight: users.includes(user) ? 700 : 400,
-                        transition:"all .15s",
-                      }}>
-                      {e} {users.length}
-                    </span>
-                  ))}
-                  
-                  {/* Bouton "+" — TOUJOURS visible pour indiquer l'interaction */}
-                  {!showPicker && (
-                    <span onClick={()=>setShowPickers(p=>({...p,[i]:true}))}
-                      style={{
-                        fontSize:13,cursor:"pointer",userSelect:"none",
-                        padding:"2px 7px",borderRadius:10,
-                        background:"rgba(251,191,36,.15)",
-                        border:"1px solid rgba(251,191,36,.5)",
-                        color:"#fbbf24",
-                        transition:"all .15s",
-                        fontWeight:700,
-                        opacity: hoveredMsg === i ? 1 : 0.65,
-                      }}>
-                      +
-                    </span>
-                  )}
-                </div>
-                
-                {/* Picker des emojis — affiche seulement si demandé */}
-                {showPicker && (
-                  <div style={{display:"flex",gap:2,marginTop:4,flexWrap:"wrap",justifyContent:isMe?"flex-end":"flex-start"}}>
-                    {EMOJIS.map(e=>(
-                      <span key={e} onClick={()=>{addReaction(e,i,matchId); setShowPickers(p=>({...p,[i]:false}));}}
-                        style={{
-                          fontSize:13,cursor:"pointer",userSelect:"none",
-                          padding:"2px 6px",borderRadius:8,
-                          background:"rgba(255,255,255,.1)",
-                          border:`1px solid ${BRD}`,
-                          color:TXT,
-                          transition:"all .15s",
-                          hover:{background:"rgba(255,255,255,.15)"},
-                        }}>
-                        {e}
-                      </span>
-                    ))}
-                    <span onClick={()=>setShowPickers(p=>({...p,[i]:false}))}
-                      style={{
-                        fontSize:13,cursor:"pointer",userSelect:"none",
-                        padding:"2px 6px",borderRadius:8,
-                        background:"rgba(255,0,0,.1)",
-                        border:`1px solid rgba(255,0,0,.3)`,
-                        color:"#ff6b6b",
-                        fontWeight:700,
-                        transition:"all .15s",
-                      }}>
-                      ✕
-                    </span>
-                  </div>
-                )}
-                
-                <div style={{fontSize:9,color:MUTED,marginTop:2}}>{new Date(msg.ts).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}</div>
-              </div>
-            );
-          })}
-          <div ref={endRef}/>
-        </div>
-        {/* Input — state local pour éviter le re-render du clavier */}
-        {role && role !== "waiting" && st.chatEnabled!==false && (
-          <ChatInput onSend={txt => {
-            if (!txt.trim() || !user || !validChatRole) return;
-            const msg = { user, text: txt.trim(), ts: Date.now(), reactions: {} };
-            let ns;
-            if (matchId) {
-              const mcPrev = (st.matchComments||{})[matchId] || {};
-              const groupPrev = Array.isArray(mcPrev) ? [] : (mcPrev[validChatRole] || []);
-              ns = { ...st, matchComments: { ...(st.matchComments||{}),
-                [matchId]: { ...(Array.isArray(mcPrev)?{}:mcPrev), [validChatRole]: [...groupPrev, msg] }
-              }};
-            } else {
-              const chatPrev = st.chat || {};
-              const groupPrev = Array.isArray(chatPrev) ? [] : (chatPrev[validChatRole] || []);
-              ns = { ...st, chat: { ...(Array.isArray(chatPrev)?{}:chatPrev), [validChatRole]: [...groupPrev, msg] }};
-            }
-            save(ns);
-          }}/>
-        )}
-        {role && role !== "waiting" && st.chatEnabled===false && (
-          <div style={{padding:"12px 14px",borderTop:`1px solid ${BRD}`,textAlign:"center",fontSize:12,color:MUTED}}>
-            🔒 Le chat est temporairement fermé par l'administrateur
-          </div>
-        )}
-      </div>
-    );
-  }
-
   function GroupStandings({g}) {
     const teams={};
     const official = st.results||{};
@@ -4182,7 +4185,7 @@ export default function App() {
               {/* TAB 1 : Chat général du groupe */}
               {chatTab==="general" && (
                 <div style={{...t.card,padding:0,overflow:"hidden",marginBottom:12}}>
-                  <ChatBox matchId={null} title="💬 Chat du groupe"/>
+                  <ChatBox matchId={null} title="💬 Chat du groupe" getChatMsgs={getChatMsgs} addReaction={addReaction} validChatRole={validChatRole} user={user} st={st} save={save} chatEnabled={st.chatEnabled}/>
                 </div>
               )}
 
@@ -4210,7 +4213,7 @@ export default function App() {
                             <span style={{fontSize:12,color:MUTED}}>{chatMatchId===m.id?"▲":"▼"}</span>
                           </div>
                         </div>
-                        {chatMatchId===m.id&&<ChatBox matchId={m.id} title={`${rH} vs ${rA}`}/>}
+                        {chatMatchId===m.id&&<ChatBox matchId={m.id} title={`${rH} vs ${rA}`} getChatMsgs={getChatMsgs} addReaction={addReaction} validChatRole={validChatRole} user={user} st={st} save={save} chatEnabled={st.chatEnabled}/>}
                       </div>
                     );
                   })}
