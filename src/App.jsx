@@ -2023,6 +2023,7 @@ export default function App() {
   const [adminPronoView, setAdminPronoView] = useState("tableau");
   const [adminPronoPlayer, setAdminPronoPlayer] = useState(null);
   const [chatMsg, setChatMsg] = useState("");
+  const [adminChatGroup, setAdminChatGroup] = useState("famille");
   const [chatMatchId, setChatMatchId] = useState(null);
   const [chatTab, setChatTab] = useState("general"); // "general" ou "byMatch"
   const setShareCopied = useCallback((v) => setAppState(s => ({...s, shareCopied: v})), []);
@@ -2664,8 +2665,6 @@ export default function App() {
 
   // ── CHAT — filtré par groupe (famille / collègues) ─────────────
   const chatRole = (st.users[user]||{}).role;
-  // Admin peut écrire dans tous les groupes — il choisit lequel via adminChatGroup
-  const [adminChatGroup, setAdminChatGroup] = useState("famille");
   const validChatRole = (role === "admin") ? adminChatGroup
     : (chatRole === "famille" || chatRole === "collegues") ? chatRole : null;
 
