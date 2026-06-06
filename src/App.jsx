@@ -1,5 +1,10 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 
+// ═══════════════════════════════════════════════════════════════
+// VERSION SYSTÈME — Force reconnexion si version change
+// ═══════════════════════════════════════════════════════════════
+const APP_VERSION = "v21.1"; // Augmente à chaque update majeure!
+
 // Inject CSS keyframes
 if (typeof document !== "undefined" && !document.getElementById("wc-styles")) {
   const style = document.createElement("style");
@@ -377,6 +382,7 @@ let mp3El        = null;   // HTMLAudioElement courant
 let mp3Playing   = false;
 let mp3LoopMode  = false;  // false = playlist, true = boucle
 let currentMp3Idx = 0;
+let _onMp3AutoNext = null;   // callback React enregistré via useEffect
 
 function stopMp3() {
   mp3Playing = false;
@@ -405,7 +411,9 @@ function playMp3(idx, loopMode) {
         playMp3(currentMp3Idx, true);
       } else {
         // Playlist : piste suivante (wrap around)
-        playMp3((currentMp3Idx + 1) % MP3_TRACKS.length, false);
+        const nextIdx = (currentMp3Idx + 1) % MP3_TRACKS.length;
+        if (_onMp3AutoNext) _onMp3AutoNext(nextIdx);  // synchronise le state React
+        playMp3(nextIdx, false);
       }
     };
     el.onerror = () => {
@@ -1306,26 +1314,6 @@ function resolveTeam(ph, results, scores = {}) {
     return resolveTeam(official === "1" ? ref.away : ref.home, results, scores);
   }
 
-  // Anciens patterns conservés pour rétrocompat (ne matchent plus les demis grâce au renommage SF)
-  const vSF = ph.match(/^Vainqueur SF(\d+)$/);
-  if (vSF) {
-    const sfId = "S" + vSF[1];
-    const official = results[sfId];
-    if (!official) return ph;
-    const ref = MATCHES.find(m => m.id === sfId);
-    if (!ref) return ph;
-    return resolveTeam(official === "1" ? ref.home : ref.away, results, scores);
-  }
-  const pSF = ph.match(/^Perdant SF(\d+)$/);
-  if (pSF) {
-    const sfId = "S" + pSF[1];
-    const official = results[sfId];
-    if (!official) return ph;
-    const ref = MATCHES.find(m => m.id === sfId);
-    if (!ref) return ph;
-    return resolveTeam(official === "1" ? ref.away : ref.home, results, scores);
-  }
-
   // Placeholder non résolu → label lisible
   if (ph.startsWith("V. R")) return `Vainq. 1/16 #${ph.slice(4)}`;
   if (ph.startsWith("V. Q")) return `Vainq. 1/8 #${ph.slice(4)}`;
@@ -1365,10 +1353,10 @@ function scoreLabel(score) {
 // ║  REMPLIS TES CLÉS ICI (récupérées depuis console.firebase)  ║
 // ╚══════════════════════════════════════════════════════════════╝
 const FB_CONFIG = {
-  apiKey:      "",   // ex: "AIzaSy..."
-  authDomain:  "",   // ex: "worldcup2026-xxxx.firebaseapp.com"
-  databaseURL: "",   // ex: "https://worldcup2026-xxxx-default-rtdb.europe-west1.firebasedatabase.app"
-  projectId:   "",   // ex: "worldcup2026-xxxx"
+  apiKey:      "AIzaSyAS9MO_m0hdvcAnbh-Y2ne6lFLpTfRIdrI",   // ex: "AIzaSy..."
+  authDomain:  "worldcup2026-59020.firebaseapp.com",   // ex: "worldcup2026-xxxx.firebaseapp.com"
+  databaseURL: "https://worldcup2026-59020-default-rtdb.europe-west1.firebasedatabase.app",   // ex: "https://worldcup2026-xxxx-default-rtdb.europe-west1.firebasedatabase.app"
+  projectId:   "worldcup2026-59020",   // ex: "worldcup2026-xxxx"
 };
 
 // ── Ne touche pas à ce qui suit ──────────────────────────────────────
@@ -1391,10 +1379,38 @@ async function _initFirebase() {
 
 // Fallback localStorage (si Firebase non configuré ou hors ligne)
 const KEY = "wc2026_v2";
-const blank = () => ({ users:{}, predictions:{}, results:{}, scores:{}, validatedGroups:{}, finalLock:{}, seenAnim:{}, officialThirds:{}, thirdPicks:{}, seenEgg:{}, presence:{}, chat:[], matchComments:{} });
+const blank = () => ({ users:{}, predictions:{}, results:{}, scores:{}, validatedGroups:{}, finalLock:{}, seenAnim:{}, officialThirds:{}, thirdPicks:{}, seenEgg:{}, presence:{}, chat:{famille:[],collegues:[]}, matchComments:{}, chatEnabled:true, appVersion: APP_VERSION, forceLogoutSignal: 0 });
 function load() {
-  try { const s = localStorage.getItem(KEY); return s ? {...blank(),...JSON.parse(s)} : blank(); }
-  catch { return blank(); }
+  try {
+    // Vérifier si la version a changé
+    const storedVersion = localStorage.getItem("APP_VERSION");
+    if (storedVersion && storedVersion !== APP_VERSION) {
+      console.log(`[VERSION CHECK] Changement détecté: ${storedVersion} → ${APP_VERSION}. Forçage de déconnexion.`);
+      // Supprimer les données de la vieille version
+      localStorage.removeItem(KEY);
+      localStorage.removeItem("APP_VERSION");
+      return blank();
+    }
+    
+    // Version OK ou première visite, charger normalement
+    const s = localStorage.getItem(KEY);
+    if (s) {
+      const data = {...blank(),...JSON.parse(s)};
+      // Sauvegarder la version courante
+      localStorage.setItem("APP_VERSION", APP_VERSION);
+      return data;
+    }
+    
+    // Première visite, sauvegarder la version
+    localStorage.setItem("APP_VERSION", APP_VERSION);
+    return blank();
+  }
+  catch {
+    // En cas d'erreur, nettoyer et retourner blank
+    localStorage.removeItem(KEY);
+    localStorage.removeItem("APP_VERSION");
+    return blank();
+  }
 }
 function persist(s) { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch {} }
 
@@ -1412,8 +1428,11 @@ async function persistFirebase(ns) {
         officialThirds:  ns.officialThirds  || {},
         thirdPicks:      ns.thirdPicks      || {},
         seenEgg:         ns.seenEgg         || {},
-        chat:            ns.chat            || [],
+        chat:            ns.chat            || {famille:[],collegues:[]},
         matchComments:   ns.matchComments   || {},
+        chatEnabled:     ns.chatEnabled !== false,
+        forceLogoutSignal: ns.forceLogoutSignal || 0,
+        appVersion:      ns.appVersion || APP_VERSION,
       });
     } catch(e) { console.warn("Firebase write error:", e); persist(ns); }
   } else { persist(ns); }
@@ -1423,16 +1442,7 @@ async function persistFirebase(ns) {
 // CALC SCORES
 // ══════════════════════════════════════════
 function calcScores(st) {
-  // Points par phase (crescendo)
-  const phasePoints = {
-    "poules":    1,   // Poules        = 1 point
-    "seiziemes": 2,   // 1/16          = 2 points
-    "huitiemes": 3,   // 1/8           = 3 points
-    "quarts":    4,   // 1/4           = 4 points
-    "demis":     5,   // 1/2           = 5 points
-    "p3":        6,   // Petite finale = 6 points
-    "finale":    10   // Finale        = 10 points
-  };
+  const phasePoints = PHASE_POINTS; // défini au niveau module
 
   const officialResults = st.results || {};
 
@@ -1511,6 +1521,12 @@ const BG       = "#0a0e1a";          // nuit douce (pas noir total)
 const SURF     = "#131828";          // surface principale
 const SURF2    = "#1a2035";          // surface secondaire
 const BRD      = "#263050";          // bordure visible
+
+// Barème des points — utilisé dans calcScores ET dans l'UI
+const PHASE_POINTS = {
+  poules: 1, seiziemes: 2, huitiemes: 3,
+  quarts: 4, demis: 5, p3: 6, finale: 10
+};
 const GOLD     = "#FFD234";          // jaune soleil intense
 const GOLD2    = "#FF8C00";          // orange chaud
 const TEAL     = "#00D4AA";          // turquoise été
@@ -1887,7 +1903,7 @@ function MatchCard({ m, pred, official, score, locked, onPick, isAdmin, onScore,
         </div>
       )}
 
-      {correct && <div style={t.bOk}>✓ Bon pronostic · +3 pts {score?`(${scoreLabel(score)})`:""}</div>}
+      {correct && <div style={t.bOk}>✓ Bon pronostic · +{PHASE_POINTS[m.phase] ?? 1} pts {score?`(${scoreLabel(score)})`:""}</div>}
       {wrong   && <div style={t.bKo}>✗ Raté · {score?scoreLabel(score):""} · Tu jouais {pred==="1"?rHome:pred==="2"?rAway:"Nul"}{score?"":" · Résultat : "+official}</div>}
 
       {/* En phase éliminatoire, affiche le pronostic original du joueur (équipes qu'il avait) */}
@@ -1978,12 +1994,18 @@ export default function App() {
   
   // Destructure for compatibility
   const { muted, trackIdx, loginMuted, musicSource, playMode, mp3Idx } = audio;
+
+  // Synchronise mp3Idx React quand la playlist avance automatiquement
+  useEffect(() => {
+    _onMp3AutoNext = (nextIdx) => setAudio(a => ({...a, mp3Idx: nextIdx}));
+    return () => { _onMp3AutoNext = null; };
+  }, []);
   const { tab, grp, ePhase, aPhase, adminSub, adminPronoGroup, showCal, showTrophy, modal, confirmReset, shareCopied, eggClicks, eggActive } = appState;
   const { uname, pw, pwConfirm, fname, lname } = login;
   
   // Helper setters for backward compatibility
   const setTab = useCallback((v) => setAppState(s => ({...s, tab: v})), []);
-  const setGrp = useCallback((v) => setAppState(s => ({...s, grp: v})), []);
+  const setGrp = useCallback((v) => { setAppState(s => ({...s, grp: v})); setConfirmUnval(null); }, []);
   const setEPhase = useCallback((v) => setAppState(s => ({...s, ePhase: v})), []);
   const setAPhase = useCallback((v) => setAppState(s => ({...s, aPhase: v})), []);
   const setAdminSub = useCallback((v) => setAppState(s => ({...s, adminSub: v})), []);
@@ -1996,10 +2018,13 @@ export default function App() {
   const setModal = useCallback((v) => setAppState(s => ({...s, modal: v})), []);
   const setConfirmReset = useCallback((v) => setAppState(s => ({...s, confirmReset: v})), []);
   const [adminConfirmUser, setAdminConfirmUser] = useState(null);
+  const [adminNewPw, setAdminNewPw] = useState("");          // Bug 4 : reset MDP joueur
+  const [confirmUnval, setConfirmUnval] = useState(null);    // Bug 3 : dé-valider groupe
   const [adminPronoView, setAdminPronoView] = useState("tableau");
   const [adminPronoPlayer, setAdminPronoPlayer] = useState(null);
   const [chatMsg, setChatMsg] = useState("");
   const [chatMatchId, setChatMatchId] = useState(null);
+  const [chatTab, setChatTab] = useState("general"); // "general" ou "byMatch"
   const setShareCopied = useCallback((v) => setAppState(s => ({...s, shareCopied: v})), []);
   const setUname = useCallback((v) => setLogin(l => ({...l, uname: v})), []);
   const setPw = useCallback((v) => setLogin(l => ({...l, pw: v})), []);
@@ -2010,6 +2035,7 @@ export default function App() {
   // Initialisé depuis le localStorage pour survivre aux refreshs
   const seen = useRef(new Set());
   const fbListenerRef = useRef(null);
+  const presenceRef = useRef(null);   // ← intervalle du heartbeat présence
   const [fbStatus, setFbStatus] = useState(FB_ENABLED ? "connecting" : "offline");
 
   // ── Firebase init + écoute temps réel ──────────────────────────────
@@ -2054,6 +2080,17 @@ export default function App() {
       setTab("home"); setScr("app");
     }
   }, [st.users, scr, user]);
+
+  // ── Déconnexion forcée par l'admin ───────────────────────────────
+  const lastLogoutSignal = useRef(0);
+  useEffect(() => {
+    const signal = st.forceLogoutSignal || 0;
+    if (signal === 0) { lastLogoutSignal.current = 0; return; }
+    if (signal > lastLogoutSignal.current && user && user !== "admin" && scr === "app") {
+      lastLogoutSignal.current = signal;
+      doLogout();
+    }
+  }, [st.forceLogoutSignal, user, scr]);
 
   // Animation ballon de foot easter egg — déclenchée une seule fois à l'ouverture
   useEffect(() => {
@@ -2169,13 +2206,8 @@ export default function App() {
   
   const currentPhaseMatches = useMemo(() => {
     if (aPhase === "poules") return groupMatches;
-    if (aPhase === "eliminatoires") {
-      if (ePhase === "seiziemes") return elimMatches;
-      if (ePhase === "quarts") return quarterMatches;
-      // ... pour autres phases
-    }
-    return [];
-  }, [aPhase, ePhase, groupMatches, elimMatches, quarterMatches]);
+    return MATCHES.filter(m => m.phase === ePhase && m.group === "ELIM");
+  }, [aPhase, ePhase, groupMatches]);
   const today  = todayKey();
 
   // Résout un nom d'équipe pour l'affichage côté joueur :
@@ -2207,6 +2239,8 @@ export default function App() {
     const withPred = resolveTeam(team, preds, {});
     if (FLAGS[withPred]) return withPred;
 
+    // Si "X ou Y" trop verbeux → retourner juste le placeholder original
+    if (off && off.includes(" ou ")) return team;
     return off;                                          // non résolu (À déterm.)
   }
 
@@ -2343,7 +2377,7 @@ export default function App() {
           }
         });
       }
-      soundLogin(); stopLoginMusic(); save(ns); setUser("admin");
+      soundLogin(); stopLoginMusic(); save(ns); localStorage.setItem("APP_VERSION", APP_VERSION); setUser("admin");
       seen.current = new Set(Object.keys(ns.seenAnim||{}));
       showNotif("success", "✅ Connecté en tant qu'Admin");
       setTab("home"); setScr("app"); return;
@@ -2356,11 +2390,13 @@ export default function App() {
       if (!pw) { showNotif("error", "❌ Choisis un mot de passe"); return; }
       if (pw.length < 4) { showNotif("error", "❌ Mot de passe trop court (min 4 caractères)"); return; }
       if (pw !== (login.pwConfirm||"")) { showNotif("error", "❌ Les mots de passe ne correspondent pas"); return; }
+      if (!fname.trim()) { showNotif("error", "❌ Ton prénom est obligatoire"); return; }
+      if (!lname.trim()) { showNotif("error", "❌ Ton nom est obligatoire"); return; }
       const ns = {...st, users:{...st.users, [u]:{role:"waiting", pw, fname, lname}}};
-      save(ns); setUser(u);
+      save(ns); localStorage.setItem("APP_VERSION", APP_VERSION); setUser(u);
       soundLogin(); stopLoginMusic();
       seen.current = new Set(Object.keys(ns.seenAnim||{}));
-      setLogin({uname: "", pw: "", pwConfirm: ""}); // Reset fields
+      setLogin({uname: "", pw: "", pwConfirm: "", fname: "", lname: ""}); // Reset fields
       setScr("waiting");
       showNotif("info", "⏳ Compte créé ! En attente d'assignation par l'admin");
       return;
@@ -2372,11 +2408,13 @@ export default function App() {
       if (!pw) { showNotif("error", "❌ Première connexion : choisis un mot de passe"); return; }
       if (pw.length < 4) { showNotif("error", "❌ Mot de passe trop court (min 4 caractères)"); return; }
       if (pw !== (login.pwConfirm||"")) { showNotif("error", "❌ Les mots de passe ne correspondent pas"); return; }
+      if (!fname.trim() && !existingUser.fname) { showNotif("error", "❌ Ton prénom est obligatoire"); return; }
+      if (!lname.trim() && !existingUser.lname) { showNotif("error", "❌ Ton nom est obligatoire"); return; }
       const ns = {...st, users:{...st.users, [u]:{...existingUser, pw, fname: fname || existingUser.fname, lname: lname || existingUser.lname}}};
-      save(ns); setUser(u);
+      save(ns); localStorage.setItem("APP_VERSION", APP_VERSION); setUser(u);
       soundLogin(); stopLoginMusic();
       seen.current = new Set(Object.keys(ns.seenAnim||{}));
-      setLogin({uname: "", pw: "", pwConfirm: ""}); // Reset fields
+      setLogin({uname: "", pw: "", pwConfirm: "", fname: "", lname: ""}); // Reset fields
       showNotif("success", "✅ Mot de passe créé !");
       if (ns.users[u].role === "waiting") { setScr("waiting"); return; }
       setTab("home"); setScr("app"); return;
@@ -2387,10 +2425,10 @@ export default function App() {
     if (pw !== existingUser.pw) { showNotif("error", "❌ Mot de passe incorrect"); return; }
 
     const ns = {...st};
-    save(ns); setUser(u);
+    save(ns); localStorage.setItem("APP_VERSION", APP_VERSION); setUser(u);
     soundLogin(); stopLoginMusic();
     seen.current = new Set(Object.keys(ns.seenAnim||{}));
-    setLogin({uname: "", pw: "", pwConfirm: ""}); // Reset fields
+    setLogin({uname: "", pw: "", pwConfirm: "", fname: "", lname: ""}); // Reset fields
     if (ns.users[u].role === "waiting") {
       setScr("waiting");
       showNotif("info", "⏳ En attente d'assignation par l'admin");
@@ -2405,7 +2443,25 @@ export default function App() {
     // Réinitialiser le son pour que la musique du login fonctionne au retour
     _isMuted = false;
     setAudio(a => ({...a, muted: false}));
-    setUser(""); setUname(""); setPw(""); setScr("login");
+    setUser(""); setUname(""); setPw(""); setLogin({uname:"",pw:"",pwConfirm:"",fname:"",lname:""}); setScr("login");
+  }
+
+  // ── MODERATION ──
+  function deleteMessage(group, idx) {
+    const msgs = st.chat?.[group] || [];
+    const updated = msgs.filter((_, i) => i !== idx);
+    const ns = {...st, chat: {...(st.chat||{}), [group]: updated}};
+    save(ns);
+    showNotif("success", "✅ Message supprimé");
+  }
+
+  function deleteMatchComment(matchId, group, idx) {
+    const matchData = st.matchComments?.[matchId] || {};
+    const comments = matchData[group] || [];
+    const updated = comments.filter((_, i) => i !== idx);
+    const ns = {...st, matchComments: {...st.matchComments, [matchId]: {...matchData, [group]: updated.length > 0 ? updated : []}}};
+    save(ns);
+    showNotif("success", "✅ Commentaire supprimé");
   }
 
   // ── PICK ──
@@ -2464,6 +2520,12 @@ export default function App() {
     }
   }
 
+  function unvalGroup(g) {
+    const prev = st.validatedGroups[user]||[];
+    const ns = {...st, validatedGroups:{...st.validatedGroups, [user]: prev.filter(x=>x!==g)}};
+    save(ns);
+    showNotif("info", `✏️ Groupe ${g} déverrouillé — tu peux modifier tes pronos`);
+  }
   // ── FINAL LOCK ──
   function doLock() {
     // On valide toutes les phases pour permettre la navigation en lecture seule après verrouillage
@@ -2543,6 +2605,7 @@ export default function App() {
     const ns = { ...st, seenAnim: newSeen };
     // On écrit directement sans passer par save() pour éviter une boucle
     persistFirebase(ns);
+    persist(ns); // fallback local si Firebase offline
 
     // Déclencher les animations avec stagger si plusieurs nouveaux résultats
     // (max 3 animations pour ne pas spammer, priorité finale > demis > etc.)
@@ -2599,83 +2662,116 @@ export default function App() {
     return p && p.online && (Date.now() - (p.lastSeen || 0)) < 60000;
   });
 
-  // ── SEND CHAT MESSAGE ──────────────────────────────────────────
-  function sendChat(matchId) {
-    const txt = chatMsg.trim();
-    if (!txt || !user) return;
-    const msg = { user, text: txt, ts: Date.now(), reactions: {} };
-    let ns;
+  // ── CHAT — filtré par groupe (famille / collègues) ─────────────
+  const chatRole = (st.users[user]||{}).role;
+  // Admin peut écrire dans tous les groupes — il choisit lequel via adminChatGroup
+  const [adminChatGroup, setAdminChatGroup] = useState("famille");
+  const validChatRole = (role === "admin") ? adminChatGroup
+    : (chatRole === "famille" || chatRole === "collegues") ? chatRole : null;
+
+  function getChatMsgs(matchId) {
+    if (!validChatRole) return [];
     if (matchId) {
-      const prev = st.matchComments[matchId] || [];
-      ns = { ...st, matchComments: { ...st.matchComments, [matchId]: [...prev, msg] } };
-    } else {
-      const prev = st.chat || [];
-      ns = { ...st, chat: [...prev, msg] };
+      const mc = (st.matchComments||{})[matchId] || {};
+      return mc[validChatRole] || [];
     }
-    save(ns);
-    setChatMsg("");
+    const c = st.chat || {};
+    return Array.isArray(c) ? [] : (c[validChatRole] || []);
   }
 
-  function addReaction(emoji, msgIdx, matchId) {
-    let ns;
-    if (matchId) {
-      const msgs = [...(st.matchComments[matchId] || [])];
-      const msg = { ...msgs[msgIdx], reactions: { ...(msgs[msgIdx].reactions || {}) } };
-      msg.reactions[emoji] = (msg.reactions[emoji] || 0) + 1;
-      msgs[msgIdx] = msg;
-      ns = { ...st, matchComments: { ...st.matchComments, [matchId]: msgs } };
-    } else {
-      const msgs = [...(st.chat || [])];
-      const msg = { ...msgs[msgIdx], reactions: { ...(msgs[msgIdx].reactions || {}) } };
-      msg.reactions[emoji] = (msg.reactions[emoji] || 0) + 1;
-      msgs[msgIdx] = msg;
-      ns = { ...st, chat: msgs };
-    }
-    save(ns);
-  }
-  // ── SEND CHAT MESSAGE ──────────────────────────────────────────
   function sendChat(matchId) {
     const txt = chatMsg.trim();
-    if (!txt || !user) return;
+    if (!txt || !user || !validChatRole) return;
     const msg = { user, text: txt, ts: Date.now(), reactions: {} };
     let ns;
     if (matchId) {
-      const prev = (st.matchComments||{})[matchId] || [];
-      ns = { ...st, matchComments: { ...(st.matchComments||{}), [matchId]: [...prev, msg] } };
+      const mcPrev = (st.matchComments||{})[matchId] || {};
+      const groupPrev = Array.isArray(mcPrev) ? [] : (mcPrev[validChatRole] || []);
+      ns = { ...st, matchComments: { ...(st.matchComments||{}),
+        [matchId]: { ...(Array.isArray(mcPrev)?{}:mcPrev), [validChatRole]: [...groupPrev, msg] }
+      }};
     } else {
-      const prev = st.chat || [];
-      ns = { ...st, chat: [...prev, msg] };
+      const chatPrev = st.chat || {};
+      const groupPrev = Array.isArray(chatPrev) ? [] : (chatPrev[validChatRole] || []);
+      ns = { ...st, chat: { ...(Array.isArray(chatPrev)?{}:chatPrev), [validChatRole]: [...groupPrev, msg] }};
     }
     save(ns); setChatMsg("");
   }
 
   function addReaction(emoji, msgIdx, matchId) {
+    if (!validChatRole || !user) return;
+    // reactions = { emoji: [user1, user2, ...] } — un user ne peut réagir qu'une fois par emoji
+    // Si le user a déjà réagi avec cet emoji → on retire (toggle)
+    function toggleReaction(msg) {
+      const reactions = { ...(msg.reactions||{}) };
+      // Vérifier si le user a déjà réagi avec UN emoji quelconque sur ce message
+      const previousEmoji = Object.keys(reactions).find(e =>
+        Array.isArray(reactions[e]) && reactions[e].includes(user)
+      );
+      if (previousEmoji && previousEmoji !== emoji) {
+        // Retirer l'ancien emoji
+        reactions[previousEmoji] = reactions[previousEmoji].filter(u => u !== user);
+      }
+      // Toggle le nouvel emoji
+      const prev = Array.isArray(reactions[emoji]) ? reactions[emoji] : [];
+      const alreadyReacted = prev.includes(user);
+      reactions[emoji] = alreadyReacted ? prev.filter(u => u !== user) : [...prev, user];
+      return { ...msg, reactions };
+    }
     let ns;
     if (matchId) {
-      const msgs = [...((st.matchComments||{})[matchId] || [])];
-      const msg = { ...msgs[msgIdx], reactions: { ...(msgs[msgIdx].reactions || {}) } };
-      msg.reactions[emoji] = (msg.reactions[emoji] || 0) + 1;
-      msgs[msgIdx] = msg;
-      ns = { ...st, matchComments: { ...(st.matchComments||{}), [matchId]: msgs } };
+      const mcPrev = (st.matchComments||{})[matchId] || {};
+      const msgs = [...(Array.isArray(mcPrev)?[]:(mcPrev[validChatRole]||[]))];
+      if (!msgs[msgIdx]) return;
+      msgs[msgIdx] = toggleReaction(msgs[msgIdx]);
+      ns = { ...st, matchComments: { ...(st.matchComments||{}),
+        [matchId]: { ...(Array.isArray(mcPrev)?{}:mcPrev), [validChatRole]: msgs }
+      }};
     } else {
-      const msgs = [...(st.chat || [])];
-      const msg = { ...msgs[msgIdx], reactions: { ...(msgs[msgIdx].reactions || {}) } };
-      msg.reactions[emoji] = (msg.reactions[emoji] || 0) + 1;
-      msgs[msgIdx] = msg;
-      ns = { ...st, chat: msgs };
+      const chatPrev = st.chat || {};
+      const msgs = [...(Array.isArray(chatPrev)?[]:(chatPrev[validChatRole]||[]))];
+      if (!msgs[msgIdx]) return;
+      msgs[msgIdx] = toggleReaction(msgs[msgIdx]);
+      ns = { ...st, chat: { ...(Array.isArray(chatPrev)?{}:chatPrev), [validChatRole]: msgs }};
     }
     save(ns);
   }
+
 
   // ─────────────────────────────────
   // SUB-VIEWS
   // ─────────────────────────────────
 
   // ── CHATBOX COMPONENT ─────────────────────────────────────────
+
+  // ── CHATINPUT — state local pour éviter re-render clavier ──────
+  function ChatInput({ onSend }) {
+    const [localMsg, setLocalMsg] = useState("");
+    return (
+      <div style={{padding:"10px 12px",borderTop:`1px solid ${BRD}`,display:"flex",gap:8}}>
+        <input
+          style={{flex:1,background:"rgba(255,255,255,.06)",border:`1px solid ${BRD}`,borderRadius:12,padding:"10px 12px",color:TXT,fontSize:13,fontFamily:"inherit",outline:"none"}}
+          placeholder="Ton message..."
+          value={localMsg}
+          onChange={e=>setLocalMsg(e.target.value)}
+          onKeyDown={e=>{ if(e.key==="Enter"&&localMsg.trim()){ onSend(localMsg); setLocalMsg(""); } }}
+          autoComplete="off" autoCorrect="off" spellCheck="false"
+        />
+        <button
+          onClick={()=>{ if(localMsg.trim()){ onSend(localMsg); setLocalMsg(""); } }}
+          style={{background:GRAD_SUN,border:"none",borderRadius:12,padding:"10px 14px",color:"#0a0e1a",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"inherit",flexShrink:0}}>
+          ➤
+        </button>
+      </div>
+    );
+  }
+
   function ChatBox({ matchId, title }) {
-    const msgs = matchId ? ((st.matchComments||{})[matchId]||[]) : (st.chat||[]);
+    const msgs = getChatMsgs(matchId);
     const EMOJIS = ["👍","🔥","😂","😮","👏","💪","🎉","😢"];
     const endRef = React.useRef(null);
+    const [showPickers, setShowPickers] = React.useState({}); // { "msgIdx": true/false }
+    const [hoveredMsg, setHoveredMsg] = React.useState(null); // Track which message is hovered
     React.useEffect(() => { endRef.current?.scrollIntoView({behavior:"smooth"}); }, [msgs.length]);
     const role = (st.users[user]||{}).role;
     return (
@@ -2690,9 +2786,13 @@ export default function App() {
           {msgs.length === 0 && <div style={{textAlign:"center",color:MUTED,fontSize:12,padding:"20px 0"}}>Sois le premier à écrire ! 👋</div>}
           {msgs.map((msg, i) => {
             const isMe = msg.user === user;
-            const totalReactions = Object.values(msg.reactions||{}).reduce((a,b)=>a+b,0);
+            const usedEmojis = Object.entries(msg.reactions||{}).filter(([e, users]) => Array.isArray(users) && users.length > 0);
+            const showPicker = showPickers[i];
             return (
-              <div key={i} style={{display:"flex",flexDirection:"column",alignItems:isMe?"flex-end":"flex-start"}}>
+              <div key={i} 
+                onMouseEnter={() => setHoveredMsg(i)}
+                onMouseLeave={() => setHoveredMsg(null)}
+                style={{display:"flex",flexDirection:"column",alignItems:isMe?"flex-end":"flex-start"}}>
                 <div style={{
                   maxWidth:"80%",
                   background:isMe?"linear-gradient(135deg,#FFD234,#FF8C00)":"rgba(255,255,255,.07)",
@@ -2703,47 +2803,104 @@ export default function App() {
                   {!isMe && <div style={{fontSize:10,fontWeight:700,color:GOLD,marginBottom:3}}>{msg.user.toUpperCase()}</div>}
                   {msg.text}
                 </div>
-                {/* Réactions existantes */}
-                {totalReactions > 0 && (
-                  <div style={{display:"flex",gap:4,marginTop:3,flexWrap:"wrap",justifyContent:isMe?"flex-end":"flex-start"}}>
-                    {Object.entries(msg.reactions||{}).filter(([,v])=>v>0).map(([emoji,count])=>(
-                      <span key={emoji} onClick={()=>addReaction(emoji,i,matchId)}
-                        style={{background:"rgba(255,255,255,.08)",border:`1px solid ${BRD}`,borderRadius:10,padding:"2px 6px",fontSize:11,cursor:"pointer",userSelect:"none"}}>
-                        {emoji} {count}
+                
+                {/* Réactions utilisées + bouton ajouter */}
+                <div style={{display:"flex",gap:3,marginTop:4,flexWrap:"wrap",justifyContent:isMe?"flex-end":"flex-start"}}>
+                  {/* Afficher seulement les emojis avec réactions */}
+                  {usedEmojis.map(([e, users]) => (
+                    <span key={e} onClick={()=>addReaction(e,i,matchId)}
+                      style={{
+                        fontSize:13,cursor:"pointer",userSelect:"none",
+                        padding:"2px 7px",borderRadius:10,
+                        background: users.includes(user) ? "rgba(255,210,52,.2)" : "rgba(255,255,255,.07)",
+                        border: users.includes(user) ? `1px solid rgba(255,210,52,.5)` : `1px solid ${BRD}`,
+                        color: users.includes(user) ? GOLD : TXT,
+                        fontWeight: users.includes(user) ? 700 : 400,
+                        transition:"all .15s",
+                      }}>
+                      {e} {users.length}
+                    </span>
+                  ))}
+                  
+                  {/* Bouton "+" — TOUJOURS visible pour indiquer l'interaction */}
+                  {!showPicker && (
+                    <span onClick={()=>setShowPickers(p=>({...p,[i]:true}))}
+                      style={{
+                        fontSize:13,cursor:"pointer",userSelect:"none",
+                        padding:"2px 7px",borderRadius:10,
+                        background:"rgba(251,191,36,.15)",
+                        border:"1px solid rgba(251,191,36,.5)",
+                        color:"#fbbf24",
+                        transition:"all .15s",
+                        fontWeight:700,
+                        opacity: hoveredMsg === i ? 1 : 0.65,
+                      }}>
+                      +
+                    </span>
+                  )}
+                </div>
+                
+                {/* Picker des emojis — affiche seulement si demandé */}
+                {showPicker && (
+                  <div style={{display:"flex",gap:2,marginTop:4,flexWrap:"wrap",justifyContent:isMe?"flex-end":"flex-start"}}>
+                    {EMOJIS.map(e=>(
+                      <span key={e} onClick={()=>{addReaction(e,i,matchId); setShowPickers(p=>({...p,[i]:false}));}}
+                        style={{
+                          fontSize:13,cursor:"pointer",userSelect:"none",
+                          padding:"2px 6px",borderRadius:8,
+                          background:"rgba(255,255,255,.1)",
+                          border:`1px solid ${BRD}`,
+                          color:TXT,
+                          transition:"all .15s",
+                          hover:{background:"rgba(255,255,255,.15)"},
+                        }}>
+                        {e}
                       </span>
                     ))}
+                    <span onClick={()=>setShowPickers(p=>({...p,[i]:false}))}
+                      style={{
+                        fontSize:13,cursor:"pointer",userSelect:"none",
+                        padding:"2px 6px",borderRadius:8,
+                        background:"rgba(255,0,0,.1)",
+                        border:`1px solid rgba(255,0,0,.3)`,
+                        color:"#ff6b6b",
+                        fontWeight:700,
+                        transition:"all .15s",
+                      }}>
+                      ✕
+                    </span>
                   </div>
                 )}
-                {/* Picker réactions */}
-                <div style={{display:"flex",gap:3,marginTop:3,justifyContent:isMe?"flex-end":"flex-start"}}>
-                  {EMOJIS.map(e=>(
-                    <span key={e} onClick={()=>addReaction(e,i,matchId)}
-                      style={{fontSize:14,cursor:"pointer",opacity:.5,transition:"opacity .15s"}}
-                      onMouseEnter={el=>el.target&&(el.target.style.opacity="1")}
-                      onMouseLeave={el=>el.target&&(el.target.style.opacity=".5")}
-                    >{e}</span>
-                  ))}
-                </div>
+                
                 <div style={{fontSize:9,color:MUTED,marginTop:2}}>{new Date(msg.ts).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}</div>
               </div>
             );
           })}
           <div ref={endRef}/>
         </div>
-        {/* Input */}
-        {role && role !== "waiting" && (
-          <div style={{padding:"10px 12px",borderTop:`1px solid ${BRD}`,display:"flex",gap:8}}>
-            <input
-              style={{flex:1,background:"rgba(255,255,255,.06)",border:`1px solid ${BRD}`,borderRadius:12,padding:"10px 12px",color:TXT,fontSize:13,fontFamily:"inherit",outline:"none"}}
-              placeholder="Ton message..."
-              value={chatMsg}
-              onChange={e=>setChatMsg(e.target.value)}
-              onKeyDown={e=>e.key==="Enter"&&sendChat(matchId)}
-            />
-            <button onClick={()=>sendChat(matchId)}
-              style={{background:GRAD_SUN,border:"none",borderRadius:12,padding:"10px 14px",color:"#0a0e1a",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>
-              ➤
-            </button>
+        {/* Input — state local pour éviter le re-render du clavier */}
+        {role && role !== "waiting" && st.chatEnabled!==false && (
+          <ChatInput onSend={txt => {
+            if (!txt.trim() || !user || !validChatRole) return;
+            const msg = { user, text: txt.trim(), ts: Date.now(), reactions: {} };
+            let ns;
+            if (matchId) {
+              const mcPrev = (st.matchComments||{})[matchId] || {};
+              const groupPrev = Array.isArray(mcPrev) ? [] : (mcPrev[validChatRole] || []);
+              ns = { ...st, matchComments: { ...(st.matchComments||{}),
+                [matchId]: { ...(Array.isArray(mcPrev)?{}:mcPrev), [validChatRole]: [...groupPrev, msg] }
+              }};
+            } else {
+              const chatPrev = st.chat || {};
+              const groupPrev = Array.isArray(chatPrev) ? [] : (chatPrev[validChatRole] || []);
+              ns = { ...st, chat: { ...(Array.isArray(chatPrev)?{}:chatPrev), [validChatRole]: [...groupPrev, msg] }};
+            }
+            save(ns);
+          }}/>
+        )}
+        {role && role !== "waiting" && st.chatEnabled===false && (
+          <div style={{padding:"12px 14px",borderTop:`1px solid ${BRD}`,textAlign:"center",fontSize:12,color:MUTED}}>
+            🔒 Le chat est temporairement fermé par l'administrateur
           </div>
         )}
       </div>
@@ -2801,7 +2958,27 @@ export default function App() {
       <div style={{display:"flex",flexDirection:"column",gap:8,marginTop:4}}>
         {!done && <div style={t.aWarn}>⚠️ Complète tous les matchs pour valider le groupe</div>}
         {done && !val && <button style={t.btnGreen} onClick={()=>valGroup(g)}>✅ Valider Groupe {g} 🎉</button>}
-        {val && !allGroupsVal && <div style={t.aOk}>✅ Groupe {g} validé · encore modifiable</div>}
+        {val && !allGroupsVal && (
+          confirmUnval === g ? (
+            <div style={{background:"rgba(239,68,68,.08)",border:"1px solid rgba(239,68,68,.3)",borderRadius:10,padding:10}}>
+              <div style={{fontSize:12,color:TXT,marginBottom:8,lineHeight:1.5}}>
+                Déverrouiller le groupe <strong>{g}</strong> pour modifier tes pronos ?
+              </div>
+              <div style={{display:"flex",gap:8}}>
+                <button style={{flex:1,background:"rgba(239,68,68,.8)",border:"none",color:"#fff",borderRadius:8,padding:"8px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}
+                  onClick={()=>{ unvalGroup(g); setConfirmUnval(null); }}>✏️ Oui, modifier</button>
+                <button style={{flex:1,background:"rgba(255,255,255,.06)",border:"1px solid rgba(255,255,255,.15)",color:TXT,borderRadius:8,padding:"8px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}
+                  onClick={()=>setConfirmUnval(null)}>Annuler</button>
+              </div>
+            </div>
+          ) : (
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
+              <div style={t.aOk}>✅ Groupe {g} validé</div>
+              <button style={{background:"rgba(255,255,255,.06)",border:"1px solid rgba(255,255,255,.15)",color:TXT,borderRadius:8,padding:"5px 10px",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}
+                onClick={()=>setConfirmUnval(g)}>✏️ Modifier</button>
+            </div>
+          )
+        )}
         {/* Bouton valider TOUTES les poules */}
         {allGroupsFilled && !allGroupsVal && (
           <button style={{...t.btnGreen,background:"#7c3aed",marginTop:4}} onClick={()=>{
@@ -2837,7 +3014,10 @@ export default function App() {
     });
     if(!pl.length) return <div style={t.empty}>Aucun joueur.</div>;
     const totalPlayed = Object.keys(st.results||{}).length;
-    const maxScore = totalPlayed * 3 || 1;
+    const maxScore = Object.keys(st.results||{}).reduce((sum, id) => {
+      const match = MATCHES.find(m => m.id === id);
+      return sum + (PHASE_POINTS[match?.phase] ?? 1);
+    }, 0) || 1;
     const topScore = scores[pl[0]]||0;
     // Tous les ex-aequo en 1ère place
     const leaders = pl.filter(u=>(scores[u]||0)===topScore && topScore>0);
@@ -3197,11 +3377,11 @@ export default function App() {
                     <input style={{
                       ...t.input,
                       background:"rgba(0,0,0,.4)",
-                      border:"1px solid rgba(255,255,255,.12)",
+                      border:`1px solid ${fname ? "rgba(255,255,255,.12)" : "rgba(239,68,68,.5)"}`,
                       borderRadius:14,fontSize:16,padding:"14px 16px",
                       color:"#fff",
                     }}
-                      placeholder="👤 Ton prénom"
+                      placeholder="👤 Prénom *"
                       value={fname}
                       onChange={e=>setFname(e.target.value)}
                       onKeyDown={e=>e.key==="Enter"&&doLogin()}
@@ -3210,16 +3390,19 @@ export default function App() {
                     <input style={{
                       ...t.input,
                       background:"rgba(0,0,0,.4)",
-                      border:"1px solid rgba(255,255,255,.12)",
+                      border:`1px solid ${lname ? "rgba(255,255,255,.12)" : "rgba(239,68,68,.5)"}`,
                       borderRadius:14,fontSize:16,padding:"14px 16px",
                       color:"#fff",
                     }}
-                      placeholder="👤 Ton nom"
+                      placeholder="👤 Nom *"
                       value={lname}
                       onChange={e=>setLname(e.target.value)}
                       onKeyDown={e=>e.key==="Enter"&&doLogin()}
                       autoComplete="family-name"
                     />
+                    <div style={{fontSize:11,color:"rgba(239,68,68,.7)",textAlign:"center",marginTop:-4}}>
+                      * Prénom et nom obligatoires pour que l'admin puisse t'identifier
+                    </div>
                     {!existingUser && (
                       <div style={{fontSize:11,color:"rgba(0,212,170,.8)",textAlign:"center",lineHeight:1.6}}>
                         ✨ Ce pseudo n'existe pas encore — tu vas créer ton compte.<br/>
@@ -3276,9 +3459,8 @@ export default function App() {
         <div style={{fontSize:20,fontWeight:800,color:GOLD}}>En attente</div>
         <div style={{fontSize:13,color:MUTED,maxWidth:260,lineHeight:1.7}}>L'admin doit t'assigner à un groupe pour que tu puisses jouer.</div>
         <button style={{...t.btnGold,width:"auto",padding:"10px 24px",fontSize:14,marginTop:8}} onClick={()=>{
-          const fresh = load();
-          const r = fresh.users[user]?.role;
-          if(r && r!=="waiting"){ setSt(fresh); setScr("app"); setTab("home"); }
+          const r = st.users[user]?.role;
+          if(r && r!=="waiting"){ setScr("app"); setTab("home"); }
           else { showNotif("info", "⏳ Pas encore assigné. Contacte l'admin !"); }
         }}>🔄 Rafraîchir</button>
         <button style={{...t.btnXS,marginTop:4}} onClick={doLogout}>Déconnexion</button>
@@ -3289,8 +3471,8 @@ export default function App() {
   // ─── APP ───
   const isAdmin = role==="admin";
   const navItems = isAdmin
-    ? [{k:"home",l:"🏠",lbl:"Accueil"},{k:"poules",l:"⚽",lbl:"Poules"},{k:"elim",l:"🏆",lbl:"Élim."},{k:"scores",l:"📊",lbl:"Scores"},{k:"histo",l:"📋",lbl:"Résultats"},{k:"admin",l:"⚙️",lbl:"Admin"}]
-    : [{k:"home",l:"🏠",lbl:"Accueil"},{k:"poules",l:"⚽",lbl:"Poules"},{k:"elim",l:"🏆",lbl:"Élim."},{k:"scores",l:"📊",lbl:"Scores"},{k:"histo",l:"📋",lbl:"Résultats"}];
+    ? [{k:"home",l:"🏠",lbl:"Accueil"},{k:"poules",l:"⚽",lbl:"Poules"},{k:"elim",l:"🏆",lbl:"Élim."},{k:"scores",l:"📊",lbl:"Scores"},{k:"chat",l:"💬",lbl:"Chat"},{k:"histo",l:"📋",lbl:"Résultats"},{k:"admin",l:"⚙️",lbl:"Admin"}]
+    : [{k:"home",l:"🏠",lbl:"Accueil"},{k:"poules",l:"⚽",lbl:"Poules"},{k:"elim",l:"🏆",lbl:"Élim."},{k:"scores",l:"📊",lbl:"Scores"},{k:"chat",l:"💬",lbl:"Chat"},{k:"histo",l:"📋",lbl:"Résultats"}];
 
   const elimPhases=[{k:"seiziemes",l:"1/16"},{k:"huitiemes",l:"1/8"},{k:"quarts",l:"Quarts"},{k:"demis",l:"Demis"},{k:"p3",l:"3e pl."},{k:"finale",l:"Finale"}];
   const todayMatches = MATCHES.filter(m=>m.dk===today);
@@ -3308,106 +3490,102 @@ export default function App() {
           </div>
         </div>
         <div style={{display:"flex",gap:6,alignItems:"center"}}>
-          {/* ── Contrôles musique ── */}
-          {!muted && (
-            <div style={{display:"flex",gap:4,alignItems:"center"}}>
 
-              {/* Toggle source : Synth ↔ MP3 */}
-              <button
-                title={musicSource==="synth" ? "Passer aux MP3" : "Passer aux musiques synthétisées"}
-                onClick={()=>{
-                  const nextSrc = musicSource === "synth" ? "mp3" : "synth";
-                  stopAllMusic();
-                  setAudio(a => ({...a, musicSource: nextSrc}));
-                  if (!_isMuted) {
-                    setTimeout(() => {
-                      if (nextSrc === "mp3") {
-                        mp3LoopMode = playMode === "loop";
-                        playMp3(mp3Idx, mp3LoopMode);
-                      } else {
-                        currentTrackIdx = trackIdx;
-                        playBgMusic();
-                      }
-                    }, 150);
-                  }
-                }}
-                style={{
-                  ...t.btnXS, fontSize:10, padding:"4px 7px",
-                  background: musicSource==="mp3" ? "rgba(245,200,66,.18)" : SURF2,
-                  border: `1px solid ${musicSource==="mp3" ? GOLD : BRD}`,
-                  color: musicSource==="mp3" ? GOLD : TXT,
-                }}>
-                {musicSource==="synth" ? "🎵" : "🎤"}
-              </button>
+          {/* ══ MINI LECTEUR MUSIQUE ══ */}
+          {(()=>{
+            const tracks = musicSource==="synth" ? TRACKS : MP3_TRACKS;
+            const currentIdx = musicSource==="synth" ? trackIdx : mp3Idx;
+            const currentName = (tracks[currentIdx]?.name || "—").replace(/^.\s/,"");
 
-              {/* Sélecteur de piste */}
-              <select
-                value={musicSource==="synth" ? trackIdx : mp3Idx}
-                onChange={e=>{
-                  const idx = parseInt(e.target.value);
-                  if (musicSource === "synth") {
-                    setAudio(a => ({...a, trackIdx: idx}));
-                    currentTrackIdx = idx;
-                    if (!_isMuted) switchTrack(idx);
-                  } else {
-                    setAudio(a => ({...a, mp3Idx: idx}));
-                    currentMp3Idx = idx;
-                    if (!_isMuted) playMp3(idx, playMode === "loop");
-                  }
-                }}
-                style={{
-                  background:SURF2, border:`1px solid ${BRD}`, color:GOLD,
-                  borderRadius:8, padding:"5px 6px", fontSize:11, fontWeight:700,
-                  fontFamily:"inherit", cursor:"pointer", maxWidth:120,
-                  WebkitAppearance:"none", outline:"none",
-                }}>
-                {(musicSource==="synth" ? TRACKS : MP3_TRACKS).map((tr,i)=>(
-                  <option key={i} value={i}>{tr.name}</option>
-                ))}
-              </select>
-
-              {/* Mode playlist / boucle (MP3 uniquement) */}
-              {musicSource === "mp3" && (
-                <button
-                  title={playMode==="loop" ? "Mode : boucle — cliquer pour playlist" : "Mode : playlist — cliquer pour boucle"}
-                  onClick={()=>{
-                    const next = playMode === "loop" ? "playlist" : "loop";
-                    mp3LoopMode = next === "loop";
-                    setAudio(a => ({...a, playMode: next}));
-                  }}
-                  style={{
-                    ...t.btnXS, fontSize:14, padding:"4px 7px", minWidth:30,
-                    background: playMode==="loop" ? "rgba(34,197,94,.15)" : SURF2,
-                    border: `1px solid ${playMode==="loop" ? "#22c55e" : BRD}`,
-                    color: playMode==="loop" ? "#22c55e" : MUTED,
-                  }}>
-                  {playMode==="loop" ? "🔁" : "▶︎▶︎"}
-                </button>
-              )}
-            </div>
-          )}
-          {/* Toggle son */}
-          <button style={{...t.btnXS,fontSize:16,padding:"5px 8px",minWidth:34}}
-            onClick={()=>{
-              if (!muted) {
-                _isMuted = true;
-                stopAllMusic();
-                setAudio(a => ({...a, muted: true}));
-              } else {
-                _isMuted = false;
-                setAudio(a => ({...a, muted: false}));
-                setTimeout(() => {
-                  if (musicSource === "mp3") {
-                    mp3LoopMode = playMode === "loop";
-                    playMp3(mp3Idx, mp3LoopMode);
-                  } else {
-                    playBgMusic();
-                  }
-                }, 100);
+            const goPrev = () => {
+              const idx=(currentIdx-1+tracks.length)%tracks.length;
+              if(musicSource==="synth"){ setAudio(a=>({...a,trackIdx:idx})); currentTrackIdx=idx; if(!_isMuted) switchTrack(idx); }
+              else { setAudio(a=>({...a,mp3Idx:idx})); currentMp3Idx=idx; if(!_isMuted) playMp3(idx,playMode==="loop"); }
+            };
+            const goNext = () => {
+              const idx=(currentIdx+1)%tracks.length;
+              if(musicSource==="synth"){ setAudio(a=>({...a,trackIdx:idx})); currentTrackIdx=idx; if(!_isMuted) switchTrack(idx); }
+              else { setAudio(a=>({...a,mp3Idx:idx})); currentMp3Idx=idx; if(!_isMuted) playMp3(idx,playMode==="loop"); }
+            };
+            const toggleMute = () => {
+              if(!muted){ _isMuted=true; stopAllMusic(); setAudio(a=>({...a,muted:true})); }
+              else { _isMuted=false; setAudio(a=>({...a,muted:false}));
+                setTimeout(()=>{ if(musicSource==="mp3"){mp3LoopMode=playMode==="loop";playMp3(mp3Idx,mp3LoopMode);}else playBgMusic(); },100);
               }
-            }}>
-            {muted?"🔇":"🔊"}
-          </button>
+            };
+            const toggleSource = (src) => {
+              if(src===musicSource) return;
+              stopAllMusic(); setAudio(a=>({...a,musicSource:src}));
+              if(!_isMuted) setTimeout(()=>{ if(src==="mp3"){mp3LoopMode=playMode==="loop";playMp3(mp3Idx,mp3LoopMode);}else{currentTrackIdx=trackIdx;playBgMusic();} },150);
+            };
+
+            const btnNav = {
+              background:"none",border:"none",cursor:"pointer",padding:"4px 6px",
+              fontSize:16,lineHeight:1,color:GOLD,fontFamily:"inherit",borderRadius:6,
+            };
+
+            return (
+              <div style={{
+                display:"flex",flexDirection:"column",gap:5,
+                background:`linear-gradient(135deg,rgba(255,210,52,.08),rgba(255,140,0,.05))`,
+                border:`1px solid rgba(255,210,52,.22)`,
+                borderRadius:14,padding:"7px 10px",minWidth:195,
+              }}>
+
+                {/* Ligne 1 : Source tabs + mute */}
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:4}}>
+                  <div style={{display:"flex",gap:3}}>
+                    {[{k:"synth",label:"🎵 Synth"},{k:"mp3",label:"🎤 MP3"}].map(s=>(
+                      <button key={s.k} onClick={()=>toggleSource(s.k)} style={{
+                        padding:"3px 8px",borderRadius:8,fontSize:10,fontWeight:700,
+                        border:`1px solid ${musicSource===s.k?GOLD:BRD}`,
+                        background:musicSource===s.k?"rgba(255,210,52,.18)":"transparent",
+                        color:musicSource===s.k?GOLD:MUTED,
+                        cursor:"pointer",fontFamily:"inherit",transition:"all .15s",
+                      }}>{s.label}</button>
+                    ))}
+                  </div>
+                  <button onClick={toggleMute} title={muted?"Activer la musique":"Couper la musique"} style={{
+                    background:muted?"rgba(255,255,255,.05)":"rgba(255,210,52,.12)",
+                    border:`1px solid ${muted?BRD:"rgba(255,210,52,.3)"}`,
+                    borderRadius:8,padding:"3px 7px",cursor:"pointer",
+                    fontSize:13,lineHeight:1,color:muted?MUTED:GOLD,fontFamily:"inherit",
+                  }}>{muted?"🔇":"🔊"}</button>
+                </div>
+
+                {/* Ligne 2 : Contrôles lecture */}
+                <div style={{display:"flex",alignItems:"center",gap:2}}>
+                  <button onClick={goPrev} title="Précédent" style={btnNav}>⏮</button>
+
+                  <div style={{
+                    flex:1,textAlign:"center",
+                    fontSize:11,fontWeight:700,color:muted?MUTED:GOLD,
+                    overflow:"hidden",whiteSpace:"nowrap",textOverflow:"ellipsis",
+                    padding:"0 2px",
+                    opacity:muted?.5:1,
+                  }}>
+                    {muted ? "⏸ En pause" : `▶ ${currentName}`}
+                  </div>
+
+                  <button onClick={goNext} title="Suivant" style={btnNav}>⏭</button>
+
+                  {musicSource==="mp3" && (
+                    <button
+                      title={playMode==="loop"?"Mode : boucle (cliquer → playlist)":"Mode : playlist (cliquer → boucle)"}
+                      onClick={()=>{ const n=playMode==="loop"?"playlist":"loop"; mp3LoopMode=n==="loop"; setAudio(a=>({...a,playMode:n})); }}
+                      style={{...btnNav,fontSize:13,color:playMode==="loop"?"#22c55e":MUTED,
+                        background:playMode==="loop"?"rgba(34,197,94,.1)":"none",
+                        border:`1px solid ${playMode==="loop"?"rgba(34,197,94,.3)":"transparent"}`,
+                        borderRadius:6,padding:"3px 5px",
+                      }}
+                      title={playMode==="loop"?"🔁 Boucle":"📋 Playlist"}
+                    >{playMode==="loop"?"🔁":"📋"}</button>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
+
           <button style={t.btnXS} onClick={doLogout}>Quitter</button>
         </div>
       </div>
@@ -3958,41 +4136,91 @@ export default function App() {
         {/* ── SCORES ── */}
         {tab==="chat" && (
           <div style={{...t.sec,animation:"waveIn .25s ease"}}>
-            <div style={{...t.card,padding:0,overflow:"hidden",marginBottom:12}}>
-              {onlinePlayers.length > 0 && (
-                <div style={{padding:"8px 14px",background:"rgba(46,204,113,.06)",borderBottom:`1px solid ${BRD}`,display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
-                  <span style={{fontSize:10,color:GREEN,fontWeight:700}}>🟢 En ligne :</span>
-                  {onlinePlayers.map(u=>(
-                    <span key={u} style={{fontSize:11,background:"rgba(46,204,113,.12)",border:"1px solid rgba(46,204,113,.25)",borderRadius:10,padding:"2px 8px",color:GREEN,fontWeight:600}}>
-                      {u}
-                    </span>
-                  ))}
+            {!validChatRole && !isAdmin && (
+              <div style={t.aWarn}>⏳ Tu dois être assigné à un groupe pour accéder au chat.</div>
+            )}
+            {/* Sélecteur de groupe pour l'admin */}
+            {isAdmin && (
+              <div style={{display:"flex",gap:8,marginBottom:12,alignItems:"center"}}>
+                <span style={{fontSize:12,color:MUTED,fontWeight:600}}>✍️ Écrire dans :</span>
+                {["famille","collegues"].map(g=>(
+                  <button key={g} onClick={()=>setAdminChatGroup(g)} style={{
+                    padding:"6px 14px",borderRadius:10,fontSize:12,fontWeight:700,
+                    border:`1px solid ${adminChatGroup===g?GOLD:BRD}`,
+                    background:adminChatGroup===g?"rgba(255,210,52,.15)":SURF2,
+                    color:adminChatGroup===g?GOLD:MUTED,cursor:"pointer",fontFamily:"inherit",
+                  }}>{g==="famille"?"👨‍👩‍👧 Famille":"💼 Collègues"}</button>
+                ))}
+              </div>
+            )}
+            {validChatRole && (<>
+              {/* En ligne — filtré par même groupe */}
+              {(()=>{
+                const sameGroupOnline = onlinePlayers.filter(u =>
+                  u !== user && (st.users[u]||{}).role === validChatRole
+                );
+                if (sameGroupOnline.length === 0) return null;
+                return (
+                  <div style={{...t.card,padding:"8px 14px",marginBottom:10,display:"flex",gap:6,flexWrap:"wrap",alignItems:"center",background:"rgba(46,204,113,.06)",borderColor:"rgba(46,204,113,.25)"}}>
+                    <span style={{fontSize:10,color:GREEN,fontWeight:700}}>🟢 En ligne :</span>
+                    {sameGroupOnline.map(u=>(
+                      <span key={u} style={{fontSize:11,background:"rgba(46,204,113,.12)",border:"1px solid rgba(46,204,113,.25)",borderRadius:10,padding:"2px 8px",color:GREEN,fontWeight:600}}>
+                        {u}
+                      </span>
+                    ))}
+                  </div>
+                );
+              })()}
+
+              {/* Onglets chat : Générale vs Par Match */}
+              <div style={{...t.tabs, marginBottom:12}}>
+                <button style={{...t.tab,...(chatTab==="general"?t.tabOn:{})}} 
+                  onClick={()=>setChatTab("general")}>💬 Générale</button>
+                <button style={{...t.tab,...(chatTab==="byMatch"?t.tabOn:{})}} 
+                  onClick={()=>setChatTab("byMatch")}>🏟️ Par Match</button>
+              </div>
+
+              {/* TAB 1 : Chat général du groupe */}
+              {chatTab==="general" && (
+                <div style={{...t.card,padding:0,overflow:"hidden",marginBottom:12}}>
+                  <ChatBox matchId={null} title="💬 Chat du groupe"/>
                 </div>
               )}
-              <ChatBox matchId={null} title="💬 Chat général"/>
-            </div>
-            <div style={t.stitle}>🏟️ Commentaires par match</div>
-            {MATCHES.filter(m=>(st.results||{})[m.id]).map(m=>{
-              const rH=resolveTeam(m.home,st.results||{});
-              const rA=resolveTeam(m.away,st.results||{});
-              const comments=(st.matchComments||{})[m.id]||[];
-              return (
-                <div key={m.id} style={{...t.card,padding:0,overflow:"hidden",marginBottom:10}}>
-                  <div onClick={()=>setChatMatchId(chatMatchId===m.id?null:m.id)}
-                    style={{padding:"10px 14px",display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer"}}>
-                    <span style={{fontSize:13,fontWeight:700}}>{F(rH)} {rH} vs {rA} {F(rA)}</span>
-                    <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                      {comments.length>0&&<span style={{fontSize:11,color:MUTED}}>{comments.length} 💬</span>}
-                      <span style={{fontSize:12,color:MUTED}}>{chatMatchId===m.id?"▲":"▼"}</span>
-                    </div>
-                  </div>
-                  {chatMatchId===m.id&&<ChatBox matchId={m.id} title={`${rH} vs ${rA}`}/>}
-                </div>
-              );
-            })}
-            {!MATCHES.some(m=>(st.results||{})[m.id])&&(
-              <div style={t.empty}>Les commentaires par match seront disponibles dès le premier résultat. ⚽</div>
-            )}
+
+              {/* TAB 2 : Commentaires par match */}
+              {chatTab==="byMatch" && (
+                <>
+                  {MATCHES.filter(m=>(st.results||{})[m.id]).map(m=>{
+                    const rH=resolveTeam(m.home,st.results||{});
+                    const rA=resolveTeam(m.away,st.results||{});
+                    const matchMsgs = getChatMsgs(m.id);
+                    return (
+                      <div key={m.id} style={{...t.card,padding:0,overflow:"hidden",marginBottom:10}}>
+                        <div onClick={()=>setChatMatchId(chatMatchId===m.id?null:m.id)}
+                          style={{padding:"10px 14px",display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer"}}>
+                          <div style={{flex:1,minWidth:0}}>
+                            <span style={{fontSize:13,fontWeight:700}}>{F(rH)} {rH} vs {rA} {F(rA)}</span>
+                            <div style={{fontSize:10,color:MUTED,marginTop:1}}>{m.date} · {m.time}</div>
+                          </div>
+                          <div style={{display:"flex",gap:8,alignItems:"center",flexShrink:0}}>
+                            {matchMsgs.length>0&&(
+                              <span style={{fontSize:11,background:"rgba(255,210,52,.1)",border:"1px solid rgba(255,210,52,.3)",borderRadius:10,padding:"2px 8px",color:GOLD,fontWeight:700}}>
+                                {matchMsgs.length} 💬
+                              </span>
+                            )}
+                            <span style={{fontSize:12,color:MUTED}}>{chatMatchId===m.id?"▲":"▼"}</span>
+                          </div>
+                        </div>
+                        {chatMatchId===m.id&&<ChatBox matchId={m.id} title={`${rH} vs ${rA}`}/>}
+                      </div>
+                    );
+                  })}
+                  {!MATCHES.some(m=>(st.results||{})[m.id])&&(
+                    <div style={t.empty}>Les commentaires par match apparaîtront dès le premier résultat. ⚽</div>
+                  )}
+                </>
+              )}
+            </>)}
           </div>
         )}
 
@@ -4066,28 +4294,91 @@ export default function App() {
 
             {/* Sous-onglets admin */}
             <div style={{...t.tabs, paddingLeft:0, paddingRight:0, marginBottom:8}}>
-              {[{k:"users",l:"👥 Joueurs"},{k:"pronos",l:"🔍 Pronos"},{k:"results",l:"✏️ Résultats"}].map(s=>(
+              {[{k:"users",l:"👥 Joueurs"},{k:"pronos",l:"🔍 Pronos"},{k:"results",l:"✏️ Résultats"},{k:"moderation",l:"🛡️ Modération"}].map(s=>(
                 <button key={s.k} style={{...t.tab,...(adminSub===s.k?t.tabOn:{})}} onClick={()=>{ setAdminSub(s.k); setAdminConfirmUser(null); }}>{s.l}</button>
               ))}
             </div>
 
             {/* ── SOUS-ONGLET JOUEURS ── */}
             {adminSub==="users" && <>
+              {/* Bouton déconnexion forcée */}
+              <div style={{...t.card,display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                <div>
+                  <div style={{fontWeight:700,fontSize:13}}>🚪 Déconnecter les joueurs</div>
+                  <div style={{fontSize:11,color:MUTED,marginTop:2}}>Renvoie tous les joueurs connectés à l'écran de login</div>
+                </div>
+                <button
+                  onClick={()=>{ const ns={...st,forceLogoutSignal:Date.now()}; save(ns); showNotif("success","✅ Déconnexion envoyée"); }}
+                  style={{background:"rgba(239,68,68,.15)",border:"1px solid rgba(239,68,68,.4)",color:RED,borderRadius:10,padding:"8px 14px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",flexShrink:0}}>
+                  🚪 Déconnecter
+                </button>
+              </div>
+
+              {/* Bouton activation/désactivation du chat */}
+              <div style={{...t.card,display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                <div>
+                  <div style={{fontWeight:700,fontSize:13}}>💬 Chat joueurs</div>
+                  <div style={{fontSize:11,color:MUTED,marginTop:2}}>
+                    {st.chatEnabled!==false ? "Ouvert — les joueurs peuvent écrire" : "Fermé — les joueurs ne peuvent pas écrire"}
+                  </div>
+                </div>
+                <button
+                  onClick={()=>{ const ns={...st,chatEnabled:st.chatEnabled===false?true:false}; save(ns); }}
+                  style={{
+                    background:st.chatEnabled!==false?"rgba(239,68,68,.15)":"rgba(46,204,113,.15)",
+                    border:`1px solid ${st.chatEnabled!==false?"rgba(239,68,68,.4)":"rgba(46,204,113,.4)"}`,
+                    color:st.chatEnabled!==false?RED:GREEN,
+                    borderRadius:10,padding:"8px 14px",fontSize:12,fontWeight:700,
+                    cursor:"pointer",fontFamily:"inherit",
+                  }}>
+                  {st.chatEnabled!==false?"🔒 Fermer":"🔓 Ouvrir"}
+                </button>
+              </div>
               {Object.keys(st.users).filter(u=>u!=="admin").length===0
                 ? <div style={t.empty}>Aucun joueur.</div>
-                : Object.keys(st.users).filter(u=>u!=="admin").map(u=>{
+                : <>
+                  {/* Info sur la mise à jour mot de passe */}
+                  {Object.keys(st.users).some(u=>u!=="admin"&&!st.users[u].pw) && (
+                    <div style={{
+                      background:"rgba(245,158,11,.08)",border:"1px solid rgba(245,158,11,.3)",
+                      borderRadius:12,padding:"10px 14px",marginBottom:12,display:"flex",gap:10,alignItems:"flex-start"
+                    }}>
+                      <span style={{fontSize:18,flexShrink:0}}>ℹ️</span>
+                      <div>
+                        <div style={{fontWeight:700,fontSize:12,color:AMB,marginBottom:3}}>Mise à jour : mot de passe requis</div>
+                        <div style={{fontSize:11,color:MUTED,lineHeight:1.5}}>
+                          Les joueurs marqués <strong style={{color:AMB}}>⚠️ Pas de mdp</strong> ont été créés avec une ancienne version sans mot de passe.
+                          Ils devront se connecter une fois pour définir leur mot de passe et leurs nom/prénom. Leur rôle et pronos sont conservés.
+                          Tu peux aussi leur définir un mot de passe via le bouton <strong>🔑 MDP</strong>.
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {Object.keys(st.users).filter(u=>u!=="admin").map(u=>{
                     const r=st.users[u].role;
                     const isConfirming = adminConfirmUser?.name === u;
+                    const hasPw = !!st.users[u].pw;
                     return (
                       <div key={u} style={t.ucard}>
                         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                           <div>
-                            <div style={{fontWeight:700,fontSize:13}}>{onlinePlayers.includes(u)&&<span style={{color:GREEN,marginRight:3}}>🟢</span>}{u.toUpperCase()} {st.finalLock[u]?"🔒":""}</div>
-                            {(st.users[u].fname||st.users[u].lname) && (
+                            <div style={{fontWeight:700,fontSize:13,display:"flex",alignItems:"center",gap:6}}>
+                              {onlinePlayers.includes(u)&&<span style={{color:GREEN}}>🟢</span>}
+                              {u.toUpperCase()} {st.finalLock[u]?"🔒":""}
+                              {!hasPw && (
+                                <span title="Compte ancienne version — le joueur doit se connecter une fois pour définir son mot de passe"
+                                  style={{fontSize:9,background:"rgba(245,158,11,.15)",border:"1px solid rgba(245,158,11,.4)",color:AMB,borderRadius:6,padding:"2px 6px",fontWeight:700,letterSpacing:.3}}>
+                                  ⚠️ Pas de mdp
+                                </span>
+                              )}
+                            </div>
+                            {(st.users[u].fname||st.users[u].lname) ? (
                               <div style={{fontSize:12,color:GOLD,marginTop:1,fontWeight:600}}>
                                 👤 {[st.users[u].fname, st.users[u].lname].filter(Boolean).join(" ")}
                               </div>
-                            )}
+                            ) : hasPw ? (
+                              <div style={{fontSize:11,color:MUTED,marginTop:1,fontStyle:"italic"}}>Nom non renseigné</div>
+                            ) : null}
                             <div style={{fontSize:11,color:MUTED,marginTop:2}}>Rôle : {r} · {scores[u]||0} pts{onlinePlayers.includes(u)?" · en ligne":""}</div>
                           </div>
                           <div style={{display:"flex",gap:6}}>
@@ -4096,6 +4387,12 @@ export default function App() {
                               style={{background:"rgba(245,158,11,.1)",border:"1px solid rgba(245,158,11,.3)",color:AMB,borderRadius:8,padding:"5px 8px",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}
                               onClick={()=>setAdminConfirmUser({name:u,action:"reset"})}>
                               🔄 Reset
+                            </button>
+                            <button
+                              title="Changer le mot de passe"
+                              style={{background:"rgba(99,102,241,.1)",border:"1px solid rgba(99,102,241,.3)",color:"#a5b4fc",borderRadius:8,padding:"5px 8px",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}
+                              onClick={()=>{ setAdminNewPw(""); setAdminConfirmUser({name:u,action:"pw"}); }}>
+                              🔑 MDP
                             </button>
                             <button
                               title="Supprimer ce joueur"
@@ -4113,8 +4410,32 @@ export default function App() {
 
                         {/* Confirmation inline */}
                         {isConfirming && (
-                          <div style={{marginTop:10,background:adminConfirmUser.action==="delete"?"rgba(239,68,68,.08)":"rgba(245,158,11,.08)",border:`1px solid ${adminConfirmUser.action==="delete"?"rgba(239,68,68,.3)":"rgba(245,158,11,.3)"}`,borderRadius:10,padding:10}}>
-                            {adminConfirmUser.action==="delete" ? (
+                          <div style={{marginTop:10,background:adminConfirmUser.action==="delete"?"rgba(239,68,68,.08)":adminConfirmUser.action==="pw"?"rgba(99,102,241,.08)":"rgba(245,158,11,.08)",border:`1px solid ${adminConfirmUser.action==="delete"?"rgba(239,68,68,.3)":adminConfirmUser.action==="pw"?"rgba(99,102,241,.3)":"rgba(245,158,11,.3)"}`,borderRadius:10,padding:10}}>
+                            {adminConfirmUser.action==="pw" ? (
+                              <>
+                                <div style={{fontSize:12,color:TXT,marginBottom:8,lineHeight:1.4}}>
+                                  Nouveau mot de passe pour <strong>{u.toUpperCase()}</strong> :
+                                </div>
+                                <input
+                                  type="password"
+                                  placeholder="Nouveau mot de passe (min 4 car.)"
+                                  value={adminNewPw}
+                                  onChange={e=>setAdminNewPw(e.target.value)}
+                                  style={{width:"100%",boxSizing:"border-box",background:"rgba(255,255,255,.07)",border:"1px solid rgba(255,255,255,.15)",borderRadius:8,padding:"8px 10px",color:TXT,fontSize:12,fontFamily:"inherit",marginBottom:8,outline:"none"}}
+                                />
+                                <div style={{display:"flex",gap:8}}>
+                                  <button style={{flex:1,background:"rgba(99,102,241,.8)",border:"none",color:"#fff",borderRadius:8,padding:"8px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}
+                                    onClick={()=>{
+                                      if (adminNewPw.length < 4) { showNotif("error","❌ Mot de passe trop court (min 4 car.)"); return; }
+                                      const ns={...st,users:{...st.users,[u]:{...st.users[u],pw:adminNewPw}}};
+                                      save(ns); showNotif("success",`✅ MDP de ${u.toUpperCase()} modifié`);
+                                      setAdminNewPw(""); setAdminConfirmUser(null);
+                                    }}>🔑 Enregistrer</button>
+                                  <button style={{flex:1,background:"rgba(255,255,255,.06)",border:"1px solid rgba(255,255,255,.15)",color:TXT,borderRadius:8,padding:"8px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}
+                                    onClick={()=>{ setAdminNewPw(""); setAdminConfirmUser(null); }}>Annuler</button>
+                                </div>
+                              </>
+                            ) : adminConfirmUser.action==="delete" ? (
                               <>
                                 <div style={{fontSize:12,color:TXT,marginBottom:8,lineHeight:1.4}}>
                                   Supprimer <strong>{u.toUpperCase()}</strong> définitivement ?<br/>
@@ -4191,7 +4512,8 @@ export default function App() {
                         )}
                       </div>
                     );
-                  })
+                  })}
+                </>
               }
               {/* Reset danger zone */}
               <div style={{marginTop:16,padding:"12px",background:"rgba(239,68,68,.05)",border:"1px solid rgba(239,68,68,.15)",borderRadius:12}}>
@@ -4274,28 +4596,60 @@ export default function App() {
                           const ml = isElimP
                             ? MATCHES.filter(m=>m.group==="ELIM"&&m.phase===adminPronoGroup)
                             : MATCHES.filter(m=>m.group===adminPronoGroup&&m.phase==="poules");
+                          // Pour les élims : résoudre les équipes via la chaîne de pronos du joueur
+                          // (officialResults en base + pronos du joueur pour les matchs sans résultat officiel)
+                          const mixedR = {...(st.results||{}), ...uPreds};
                           return (
                             <div style={t.card}>
                               <div style={{fontWeight:800,fontSize:14,marginBottom:10,display:"flex",justifyContent:"space-between"}}>
                                 <span>{adminPronoPlayer.toUpperCase()} {onlinePlayers.includes(adminPronoPlayer)?"🟢":""}</span>
                                 <span style={{color:GOLD}}>{scores[adminPronoPlayer]||0} pts</span>
                               </div>
+                              {ml.length===0 && <div style={{color:MUTED,fontSize:12,textAlign:"center",padding:"8px 0"}}>Aucun match dans cette phase</div>}
                               {ml.map(m=>{
                                 const p=uPreds[m.id];
                                 const off=(st.results||{})[m.id];
                                 const ok=p&&off&&p===off;
                                 const ko=p&&off&&p!==off;
-                                const rH=resolveTeam(m.home,st.results||{});
-                                const rA=resolveTeam(m.away,st.results||{});
+                                // Résolution via chaîne de pronos du joueur pour les élims
+                                const rH = isElimP
+                                  ? resolveTeam(m.home, mixedR, st.scores||{})
+                                  : resolveTeam(m.home, st.results||{}, st.scores||{});
+                                const rA = isElimP
+                                  ? resolveTeam(m.away, mixedR, st.scores||{})
+                                  : resolveTeam(m.away, st.results||{}, st.scores||{});
+                                // Équipe pronostiquée gagnante par le joueur
+                                const predWinner = p==="1" ? rH : p==="2" ? rA : null;
+                                const predEmoji = predWinner && FLAGS[predWinner] ? FLAGS[predWinner] : "";
                                 return (
-                                  <div key={m.id} style={{display:"flex",alignItems:"center",padding:"7px 0",borderBottom:`1px solid ${BRD}`,gap:6}}>
-                                    <span style={{fontSize:11,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{F(rH)} {rH}</span>
-                                    <span style={{fontSize:13,fontWeight:900,minWidth:32,textAlign:"center",
-                                      color:ok?GREEN:ko?RED:p?AMB:MUTED,
-                                      textShadow:ok?`0 0 8px ${GREEN}`:ko?`0 0 8px ${RED}`:"none"}}>
-                                      {p||(off?"—":"·")}
-                                    </span>
-                                    <span style={{fontSize:11,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",textAlign:"right"}}>{rA} {F(rA)}</span>
+                                  <div key={m.id} style={{padding:"8px 0",borderBottom:`1px solid ${BRD}`}}>
+                                    {/* Ligne des équipes */}
+                                    <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:4}}>
+                                      <span style={{fontSize:18}}>{FLAGS[rH]||"❓"}</span>
+                                      <span style={{fontSize:11,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:TXT}}>{rH}</span>
+                                      <span style={{fontSize:10,color:MUTED,fontWeight:700,minWidth:20,textAlign:"center"}}>vs</span>
+                                      <span style={{fontSize:11,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:TXT,textAlign:"right"}}>{rA}</span>
+                                      <span style={{fontSize:18}}>{FLAGS[rA]||"❓"}</span>
+                                    </div>
+                                    {/* Prono du joueur */}
+                                    <div style={{display:"flex",alignItems:"center",gap:6}}>
+                                      <span style={{fontSize:10,color:MUTED}}>Prono :</span>
+                                      {p ? (
+                                        <span style={{
+                                          fontSize:12,fontWeight:800,padding:"2px 8px",borderRadius:6,
+                                          background:ok?"rgba(34,197,94,.2)":ko?"rgba(239,68,68,.2)":"rgba(245,200,66,.1)",
+                                          color:ok?GREEN:ko?RED:GOLD,
+                                          display:"flex",alignItems:"center",gap:4
+                                        }}>
+                                          {predEmoji && <span style={{fontSize:14}}>{predEmoji}</span>}
+                                          {predWinner||p}
+                                          {ok&&" ✅"}{ko&&" ❌"}
+                                        </span>
+                                      ) : (
+                                        <span style={{fontSize:11,color:MUTED,fontStyle:"italic"}}>Pas de prono</span>
+                                      )}
+                                      {off&&!p&&<span style={{fontSize:10,color:MUTED,marginLeft:"auto"}}>Résultat : {off==="1"?`${FLAGS[rH]||""} ${rH}`:off==="2"?`${FLAGS[rA]||""} ${rA}`:"Nul"}</span>}
+                                    </div>
                                   </div>
                                 );
                               })}
@@ -4379,7 +4733,101 @@ export default function App() {
               );
             })()}
 
-            {/* ── SOUS-ONGLET RÉSULTATS ── */}
+            {/* ── SOUS-ONGLET MODÉRATION ── */}
+            {adminSub==="moderation" && <>
+              <div style={{fontSize:13,fontWeight:700,marginBottom:10}}>💬 Chat Famille</div>
+              {(st.chat?.famille || []).length === 0
+                ? <div style={t.empty}>Aucun message</div>
+                : (st.chat?.famille || []).map((msg, idx) => (
+                    <div key={idx} style={{
+                      background:SURF2,borderRadius:10,padding:"10px 12px",marginBottom:8,
+                      display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8
+                    }}>
+                      <div style={{flex:1,fontSize:12}}>
+                        <div style={{fontWeight:700,color:GREEN}}>{msg.user}</div>
+                        <div style={{color:TXT,marginTop:2}}>{msg.text}</div>
+                        <div style={{fontSize:10,color:MUTED,marginTop:4}}>{new Date(msg.ts).toLocaleString()}</div>
+                      </div>
+                      <button style={{...t.btnXS,background:"rgba(239,68,68,.2)",color:RED,padding:"4px 8px"}} 
+                        onClick={() => deleteMessage("famille", idx)}>🗑️</button>
+                    </div>
+                  ))}
+
+              <div style={{fontSize:13,fontWeight:700,marginBottom:10,marginTop:16}}>💬 Chat Collègues</div>
+              {(st.chat?.collegues || []).length === 0
+                ? <div style={t.empty}>Aucun message</div>
+                : (st.chat?.collegues || []).map((msg, idx) => (
+                    <div key={idx} style={{
+                      background:SURF2,borderRadius:10,padding:"10px 12px",marginBottom:8,
+                      display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8
+                    }}>
+                      <div style={{flex:1,fontSize:12}}>
+                        <div style={{fontWeight:700,color:"#7c3aed"}}>{msg.user}</div>
+                        <div style={{color:TXT,marginTop:2}}>{msg.text}</div>
+                        <div style={{fontSize:10,color:MUTED,marginTop:4}}>{new Date(msg.ts).toLocaleString()}</div>
+                      </div>
+                      <button style={{...t.btnXS,background:"rgba(239,68,68,.2)",color:RED,padding:"4px 8px"}} 
+                        onClick={() => deleteMessage("collegues", idx)}>🗑️</button>
+                    </div>
+                  ))}
+
+              <div style={{fontSize:13,fontWeight:700,marginBottom:10,marginTop:16}}>📝 Commentaires Matchs</div>
+              {Object.keys(st.matchComments || {}).length === 0
+                ? <div style={t.empty}>Aucun commentaire</div>
+                : Object.entries(st.matchComments || {}).map(([matchId, matchData]) => {
+                    const familleComments = (matchData?.famille || []);
+                    const colleaguesComments = (matchData?.collegues || []);
+                    const totalComments = familleComments.length + colleaguesComments.length;
+                    
+                    if (totalComments === 0) return null;
+                    
+                    return (
+                      <div key={matchId} style={{marginBottom:14,background:SURF2,borderRadius:10,padding:12}}>
+                        <div style={{fontSize:11,color:MUTED,fontWeight:700,marginBottom:10}}>Match {matchId} · {totalComments} 💬</div>
+                        
+                        {/* Commentaires Famille */}
+                        {familleComments.length > 0 && (
+                          <>
+                            <div style={{fontSize:10,color:GREEN,fontWeight:700,marginBottom:6}}>👥 Famille</div>
+                            {familleComments.map((comment, idx) => (
+                              <div key={`fam-${idx}`} style={{
+                                background:"rgba(34,197,94,.08)",borderRadius:8,padding:"8px 10px",marginBottom:6,
+                                display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8
+                              }}>
+                                <div style={{flex:1,fontSize:11}}>
+                                  <div style={{fontWeight:700,color:GREEN}}>{comment.user}</div>
+                                  <div style={{color:TXT,marginTop:1}}>{comment.text}</div>
+                                </div>
+                                <button style={{...t.btnXS,background:"rgba(239,68,68,.2)",color:RED,padding:"2px 6px",fontSize:10}} 
+                                  onClick={() => deleteMatchComment(matchId, "famille", idx)}>🗑️</button>
+                              </div>
+                            ))}
+                          </>
+                        )}
+                        
+                        {/* Commentaires Collègues */}
+                        {colleaguesComments.length > 0 && (
+                          <>
+                            <div style={{fontSize:10,color:"#7c3aed",fontWeight:700,marginBottom:6,marginTop:10}}>👥 Collègues</div>
+                            {colleaguesComments.map((comment, idx) => (
+                              <div key={`col-${idx}`} style={{
+                                background:"rgba(124,58,237,.08)",borderRadius:8,padding:"8px 10px",marginBottom:6,
+                                display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8
+                              }}>
+                                <div style={{flex:1,fontSize:11}}>
+                                  <div style={{fontWeight:700,color:"#7c3aed"}}>{comment.user}</div>
+                                  <div style={{color:TXT,marginTop:1}}>{comment.text}</div>
+                                </div>
+                                <button style={{...t.btnXS,background:"rgba(239,68,68,.2)",color:RED,padding:"2px 6px",fontSize:10}} 
+                                  onClick={() => deleteMatchComment(matchId, "collegues", idx)}>🗑️</button>
+                              </div>
+                            ))}
+                          </>
+                        )}
+                      </div>
+                    );
+                  }).filter(Boolean)}
+            </>}
             {adminSub==="results" && <>
               <div style={t.tabs}>
                 {[{k:"poules",l:"Poules"},...elimPhases].map(p=>(
@@ -4505,7 +4953,7 @@ export default function App() {
                               {sc?`${sc.h} – ${sc.a}`:off==="1"?"1–0":off==="2"?"0–1":"N"}
                             </div>
                             <div style={{fontSize:9,color:MUTED,marginTop:2}}>
-                              {correct?"✓ +3pts":wrong?"✗ raté":myPred?"non validé":""}
+                              {correct?`✓ +${PHASE_POINTS[m.phase]??1}pts`:wrong?"✗ raté":myPred?"non validé":""}
                             </div>
                           </div>
                           {/* Equipe extérieure */}
@@ -4615,7 +5063,7 @@ export default function App() {
                         {F(rH)} {rH} <span style={{color:MUTED,fontSize:11}}>vs</span> {rA} {F(rA)}
                       </div>
                       <div style={{fontSize:14,fontWeight:900,color:GREEN}}>
-                        {sc ? scoreLabel(sc) : preds[m.id]} +3pts
+                        {sc ? scoreLabel(sc) : preds[m.id]} +{PHASE_POINTS[m.phase]??1}pts
                       </div>
                     </div>
                   );
