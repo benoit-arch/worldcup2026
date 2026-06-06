@@ -2882,6 +2882,11 @@ export default function App() {
                   <span style={t.lbRank}>{i===0?"🥇":i===1?"🥈":i===2?"🥉":`${i+1}.`}</span>
                   <span style={{fontSize:13}}>
                     {u.toUpperCase()}
+                    {(st.users[u]?.fname||st.users[u]?.lname) && (
+                      <span style={{fontSize:11,color:MUTED,fontWeight:400,marginLeft:5}}>
+                        ({[st.users[u].fname,st.users[u].lname].filter(Boolean).join(" ")})
+                      </span>
+                    )}
                     {u===user?" · toi":""}
                     {isLeader && <span style={{marginLeft:6,fontSize:14}}>⭐</span>}
                   </span>
@@ -4078,6 +4083,11 @@ export default function App() {
                         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                           <div>
                             <div style={{fontWeight:700,fontSize:13}}>{onlinePlayers.includes(u)&&<span style={{color:GREEN,marginRight:3}}>🟢</span>}{u.toUpperCase()} {st.finalLock[u]?"🔒":""}</div>
+                            {(st.users[u].fname||st.users[u].lname) && (
+                              <div style={{fontSize:12,color:GOLD,marginTop:1,fontWeight:600}}>
+                                👤 {[st.users[u].fname, st.users[u].lname].filter(Boolean).join(" ")}
+                              </div>
+                            )}
                             <div style={{fontSize:11,color:MUTED,marginTop:2}}>Rôle : {r} · {scores[u]||0} pts{onlinePlayers.includes(u)?" · en ligne":""}</div>
                           </div>
                           <div style={{display:"flex",gap:6}}>
