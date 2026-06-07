@@ -1379,7 +1379,7 @@ async function _initFirebase() {
 
 // Fallback localStorage (si Firebase non configuré ou hors ligne)
 const KEY = "wc2026_v2";
-const blank = () => ({ users:{}, predictions:{}, results:{}, scores:{}, validatedGroups:{}, finalLock:{}, seenAnim:{}, officialThirds:{}, thirdPicks:{}, seenEgg:{}, presence:{}, chat:{famille:[],collegues:[]}, matchComments:{}, chatEnabled:true, appVersion: APP_VERSION, forceLogoutSignal: 0 });
+const blank = () => ({ users:{}, predictions:{}, results:{}, scores:{}, validatedGroups:{}, finalLock:{}, seenAnim:{}, officialThirds:{}, thirdPicks:{}, seenEgg:{}, presence:{}, chat:{famille:[],collegues:[]}, matchComments:{}, chatEnabled:true, appVersion: APP_VERSION, forceLogoutSignal: 0, seenChat:{} });
 function load() {
   try {
     // Vérifier si la version a changé
@@ -1432,6 +1432,7 @@ async function persistFirebase(ns) {
         matchComments:   ns.matchComments   || {},
         chatEnabled:     ns.chatEnabled !== false,
         forceLogoutSignal: ns.forceLogoutSignal || 0,
+        seenChat:          ns.seenChat          || {},
         appVersion:      ns.appVersion || APP_VERSION,
       });
     } catch(e) { console.warn("Firebase write error:", e); persist(ns); }
@@ -2143,7 +2144,7 @@ export default function App() {
   });
 
   // Login form grouped
-  const [login, setLogin] = useState({ uname: "", pw: "", pwConfirm: "", fname: "", lname: "" });
+  const [login, setLogin] = useState({ uname: "", pw: "", pwConfirm: "", fname: "", lname: "", showPw: false, showPwConfirm: false });
   
   // Other states
   const eggTimer = useRef(null);
@@ -2166,7 +2167,7 @@ export default function App() {
     return () => { _onMp3AutoNext = null; };
   }, []);
   const { tab, grp, ePhase, aPhase, adminSub, adminPronoGroup, showCal, showTrophy, modal, confirmReset, shareCopied, eggClicks, eggActive } = appState;
-  const { uname, pw, pwConfirm, fname, lname } = login;
+  const { uname, pw, pwConfirm, fname, lname, showPw, showPwConfirm } = login;
   
   // Helper setters for backward compatibility
   const setTab = useCallback((v) => setAppState(s => ({...s, tab: v})), []);
@@ -2195,6 +2196,8 @@ export default function App() {
   const setUname = useCallback((v) => setLogin(l => ({...l, uname: v})), []);
   const setPw = useCallback((v) => setLogin(l => ({...l, pw: v})), []);
   const setPwConfirm = useCallback((v) => setLogin(l => ({...l, pwConfirm: v})), []);
+  const toggleShowPw = useCallback(() => setLogin(l => ({...l, showPw: !l.showPw})), []);
+  const toggleShowPwConfirm = useCallback(() => setLogin(l => ({...l, showPwConfirm: !l.showPwConfirm})), []);
   const setFname = useCallback((v) => setLogin(l => ({...l, fname: v})), []);
   const setLname = useCallback((v) => setLogin(l => ({...l, lname: v})), []);
   
@@ -3347,34 +3350,48 @@ export default function App() {
               : "🔑  Ton mot de passe";
             return (
               <>
-                <input style={{
-                  ...t.input,
-                  background:"rgba(0,0,0,.4)",
-                  border:"1px solid rgba(255,255,255,.12)",
-                  borderRadius:14,fontSize:16,padding:"14px 16px",
-                  color:"#fff",
-                }}
-                  type="password" placeholder={placeholder}
-                  value={pw}
-                  onChange={e=>setPw(e.target.value)}
-                  onKeyDown={e=>e.key==="Enter"&&doLogin()}
-                  autoComplete="new-password"
-                />
+                <div style={{position:"relative",width:"100%"}}>
+                  <input style={{
+                    ...t.input,
+                    background:"rgba(0,0,0,.4)",
+                    border:"1px solid rgba(255,255,255,.12)",
+                    borderRadius:14,fontSize:16,padding:"14px 48px 14px 16px",
+                    color:"#fff",width:"100%",boxSizing:"border-box",
+                  }}
+                    type={showPw?"text":"password"} placeholder={placeholder}
+                    value={pw}
+                    onChange={e=>setPw(e.target.value)}
+                    onKeyDown={e=>e.key==="Enter"&&doLogin()}
+                    autoComplete="new-password"
+                  />
+                  <button onClick={toggleShowPw} type="button" style={{
+                    position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",
+                    background:"none",border:"none",cursor:"pointer",fontSize:18,
+                    color:"rgba(255,255,255,.4)",padding:4,lineHeight:1,
+                  }}>{showPw?"🙈":"👁️"}</button>
+                </div>
                 {needsNewPw && (
                   <>
-                    <input style={{
-                      ...t.input,
-                      background:"rgba(0,0,0,.4)",
-                      border:"1px solid rgba(255,255,255,.12)",
-                      borderRadius:14,fontSize:16,padding:"14px 16px",
-                      color:"#fff",
-                    }}
-                      type="password" placeholder="🔑  Confirme ton mot de passe"
-                      value={pwConfirm}
-                      onChange={e=>setPwConfirm(e.target.value)}
-                      onKeyDown={e=>e.key==="Enter"&&doLogin()}
-                      autoComplete="new-password"
-                    />
+                    <div style={{position:"relative",width:"100%"}}>
+                      <input style={{
+                        ...t.input,
+                        background:"rgba(0,0,0,.4)",
+                        border:"1px solid rgba(255,255,255,.12)",
+                        borderRadius:14,fontSize:16,padding:"14px 48px 14px 16px",
+                        color:"#fff",width:"100%",boxSizing:"border-box",
+                      }}
+                        type={showPwConfirm?"text":"password"} placeholder="🔑  Confirme ton mot de passe"
+                        value={pwConfirm}
+                        onChange={e=>setPwConfirm(e.target.value)}
+                        onKeyDown={e=>e.key==="Enter"&&doLogin()}
+                        autoComplete="new-password"
+                      />
+                      <button onClick={toggleShowPwConfirm} type="button" style={{
+                        position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",
+                        background:"none",border:"none",cursor:"pointer",fontSize:18,
+                        color:"rgba(255,255,255,.4)",padding:4,lineHeight:1,
+                      }}>{showPwConfirm?"🙈":"👁️"}</button>
+                    </div>
                     {/* Nom et Prénom pour identification admin */}
                     <input style={{
                       ...t.input,
@@ -4303,6 +4320,25 @@ export default function App() {
 
             {/* ── SOUS-ONGLET JOUEURS ── */}
             {adminSub==="users" && <>
+              {/* Alerte salle d'attente */}
+              {(()=>{
+                const waiting = Object.keys(st.users).filter(u=>u!=="admin"&&st.users[u]?.role==="waiting");
+                if (waiting.length===0) return null;
+                return (
+                  <div style={{...t.card,marginBottom:10,background:"rgba(239,68,68,.08)",borderColor:"rgba(239,68,68,.4)",display:"flex",alignItems:"center",gap:10}}>
+                    <span style={{fontSize:24}}>⏳</span>
+                    <div style={{flex:1}}>
+                      <div style={{fontWeight:800,fontSize:13,color:RED}}>
+                        {waiting.length} joueur{waiting.length>1?"s":""} en salle d'attente
+                      </div>
+                      <div style={{fontSize:11,color:MUTED,marginTop:2}}>
+                        {waiting.map(u=>u.toUpperCase()).join(", ")}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* Bouton déconnexion forcée */}
               <div style={{...t.card,display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
                 <div>
@@ -4986,12 +5022,44 @@ export default function App() {
 
       {/* BOTTOM NAV */}
       <div style={t.bnav}>
-        {navItems.map(n=>(
-          <button key={n.k} style={{...t.nbtn,...(tab===n.k?t.nbtnOn:{})}} onClick={()=>setTab(n.k)}>
-            <span style={{fontSize:22}}>{n.l}</span>
-            <span>{n.lbl}</span>
-          </button>
-        ))}
+        {navItems.map(n=>{
+          const isOn = tab===n.k;
+          // Badge salle d'attente sur onglet Admin
+          const waitingCount = n.k==="admin" && isAdmin
+            ? Object.keys(st.users).filter(u=>u!=="admin"&&st.users[u]?.role==="waiting").length
+            : 0;
+          // Badge nouveaux messages chat
+          const chatRole2 = (st.users[user]||{}).role;
+          const validCR2 = chatRole2==="famille"||chatRole2==="collegues" ? chatRole2 : null;
+          const chatMsgsCount = n.k==="chat" && validCR2
+            ? ((st.chat||{})[validCR2]||[]).length
+            : 0;
+          const lastSeenChat = (st.seenChat||{})[user] || 0;
+          const newChatMsgs = n.k==="chat" && chatMsgsCount > lastSeenChat;
+          return (
+            <button key={n.k} style={{...t.nbtn,...(isOn?t.nbtnOn:{})}} onClick={()=>{
+              setTab(n.k);
+              // Marquer les messages comme vus quand on clique sur Chat
+              if (n.k==="chat" && validCR2) {
+                const ns={...st, seenChat:{...(st.seenChat||{}),[user]:chatMsgsCount}};
+                save(ns);
+              }
+            }}>
+              <div style={{position:"relative",display:"inline-block"}}>
+                <span style={{fontSize:22,animation:isOn&&n.k==="poules"?"ballBounce 1.5s ease-in-out infinite":"none",filter:isOn?`drop-shadow(0 0 6px ${GOLD})`:"none"}}>{n.l}</span>
+                {waitingCount>0&&(
+                  <span style={{position:"absolute",top:-4,right:-6,background:RED,color:"#fff",borderRadius:10,fontSize:9,fontWeight:800,padding:"1px 5px",minWidth:14,textAlign:"center",lineHeight:"14px"}}>
+                    {waitingCount}
+                  </span>
+                )}
+                {newChatMsgs&&!isOn&&(
+                  <span style={{position:"absolute",top:-3,right:-4,width:9,height:9,background:GREEN,borderRadius:"50%",border:"1.5px solid #0a0e1a"}}/>
+                )}
+              </div>
+              <span>{n.lbl}</span>
+            </button>
+          );
+        })}
       </div>
 
       {/* ÉCRAN RÉSULTATS */}
