@@ -2144,7 +2144,17 @@ export default function App() {
   });
 
   // Login form grouped
-  const [login, setLogin] = useState({ uname: "", pw: "", pwConfirm: "", fname: "", lname: "", showPw: false, showPwConfirm: false });
+  const [login, setLogin] = useState({ uname: "", pw: "", pwConfirm: "", fname: "", lname: "", showPw: false, showPwConfirm: false, rememberMe: false });
+  // Auto-remplissage si "Se souvenir" activé lors de la dernière connexion
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("cdm2026_remember");
+      if (saved) {
+        const { uname: su, pw: sp } = JSON.parse(saved);
+        if (su) setLogin(l => ({...l, uname: su, pw: sp || "", rememberMe: true}));
+      }
+    } catch(e) {}
+  }, []);
   
   // Other states
   const eggTimer = useRef(null);
@@ -2167,7 +2177,8 @@ export default function App() {
     return () => { _onMp3AutoNext = null; };
   }, []);
   const { tab, grp, ePhase, aPhase, adminSub, adminPronoGroup, showCal, showTrophy, modal, confirmReset, shareCopied, eggClicks, eggActive } = appState;
-  const { uname, pw, pwConfirm, fname, lname, showPw, showPwConfirm } = login;
+  const { uname, pw, pwConfirm, fname, lname, showPw, showPwConfirm, rememberMe } = login;
+  const setRememberMe = useCallback((v) => setLogin(l => ({...l, rememberMe: v})), []);
   
   // Helper setters for backward compatibility
   const setTab = useCallback((v) => setAppState(s => ({...s, tab: v})), []);
@@ -2191,6 +2202,8 @@ export default function App() {
   const [chatMsg, setChatMsg] = useState("");
   const [adminChatGroup, setAdminChatGroup] = useState("famille");
   const [chatMatchId, setChatMatchId] = useState(null);
+  const [groupPronoPlayer, setGroupPronoPlayer] = useState(null); // joueur sélectionné dans l'onglet groupe
+  const [groupPronoPhase, setGroupPronoPhase] = useState("A"); // groupe/phase sélectionné
   const [chatTab, setChatTab] = useState("general"); // "general" ou "byMatch"
   const setShareCopied = useCallback((v) => setAppState(s => ({...s, shareCopied: v})), []);
   const setUname = useCallback((v) => setLogin(l => ({...l, uname: v})), []);
@@ -2254,9 +2267,13 @@ export default function App() {
   const lastLogoutSignal = useRef(0);
   useEffect(() => {
     const signal = st.forceLogoutSignal || 0;
-    if (signal === 0) { lastLogoutSignal.current = 0; return; }
-    if (signal > lastLogoutSignal.current && user && user !== "admin" && scr === "app") {
-      lastLogoutSignal.current = signal;
+    const prev = lastLogoutSignal.current;
+    // Toujours mémoriser le signal courant (même avant connexion)
+    // pour éviter qu'un ancien signal déclenche une déconnexion à la prochaine connexion
+    lastLogoutSignal.current = Math.max(lastLogoutSignal.current, signal);
+    if (signal === 0) lastLogoutSignal.current = 0;
+    // N'agir QUE si c'est un nouveau signal ET qu'on est déjà connecté en mode app
+    if (signal > prev && user && user !== "admin" && scr === "app") {
       doLogout();
     }
   }, [st.forceLogoutSignal, user, scr]);
@@ -2597,7 +2614,10 @@ export default function App() {
     save(ns); localStorage.setItem("APP_VERSION", APP_VERSION); setUser(u);
     soundLogin(); stopLoginMusic();
     seen.current = new Set(Object.keys(ns.seenAnim||{}));
-    setLogin({uname: "", pw: "", pwConfirm: "", fname: "", lname: ""}); // Reset fields
+    // Mémoriser les identifiants si demandé
+    if (rememberMe) localStorage.setItem("cdm2026_remember", JSON.stringify({uname: u, pw}));
+    else localStorage.removeItem("cdm2026_remember");
+    setLogin({uname: "", pw: "", pwConfirm: "", fname: "", lname: "", showPw: false, showPwConfirm: false, rememberMe: false}); // Reset fields
     if (ns.users[u].role === "waiting") {
       setScr("waiting");
       showNotif("info", "⏳ En attente d'assignation par l'admin");
@@ -2609,10 +2629,10 @@ export default function App() {
 
   function doLogout() {
     stopAllMusic();
-    // Réinitialiser le son pour que la musique du login fonctionne au retour
     _isMuted = false;
     setAudio(a => ({...a, muted: false}));
-    setUser(""); setUname(""); setPw(""); setLogin({uname:"",pw:"",pwConfirm:"",fname:"",lname:""}); setScr("login");
+    // Ne pas effacer le "Se souvenir" au logout — l'utilisateur a demandé à être mémorisé
+    setUser(""); setUname(""); setPw(""); setLogin(l => ({...l, uname: l.rememberMe ? l.uname : "", pw: l.rememberMe ? l.pw : "", pwConfirm:"", fname:"", lname:""})); setScr("login");
   }
 
   // ── MODERATION ──
@@ -3452,6 +3472,24 @@ export default function App() {
             <span style={{fontSize:11,color:"rgba(255,150,150,.7)"}}>Après cette date, plus aucune modification possible.</span>
           </div>
 
+          {/* Se souvenir de moi — uniquement pour joueurs existants (pas nouveau compte) */}
+          {!(!st.users[uname.trim().toLowerCase()] && uname.trim()) && (
+            <label style={{display:"flex",alignItems:"center",gap:10,cursor:"pointer",padding:"4px 0",userSelect:"none"}}>
+              <div
+                onClick={() => setRememberMe(!rememberMe)}
+                style={{
+                  width:20, height:20, borderRadius:6, flexShrink:0,
+                  border:`2px solid ${rememberMe ? GOLD : BRD}`,
+                  background: rememberMe ? "rgba(245,200,66,.2)" : "rgba(255,255,255,.04)",
+                  display:"flex", alignItems:"center", justifyContent:"center",
+                  transition:"all .15s", cursor:"pointer",
+                }}>
+                {rememberMe && <span style={{fontSize:13, color:GOLD, lineHeight:1}}>✓</span>}
+              </div>
+              <span style={{fontSize:12, color:MUTED}}>Se souvenir de moi sur cet appareil</span>
+            </label>
+          )}
+
           <button style={{
             background:"linear-gradient(135deg, #F5C842 0%, #e8a800 100%)",
             color:"#0a0600",border:"none",borderRadius:14,
@@ -3489,9 +3527,17 @@ export default function App() {
 
   // ─── APP ───
   const isAdmin = role==="admin";
+  const myValidated = st.validatedGroups[user] || [];
+  const iFullyValidated = allPhasesValidated(myValidated) || locked;
+  const competitionStarted = Object.keys(st.finalLock||{}).length > 0 &&
+    Object.keys(st.users||{}).filter(u=>u!=="admin").every(u => st.finalLock[u]);
+  const canSeeGroupPronos = iFullyValidated; // accès dès que soi-même est validé/verrouillé
+
   const navItems = isAdmin
     ? [{k:"home",l:"🏠",lbl:"Accueil"},{k:"poules",l:"⚽",lbl:"Poules"},{k:"elim",l:"🏆",lbl:"Élim."},{k:"scores",l:"📊",lbl:"Scores"},{k:"chat",l:"💬",lbl:"Chat"},{k:"histo",l:"📋",lbl:"Résultats"},{k:"admin",l:"⚙️",lbl:"Admin"}]
-    : [{k:"home",l:"🏠",lbl:"Accueil"},{k:"poules",l:"⚽",lbl:"Poules"},{k:"elim",l:"🏆",lbl:"Élim."},{k:"scores",l:"📊",lbl:"Scores"},{k:"chat",l:"💬",lbl:"Chat"},{k:"histo",l:"📋",lbl:"Résultats"}];
+    : [...[{k:"home",l:"🏠",lbl:"Accueil"},{k:"poules",l:"⚽",lbl:"Poules"},{k:"elim",l:"🏆",lbl:"Élim."},{k:"scores",l:"📊",lbl:"Scores"}],
+       ...(canSeeGroupPronos?[{k:"groupe",l:"👥",lbl:"Groupe"}]:[]),
+       {k:"chat",l:"💬",lbl:"Chat"},{k:"histo",l:"📋",lbl:"Résultats"}];
 
   const elimPhases=[{k:"seiziemes",l:"1/16"},{k:"huitiemes",l:"1/8"},{k:"quarts",l:"Quarts"},{k:"demis",l:"Demis"},{k:"p3",l:"3e pl."},{k:"finale",l:"Finale"}];
   const todayMatches = MATCHES.filter(m=>m.dk===today);
@@ -4153,6 +4199,114 @@ export default function App() {
         </>}
 
         {/* ── SCORES ── */}
+        {tab==="groupe" && (()=>{
+          const sameGroup = Object.keys(st.users).filter(u =>
+            u !== "admin" && u !== user &&
+            (st.users[u]||{}).role === role
+          );
+          // Joueurs visibles : ceux qui ont tout validé OU si compétition commencée → tous
+          const visiblePlayers = sameGroup.filter(u =>
+            competitionStarted || allPhasesValidated(st.validatedGroups[u]||[]) || st.finalLock[u]
+          );
+          const elimPhasesList = [{k:"seiziemes",l:"1/16"},{k:"huitiemes",l:"1/8"},{k:"quarts",l:"QF"},{k:"demis",l:"SF"},{k:"p3",l:"3e"},{k:"finale",l:"🏆"}];
+          const isElimSel = ["seiziemes","huitiemes","quarts","demis","p3","finale"].includes(groupPronoPhase);
+          const phaseMatches = isElimSel
+            ? MATCHES.filter(m=>m.phase===groupPronoPhase&&m.group==="ELIM")
+            : MATCHES.filter(m=>m.group===groupPronoPhase&&m.phase==="poules");
+
+          return (
+            <div style={{...t.sec,animation:"waveIn .25s ease",paddingBottom:16}}>
+              <div style={t.stitle}>👥 Pronos de ton groupe</div>
+
+              {visiblePlayers.length === 0 && (
+                <div style={{...t.card,textAlign:"center",padding:"24px 16px"}}>
+                  <div style={{fontSize:32,marginBottom:10}}>⏳</div>
+                  <div style={{fontWeight:700,fontSize:14,marginBottom:6}}>Pas encore de pronos à voir</div>
+                  <div style={{fontSize:12,color:MUTED,lineHeight:1.6}}>
+                    Les pronos des autres joueurs de ton groupe apparaîtront ici dès qu'ils auront tout validé.
+                  </div>
+                </div>
+              )}
+
+              {visiblePlayers.length > 0 && (<>
+                {/* Sélecteur joueur */}
+                <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
+                  {visiblePlayers.map(u=>(
+                    <button key={u}
+                      style={{...t.tab,padding:"6px 12px",fontSize:12,...(groupPronoPlayer===u?t.tabOn:{})}}
+                      onClick={()=>setGroupPronoPlayer(u)}>
+                      {u.toUpperCase()}
+                      {st.finalLock[u]&&<span style={{marginLeft:4}}>🔒</span>}
+                    </button>
+                  ))}
+                </div>
+
+                {!groupPronoPlayer && (
+                  <div style={t.empty}>Sélectionne un joueur pour voir ses pronos</div>
+                )}
+
+                {groupPronoPlayer && (<>
+                  {/* Sélecteur phase */}
+                  <div style={{...t.tabs,padding:"0 0 10px",flexWrap:"wrap"}}>
+                    {GROUPS.map(g=>(
+                      <button key={g}
+                        style={{...t.tab,padding:"5px 10px",fontSize:12,...(groupPronoPhase===g?t.tabOn:{})}}
+                        onClick={()=>setGroupPronoPhase(g)}>{g}</button>
+                    ))}
+                    {elimPhasesList.map(ph=>(
+                      <button key={ph.k}
+                        style={{...t.tab,padding:"5px 10px",fontSize:12,...(groupPronoPhase===ph.k?t.tabOn:{})}}
+                        onClick={()=>setGroupPronoPhase(ph.k)}>{ph.l}</button>
+                    ))}
+                  </div>
+
+                  {/* Pronos du joueur sélectionné */}
+                  <div style={t.card}>
+                    <div style={{fontWeight:800,fontSize:14,marginBottom:12,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                      <span>{groupPronoPlayer.toUpperCase()}</span>
+                      <span style={{fontSize:12,color:GOLD,fontWeight:700}}>{scores[groupPronoPlayer]||0} pts</span>
+                    </div>
+                    {phaseMatches.map(m=>{
+                      const p = (st.predictions[groupPronoPlayer]||{})[m.id];
+                      const off = (st.results||{})[m.id];
+                      const ok = p && off && p===off;
+                      const ko = p && off && p!==off;
+                      const rH = resolveTeam(m.home, st.results||{});
+                      const rA = resolveTeam(m.away, st.results||{});
+                      return (
+                        <div key={m.id} style={{
+                          display:"flex",alignItems:"center",padding:"8px 0",
+                          borderBottom:`1px solid ${BRD}`,gap:6,
+                        }}>
+                          <div style={{flex:1,display:"flex",alignItems:"center",gap:4,minWidth:0}}>
+                            <span style={{fontSize:16,flexShrink:0}}>{FLAGS[rH]||"🏳️"}</span>
+                            <span style={{fontSize:11,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:ok?"inherit":ko?"inherit":TXT}}>{rH}</span>
+                          </div>
+                          <div style={{display:"flex",flexDirection:"column",alignItems:"center",minWidth:44,flexShrink:0}}>
+                            <span style={{
+                              fontSize:15,fontWeight:900,
+                              color:ok?GREEN:ko?RED:p?AMB:MUTED,
+                              textShadow:ok?`0 0 8px ${GREEN}`:ko?`0 0 8px ${RED}`:"none",
+                            }}>
+                              {p || "·"}
+                            </span>
+                            {off&&<span style={{fontSize:9,color:MUTED,marginTop:1}}>({off})</span>}
+                          </div>
+                          <div style={{flex:1,display:"flex",alignItems:"center",gap:4,minWidth:0,justifyContent:"flex-end"}}>
+                            <span style={{fontSize:11,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",textAlign:"right"}}>{rA}</span>
+                            <span style={{fontSize:16,flexShrink:0}}>{FLAGS[rA]||"🏳️"}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {phaseMatches.length===0&&<div style={t.empty}>Aucun match pour cette phase</div>}
+                  </div>
+                </>)}
+              </>)}
+            </div>
+          );
+        })()}
+
         {tab==="chat" && (
           <div style={{...t.sec,animation:"waveIn .25s ease"}}>
             {!validChatRole && !isAdmin && (
@@ -4313,7 +4467,7 @@ export default function App() {
 
             {/* Sous-onglets admin */}
             <div style={{...t.tabs, paddingLeft:0, paddingRight:0, marginBottom:8}}>
-              {[{k:"users",l:"👥 Joueurs"},{k:"pronos",l:"🔍 Pronos"},{k:"results",l:"✏️ Résultats"},{k:"moderation",l:"🛡️ Modération"}].map(s=>(
+              {[{k:"users",l:"👥 Joueurs"},{k:"pronos",l:"🔍 Pronos"},{k:"results",l:"✏️ Résultats"},{k:"stats",l:"📊 Stats"},{k:"moderation",l:"🛡️ Modération"}].map(s=>(
                 <button key={s.k} style={{...t.tab,...(adminSub===s.k?t.tabOn:{})}} onClick={()=>{ setAdminSub(s.k); setAdminConfirmUser(null); }}>{s.l}</button>
               ))}
             </div>
@@ -4772,6 +4926,243 @@ export default function App() {
             })()}
 
             {/* ── SOUS-ONGLET MODÉRATION ── */}
+            {/* ── SOUS-ONGLET STATS ── */}
+            {adminSub==="stats" && (()=>{
+              const players = Object.keys(st.users).filter(u => u !== "admin");
+              const totalInscrits = players.length;
+              const byRole = {};
+              players.forEach(u => {
+                const r = st.users[u]?.role || "waiting";
+                byRole[r] = (byRole[r] || []);
+                byRole[r].push(u);
+              });
+
+              // Validation complète = toutes les phases validées ou verrouillé
+              const fullyValidated = players.filter(u =>
+                allPhasesValidated(st.validatedGroups[u] || []) || !!st.finalLock[u]
+              );
+
+              // Stats par match avec résultat officiel
+              const matchesWithResult = MATCHES.filter(m => !!(st.results||{})[m.id]);
+
+              return (
+                <div style={{display:"flex",flexDirection:"column",gap:12}}>
+
+                  {/* ── Carte synthèse globale ── */}
+                  <div style={{...t.card, padding:"14px 16px"}}>
+                    <div style={{fontWeight:800, fontSize:13, color:GOLD, marginBottom:12}}>📊 Vue d'ensemble</div>
+                    <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:10}}>
+                      {[
+                        {label:"Inscrits", value:totalInscrits, icon:"👤"},
+                        {label:"Tout validé", value:fullyValidated.length, icon:"✅"},
+                        {label:"Matchs joués", value:matchesWithResult.length, icon:"⚽"},
+                        {label:"Pronos saisis", value: players.reduce((acc,u)=>acc+Object.keys(st.predictions[u]||{}).length,0), icon:"📝"},
+                      ].map(({label,value,icon})=>(
+                        <div key={label} style={{background:"rgba(255,255,255,.04)",border:`1px solid ${BRD}`,borderRadius:10,padding:"10px 12px"}}>
+                          <div style={{fontSize:18,marginBottom:4}}>{icon}</div>
+                          <div style={{fontSize:22,fontWeight:900,color:GOLD}}>{value}</div>
+                          <div style={{fontSize:11,color:MUTED}}>{label}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* ── Par groupe/rôle ── */}
+                  <div style={{...t.card, padding:"14px 16px"}}>
+                    <div style={{fontWeight:800, fontSize:13, color:GOLD, marginBottom:10}}>👥 Par groupe</div>
+                    {Object.keys(byRole).filter(r=>r!=="waiting"&&r!=="admin").map(role => {
+                      const rolePlayers = byRole[role] || [];
+                      const roleValidated = rolePlayers.filter(u => allPhasesValidated(st.validatedGroups[u]||[]) || !!st.finalLock[u]);
+                      const pct = rolePlayers.length ? Math.round(roleValidated.length/rolePlayers.length*100) : 0;
+                      return (
+                        <div key={role} style={{marginBottom:10}}>
+                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}>
+                            <span style={{fontWeight:700,fontSize:12,textTransform:"capitalize"}}>{role}</span>
+                            <span style={{fontSize:12,color:GOLD,fontWeight:700}}>{roleValidated.length}/{rolePlayers.length} validés ({pct}%)</span>
+                          </div>
+                          {/* Barre de progression */}
+                          <div style={{height:6,background:"rgba(255,255,255,.08)",borderRadius:4,overflow:"hidden"}}>
+                            <div style={{height:"100%",width:`${pct}%`,background:`linear-gradient(90deg,${GREEN},#86efac)`,borderRadius:4,transition:"width .3s"}}/>
+                          </div>
+                          {/* Liste joueurs */}
+                          <div style={{display:"flex",flexWrap:"wrap",gap:4,marginTop:6}}>
+                            {rolePlayers.map(u => {
+                              const isVal = allPhasesValidated(st.validatedGroups[u]||[]) || !!st.finalLock[u];
+                              return (
+                                <span key={u} style={{
+                                  fontSize:10,fontWeight:700,padding:"3px 7px",borderRadius:6,
+                                  background:isVal?"rgba(34,197,94,.15)":"rgba(255,255,255,.05)",
+                                  border:`1px solid ${isVal?"rgba(34,197,94,.4)":BRD}`,
+                                  color:isVal?GREEN:MUTED,
+                                }}>
+                                  {isVal?"✓ ":""}{u}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {/* Joueurs en attente */}
+                    {(byRole["waiting"]||[]).length > 0 && (
+                      <div style={{marginTop:6,paddingTop:8,borderTop:`1px solid ${BRD}`}}>
+                        <span style={{fontSize:11,color:MUTED}}>⏳ En attente d'assignation : {(byRole["waiting"]||[]).join(", ")}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* ── Par match : bons pronos ── */}
+                  {matchesWithResult.length > 0 && (
+                    <div style={{...t.card, padding:"14px 16px"}}>
+                      <div style={{fontWeight:800, fontSize:13, color:GOLD, marginBottom:10}}>🎯 Bons pronos par match</div>
+                      <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                        {matchesWithResult.map(m => {
+                          const official = (st.results||{})[m.id];
+                          const correct = players.filter(u => (st.predictions[u]||{})[m.id] === official);
+                          const total = players.filter(u => !!(st.predictions[u]||{})[m.id]).length;
+                          const pct = total ? Math.round(correct.length/total*100) : 0;
+                          const mixedR = {...(st.results||{})};
+                          const rH = resolveTeam(m.home, mixedR, st.scores||{});
+                          const rA = resolveTeam(m.away, mixedR, st.scores||{});
+                          const winnerName = official==="1" ? rH : official==="2" ? rA : "Nul";
+                          const winnerFlag = official==="1" ? (FLAGS[rH]||"") : official==="2" ? (FLAGS[rA]||"") : "🤝";
+                          return (
+                            <div key={m.id} style={{background:"rgba(255,255,255,.03)",border:`1px solid ${BRD}`,borderRadius:10,padding:"10px 12px"}}>
+                              {/* En-tête match */}
+                              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+                                <div style={{fontSize:11,fontWeight:700,color:TXT,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1}}>
+                                  {FLAGS[rH]||"❓"} {rH} vs {rA} {FLAGS[rA]||"❓"}
+                                </div>
+                                <div style={{fontSize:10,color:MUTED,flexShrink:0,marginLeft:6}}>{m.date}</div>
+                              </div>
+                              {/* Résultat officiel */}
+                              <div style={{fontSize:11,color:GREEN,marginBottom:6,fontWeight:700}}>
+                                {winnerFlag} Résultat : {winnerName === "Nul" ? "Match nul" : winnerName + " gagne"}
+                              </div>
+                              {/* Compteur + barre */}
+                              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                                <span style={{fontSize:11,color:MUTED}}>{correct.length}/{total} bons pronos</span>
+                                <span style={{fontSize:11,fontWeight:800,color:pct>=75?GREEN:pct>=50?AMB:RED}}>{pct}%</span>
+                              </div>
+                              <div style={{height:5,background:"rgba(255,255,255,.08)",borderRadius:4,overflow:"hidden",marginBottom:6}}>
+                                <div style={{height:"100%",width:`${pct}%`,
+                                  background:pct>=75?`linear-gradient(90deg,${GREEN},#86efac)`:pct>=50?`linear-gradient(90deg,${AMB},#fbbf24)`:`linear-gradient(90deg,${RED},#f87171)`,
+                                  borderRadius:4,transition:"width .3s"}}/>
+                              </div>
+                              {/* Qui avait bon */}
+                              {correct.length > 0 && (
+                                <div style={{display:"flex",flexWrap:"wrap",gap:3}}>
+                                  {correct.map(u => (
+                                    <span key={u} style={{
+                                      fontSize:10,fontWeight:700,padding:"2px 7px",borderRadius:6,
+                                      background:"rgba(34,197,94,.15)",border:"1px solid rgba(34,197,94,.35)",color:GREEN,
+                                    }}>✓ {u}</span>
+                                  ))}
+                                  {players.filter(u=>(st.predictions[u]||{})[m.id]&&(st.predictions[u]||{})[m.id]!==official).map(u=>(
+                                    <span key={u} style={{
+                                      fontSize:10,fontWeight:700,padding:"2px 7px",borderRadius:6,
+                                      background:"rgba(239,68,68,.1)",border:"1px solid rgba(239,68,68,.25)",color:RED,
+                                    }}>✗ {u}</span>
+                                  ))}
+                                </div>
+                              )}
+                              {total === 0 && <div style={{fontSize:10,color:MUTED,fontStyle:"italic"}}>Aucun pronostic soumis pour ce match</div>}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                  {matchesWithResult.length === 0 && (
+                    <div style={{...t.card,textAlign:"center",padding:"24px 16px"}}>
+                      <div style={{fontSize:32,marginBottom:8}}>⏳</div>
+                      <div style={{color:MUTED,fontSize:13}}>Les statistiques de pronos apparaîtront une fois les premiers résultats officiels saisis.</div>
+                    </div>
+                  )}
+
+                  {/* ── Stats détaillées par joueur ── */}
+                  {players.length > 0 && (
+                    <div style={{...t.card, padding:"14px 16px"}}>
+                      <div style={{fontWeight:800, fontSize:13, color:GOLD, marginBottom:12}}>👤 Détail par joueur</div>
+                      {players
+                        .filter(u => (st.users[u]||{}).role !== "waiting")
+                        .sort((a,b) => (scores[b]||0) - (scores[a]||0))
+                        .map((u, rank) => {
+                          const uPreds = st.predictions[u] || {};
+                          const uRole = (st.users[u]||{}).role;
+                          const totalPronos = Object.keys(uPreds).length;
+                          const totalMatchs = matchesWithResult.length;
+                          // Bons pronos par phase
+                          const byPhase = {};
+                          matchesWithResult.forEach(m => {
+                            if (!byPhase[m.phase]) byPhase[m.phase] = { correct:0, total:0 };
+                            if (uPreds[m.id]) {
+                              byPhase[m.phase].total++;
+                              if (uPreds[m.id] === (st.results||{})[m.id]) byPhase[m.phase].correct++;
+                            }
+                          });
+                          const totalCorrect = Object.values(byPhase).reduce((a,b)=>a+b.correct,0);
+                          const totalPlayed = Object.values(byPhase).reduce((a,b)=>a+b.total,0);
+                          const pctCorrect = totalPlayed ? Math.round(totalCorrect/totalPlayed*100) : 0;
+                          const isFullyVal = allPhasesValidated(st.validatedGroups[u]||[]) || !!st.finalLock[u];
+                          return (
+                            <div key={u} style={{
+                              marginBottom:10,padding:"10px 12px",
+                              background:"rgba(255,255,255,.03)",
+                              border:`1px solid ${rank===0&&(scores[u]||0)>0?GOLD:BRD}`,
+                              borderRadius:10,
+                            }}>
+                              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+                                <div style={{display:"flex",alignItems:"center",gap:6}}>
+                                  <span style={{fontSize:13,fontWeight:800,color:rank===0&&(scores[u]||0)>0?GOLD:TXT}}>
+                                    {rank===0&&(scores[u]||0)>0?"🥇":rank===1?"🥈":rank===2?"🥉":`#${rank+1}`} {u.toUpperCase()}
+                                  </span>
+                                  <span style={{fontSize:10,
+                                    background:uRole==="famille"?"rgba(59,130,246,.15)":"rgba(168,85,247,.15)",
+                                    border:`1px solid ${uRole==="famille"?"rgba(59,130,246,.3)":"rgba(168,85,247,.3)"}`,
+                                    color:uRole==="famille"?"#93c5fd":"#d8b4fe",
+                                    borderRadius:6,padding:"1px 6px",fontWeight:700
+                                  }}>{uRole}</span>
+                                  {isFullyVal && <span style={{fontSize:10,color:GREEN}}>🔒</span>}
+                                </div>
+                                <span style={{fontSize:16,fontWeight:900,color:GOLD}}>{scores[u]||0} pts</span>
+                              </div>
+                              {/* Barre globale */}
+                              <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:MUTED,marginBottom:3}}>
+                                <span>{totalCorrect}/{totalPlayed} bons pronos</span>
+                                <span style={{color:pctCorrect>=70?GREEN:pctCorrect>=50?AMB:RED,fontWeight:700}}>{pctCorrect}%</span>
+                              </div>
+                              <div style={{height:4,background:"rgba(255,255,255,.08)",borderRadius:3,overflow:"hidden",marginBottom:8}}>
+                                <div style={{height:"100%",width:`${pctCorrect}%`,
+                                  background:pctCorrect>=70?GRAD_FIELD:pctCorrect>=50?`linear-gradient(90deg,${AMB},#fbbf24)`:`linear-gradient(90deg,${RED},#f87171)`,
+                                  borderRadius:3}}/>
+                              </div>
+                              {/* Détail par phase */}
+                              <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
+                                {Object.entries(byPhase).map(([phase,data])=>(
+                                  <span key={phase} style={{
+                                    fontSize:10,padding:"2px 7px",borderRadius:6,fontWeight:700,
+                                    background:data.correct===data.total&&data.total>0?"rgba(46,204,113,.15)":"rgba(255,255,255,.05)",
+                                    border:`1px solid ${data.correct===data.total&&data.total>0?"rgba(46,204,113,.3)":BRD}`,
+                                    color:data.correct===data.total&&data.total>0?GREEN:MUTED,
+                                  }}>
+                                    {phase==="poules"?"Poules":phase==="seiziemes"?"1/16":phase==="huitiemes"?"1/8":phase==="quarts"?"QF":phase==="demis"?"SF":phase==="p3"?"3e":"Finale"} {data.correct}/{data.total}
+                                  </span>
+                                ))}
+                              </div>
+                              {/* Pronos saisis */}
+                              <div style={{fontSize:10,color:MUTED,marginTop:5}}>{totalPronos} pronos saisis sur {MATCHES.length}</div>
+                            </div>
+                          );
+                        })
+                      }
+                    </div>
+                  )}
+
+                </div>
+              );
+            })()}
+
             {adminSub==="moderation" && <>
               <div style={{fontSize:13,fontWeight:700,marginBottom:10}}>💬 Chat Famille</div>
               {(st.chat?.famille || []).length === 0
