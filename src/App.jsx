@@ -1315,9 +1315,44 @@ function resolveTeamWithPredictions(ph, results, predictions = {}, scores = {}, 
     return resolveTeamWithPredictions(team, results, predictions, scores, officialThirds);
   }
 
-  // Autres cas (Vainqueur SF, Perdant SF, etc.)
-  if (ph.startsWith("Vainqueur SF") || ph.startsWith("Perdant SF")) {
-    return ph; // Ces cas sont traités ailleurs
+  // "Vainqueur SF1/SF2" → vainqueur de la demi-finale (résultat officiel ou prono)
+  const vSFp = ph.match(/^Vainqueur SF(\d+)$/);
+  if (vSFp) {
+    const sfId = "SF" + vSFp[1];
+    // Essayer résultat officiel d'abord
+    const offResult = results[sfId];
+    if (offResult) {
+      const ref = MATCHES.find(m => m.id === sfId);
+      if (!ref) return ph;
+      return resolveTeamWithPredictions(offResult === "1" ? ref.home : ref.away, results, predictions, scores, officialThirds);
+    }
+    // Sinon utiliser le prono du joueur
+    const pred = predictions[sfId];
+    if (pred) {
+      const ref = MATCHES.find(m => m.id === sfId);
+      if (!ref) return ph;
+      return resolveTeamWithPredictions(pred === "1" ? ref.home : ref.away, results, predictions, scores, officialThirds);
+    }
+    return ph;
+  }
+
+  // "Perdant SF1/SF2" → perdant de la demi-finale (résultat officiel ou prono)
+  const pSFp = ph.match(/^Perdant SF(\d+)$/);
+  if (pSFp) {
+    const sfId = "SF" + pSFp[1];
+    const offResult = results[sfId];
+    if (offResult) {
+      const ref = MATCHES.find(m => m.id === sfId);
+      if (!ref) return ph;
+      return resolveTeamWithPredictions(offResult === "1" ? ref.away : ref.home, results, predictions, scores, officialThirds);
+    }
+    const pred = predictions[sfId];
+    if (pred) {
+      const ref = MATCHES.find(m => m.id === sfId);
+      if (!ref) return ph;
+      return resolveTeamWithPredictions(pred === "1" ? ref.away : ref.home, results, predictions, scores, officialThirds);
+    }
+    return ph;
   }
   
   return ph;
@@ -1390,7 +1425,8 @@ function resolveTeam(ph, results, scores = {}, officialThirds = {}) {
   if (ph.startsWith("V. Q")) return `Vainq. 1/8 #${ph.slice(4)}`;
   if (ph.startsWith("V. SF")) return `Vainq. 1/4 #${ph.slice(5)}`;
   if (ph.startsWith("V. S")) return `Vainq. 1/2 #${ph.slice(4)}`;
-  if (ph.startsWith("Perdant SF")) return `3e place`;
+  if (ph.match(/^Vainqueur SF\d+$/)) return "Vainq. demi-finale";
+  if (ph.match(/^Perdant SF\d+$/)) return "Perdant demi-finale";
   if (ph.startsWith("3e ")) return `3e du groupe`;
   return ph;
 }
@@ -1726,10 +1762,7 @@ function MatchCard({ m, pred, official, score, locked, onPick, isAdmin, onScore,
 
   // For team resolution, try official results first, then player's predictions as fallback
   const resolveWithFallback = (team) => {
-    // Les équipes sont déjà résolues avant d'arriver ici pour les phases élim
-    // Pour les poules, on utilise les résultats officiels normalement
-    if (FLAGS[team]) return team;
-    return resolveTeam(team, results||{}, score||{}, officialThirds||{});
+    return resolveTeamWithPredictions(team, results, predictions, {}, officialThirds||{});
   };
 
   // Résolution spéciale pour les "3e xxx" avec le pick du groupe
@@ -2524,7 +2557,8 @@ export default function App() {
     if (off.startsWith("V. Q")) return `Vainq. 1/8 #${off.slice(4)}`;
     if (off.startsWith("V. SF")) return `Vainq. 1/4 #${off.slice(5)}`;
     if (off.startsWith("V. S")) return `Vainq. 1/2 #${off.slice(4)}`;
-    if (off.startsWith("Perdant SF")) return `3e place match`;
+    if (off.match(/^Vainqueur SF\d+$/)) return "Vainq. 1/2 finale";
+    if (off.match(/^Perdant SF\d+$/)) return "Perdant 1/2 finale";
     return off;
   }
 
@@ -4186,52 +4220,20 @@ export default function App() {
                   {!locked && <div style={{...t.aWarn,marginBottom:12}}>⚽ Pas de match nul en phase éliminatoire</div>}
                   {locked   && <div style={{...t.aLock,marginBottom:12}}>🔒 Lecture seule</div>}
                   {(() => {
-                    const userThirdsGlobal = (st.thirdPicks||{})[user] || {};
-                    const offThirdsGlobal  = st.officialThirds || {};
-
-                    // Résout "V. Rx" → équipe qualifiée selon pronos du joueur
-                    // Gère aussi les slots "3e XYZ" via thirdPicks du joueur
-                    const resolveFromSeizieme = (slot, refMatchId, refSide) => {
-                      if (FLAGS[slot]) return slot;
-
-                      // "V. Rx" → regarder preds["Rx"]
-                      const vMatch = slot.match(/^V\.\s*(R\d+)$/);
-                      if (vMatch) {
-                        const refId = vMatch[1];
-                        const result = (st.results||{})[refId] || preds[refId];
-                        if (!result) return slot;
-                        const ref = MATCHES.find(m => m.id === refId);
-                        if (!ref) return slot;
-                        const winnerSide = result === "1" ? "home" : "away";
-                        const winnerSlot = ref[winnerSide];
-                        // Si déjà une vraie équipe
-                        if (FLAGS[winnerSlot]) return winnerSlot;
-                        // Si "1er X" ou "2e X" → scores officiels
-                        if (winnerSlot.match(/^(1er|2e) [A-L]$/)) {
-                          const r = resolveTeam(winnerSlot, st.results||{}, st.scores||{}, offThirdsGlobal);
-                          return (r && r !== winnerSlot) ? r : winnerSlot;
-                        }
-                        // Si "3e XYZ" → utiliser le choix du joueur pour ce match
-                        if (winnerSlot.startsWith("3e ")) {
-                          const key = refId + "_" + winnerSide;
-                          const chosenGroup = offThirdsGlobal[key] || userThirdsGlobal[key];
-                          if (!chosenGroup) return winnerSlot;
-                          const s = groupStandings(chosenGroup, st.results||{}, st.scores||{});
-                          return s[2] || winnerSlot;
-                        }
-                        return winnerSlot;
-                      }
-
-                      // "V. Qx", "V. Sx" etc → résolution officielle
-                      return resolveTeam(slot, st.results||{}, st.scores||{}, offThirdsGlobal) || slot;
-                    };
-
+                    // Construire l'objet "predictedResults" avec TOUTES les prédictions du joueur
+                    // Ça permet de résoudre les équipes en huitièmes même si le joueur n'a pas rempli tous les seizièmes
+                    const predictedResults = {...preds};
+                    // Aussi inclure les résultats officiels si disponibles (priority aux résultats officiels)
+                    const mixedResults = {...predictedResults, ...(st.results||{})};
+                    
                     return phaseMatches.map(m=>{
                     const hasThirdHome = m.home.startsWith("3e ");
                     const hasThirdAway = m.away.startsWith("3e ");
-                    const userThirds   = userThirdsGlobal;
-                    const offThirds    = offThirdsGlobal;
+                    const userThirds   = (st.thirdPicks||{})[user] || {};
+                    const offThirds    = st.officialThirds || {};
 
+                    // Groupes déjà attribués dans les AUTRES matches de seizièmes
+                    // → on les grise dans le picker de CE match
                     let takenGroups = undefined;
                     if (m.phase === "seiziemes" && (hasThirdHome || hasThirdAway)) {
                       takenGroups = new Set();
@@ -4246,17 +4248,9 @@ export default function App() {
                       });
                     }
 
-                    // Seizièmes : match original (picker 3e fonctionne)
-                    // Huitièmes et au-delà : équipes résolues depuis pronos seizièmes
-                    const mToUse = m.phase === "seiziemes" ? m : {
-                      ...m,
-                      home: resolveFromSeizieme(m.home),
-                      away: resolveFromSeizieme(m.away),
-                    };
-
                     return (
-                    <MatchCard key={m.id} m={mToUse} pred={preds[m.id]} official={(st.results||{})[m.id]} score={(st.scores||{})[m.id]}
-                      locked={locked} onPick={pick} results={st.results||{}} userRole={role} predictions={preds} officialThirds={st.officialThirds||{}}
+                    <MatchCard key={m.id} m={m} pred={preds[m.id]} official={(st.results||{})[m.id]} score={(st.scores||{})[m.id]}
+                      locked={locked} onPick={pick} results={mixedResults} userRole={role} predictions={predictedResults} officialThirds={st.officialThirds||{}}
                       thirdPick={hasThirdHome||hasThirdAway ? {
                         home: hasThirdHome ? (offThirds[m.id+"_home"] || userThirds[m.id+"_home"] || null) : null,
                         away: hasThirdAway ? (offThirds[m.id+"_away"] || userThirds[m.id+"_away"] || null) : null,
@@ -4388,8 +4382,9 @@ export default function App() {
                       const off = (st.results||{})[m.id];
                       const ok = p && off && p===off;
                       const ko = p && off && p!==off;
-                              const rH = resolveTeam(m.home, st.results||{}, {}, st.officialThirds||{});
-                              const rA = resolveTeam(m.away, st.results||{}, {}, st.officialThirds||{});
+                      const gpPreds = (st.predictions[groupPronoPlayer]||{});
+                      const rH = resolveTeamWithPredictions(m.home, st.results||{}, gpPreds, st.scores||{}, st.officialThirds||{});
+                      const rA = resolveTeamWithPredictions(m.away, st.results||{}, gpPreds, st.scores||{}, st.officialThirds||{});
                       return (
                         <div key={m.id} style={{
                           display:"flex",alignItems:"center",padding:"8px 0",
