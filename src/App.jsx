@@ -1090,43 +1090,44 @@ const MATCHES = [
   {id:"L4",group:"L",phase:"poules",home:"Panama",away:"Croatie",date:"24 Juin",dk:"2026-06-24",time:"01h00",city:"Toronto",tv:"beIN"},
   {id:"L5",group:"L",phase:"poules",home:"Panama",away:"Angleterre",date:"27 Juin",dk:"2026-06-27",time:"23h00",city:"New York",tv:"beIN / M6"},
   {id:"L6",group:"L",phase:"poules",home:"Croatie",away:"Ghana",date:"27 Juin",dk:"2026-06-27",time:"23h00",city:"Philadelphie",tv:"beIN"},
-  // SEIZIÈMES DE FINALE (Round of 32)
+  // SEIZIÈMES DE FINALE (Round of 32) - Calendrier officiel FIFA 2026
   {id:"R1",group:"ELIM",phase:"seiziemes",home:"2e A",away:"2e B",date:"28 Juin",dk:"2026-06-28",time:"21h00",city:"Los Angeles",tv:"beIN / M6"},
   {id:"R2",group:"ELIM",phase:"seiziemes",home:"1er C",away:"2e F",date:"29 Juin",dk:"2026-06-29",time:"19h00",city:"Houston",tv:"beIN / M6"},
   {id:"R3",group:"ELIM",phase:"seiziemes",home:"1er E",away:"3e ABCDF",date:"29 Juin",dk:"2026-06-29",time:"22h30",city:"Boston",tv:"beIN / M6"},
-  {id:"R4",group:"ELIM",phase:"seiziemes",home:"1er F",away:"2e C",date:"30 Juin",dk:"2026-06-30",time:"03h00",city:"Zapopan",tv:"beIN"},
+  {id:"R4",group:"ELIM",phase:"seiziemes",home:"1er F",away:"2e C",date:"30 Juin",dk:"2026-06-30",time:"03h00",city:"Monterrey",tv:"beIN"},
   {id:"R5",group:"ELIM",phase:"seiziemes",home:"2e E",away:"2e I",date:"30 Juin",dk:"2026-06-30",time:"19h00",city:"Dallas",tv:"beIN / M6"},
   {id:"R6",group:"ELIM",phase:"seiziemes",home:"1er I",away:"3e CDFGH",date:"30 Juin",dk:"2026-06-30",time:"23h00",city:"New York",tv:"beIN / M6"},
   {id:"R7",group:"ELIM",phase:"seiziemes",home:"1er A",away:"3e CEFHI",date:"1 Juil.",dk:"2026-07-01",time:"03h00",city:"Mexico",tv:"beIN"},
   {id:"R8",group:"ELIM",phase:"seiziemes",home:"1er L",away:"3e EHIJK",date:"1 Juil.",dk:"2026-07-01",time:"18h00",city:"Atlanta",tv:"beIN / M6"},
   {id:"R9",group:"ELIM",phase:"seiziemes",home:"1er G",away:"3e AEHIJ",date:"1 Juil.",dk:"2026-07-01",time:"22h00",city:"Seattle",tv:"beIN"},
-  {id:"R10",group:"ELIM",phase:"seiziemes",home:"1er D",away:"3e BEFIJ",date:"2 Juil.",dk:"2026-07-02",time:"02h00",city:"Santa Clara",tv:"beIN"},
+  {id:"R10",group:"ELIM",phase:"seiziemes",home:"1er D",away:"3e BEFIJ",date:"2 Juil.",dk:"2026-07-02",time:"02h00",city:"San Francisco",tv:"beIN"},
   {id:"R11",group:"ELIM",phase:"seiziemes",home:"1er H",away:"2e J",date:"2 Juil.",dk:"2026-07-02",time:"21h00",city:"Los Angeles",tv:"beIN / M6"},
   {id:"R12",group:"ELIM",phase:"seiziemes",home:"2e K",away:"2e L",date:"3 Juil.",dk:"2026-07-03",time:"01h00",city:"Toronto",tv:"beIN"},
   {id:"R13",group:"ELIM",phase:"seiziemes",home:"1er B",away:"3e EFGIJ",date:"3 Juil.",dk:"2026-07-03",time:"05h00",city:"Vancouver",tv:"beIN"},
   {id:"R14",group:"ELIM",phase:"seiziemes",home:"2e D",away:"2e G",date:"3 Juil.",dk:"2026-07-03",time:"20h00",city:"Dallas",tv:"beIN / M6"},
   {id:"R15",group:"ELIM",phase:"seiziemes",home:"1er J",away:"2e H",date:"4 Juil.",dk:"2026-07-04",time:"00h00",city:"Miami",tv:"beIN"},
   {id:"R16",group:"ELIM",phase:"seiziemes",home:"1er K",away:"3e DEIJL",date:"4 Juil.",dk:"2026-07-04",time:"03h30",city:"Kansas City",tv:"beIN / M6"},
-  // HUITIÈMES DE FINALE (Round of 16)
-  {id:"Q1",group:"ELIM",phase:"huitiemes",home:"V. R1",away:"V. R2",date:"5 Juil.",dk:"2026-07-05",time:"19h00",city:"Houston",tv:"beIN / M6"},
-  {id:"Q2",group:"ELIM",phase:"huitiemes",home:"V. R3",away:"V. R4",date:"5 Juil.",dk:"2026-07-05",time:"23h00",city:"Philadelphie",tv:"beIN / M6"},
-  {id:"Q3",group:"ELIM",phase:"huitiemes",home:"V. R5",away:"V. R6",date:"6 Juil.",dk:"2026-07-06",time:"22h00",city:"New York",tv:"beIN / M6"},
-  {id:"Q4",group:"ELIM",phase:"huitiemes",home:"V. R7",away:"V. R8",date:"7 Juil.",dk:"2026-07-07",time:"02h00",city:"Mexico",tv:"beIN"},
-  {id:"Q5",group:"ELIM",phase:"huitiemes",home:"V. R9",away:"V. R10",date:"7 Juil.",dk:"2026-07-07",time:"21h00",city:"Dallas",tv:"beIN / M6"},
-  {id:"Q6",group:"ELIM",phase:"huitiemes",home:"V. R11",away:"V. R12",date:"8 Juil.",dk:"2026-07-08",time:"02h00",city:"Seattle",tv:"beIN"},
-  {id:"Q7",group:"ELIM",phase:"huitiemes",home:"V. R13",away:"V. R14",date:"8 Juil.",dk:"2026-07-08",time:"18h00",city:"Atlanta",tv:"beIN / M6"},
-  {id:"Q8",group:"ELIM",phase:"huitiemes",home:"V. R15",away:"V. R16",date:"8 Juil.",dk:"2026-07-08",time:"22h00",city:"Vancouver",tv:"beIN / M6"},
+  // HUITIÈMES DE FINALE (Round of 16) - Appairage officiel FIFA
+  // V73=R1, V74=R3, V75=R4, V76=R2, V77=R6, V78=R5, V79=R7, V80=R8, V81=R10, V82=R9, V83=R13, V84=R11, V85=R12, V86=R15, V87=R16, V88=R14
+  {id:"Q1",group:"ELIM",phase:"huitiemes",home:"V. R1",away:"V. R4",date:"4 Juil.",dk:"2026-07-04",time:"19h00",city:"Houston",tv:"beIN / M6"},
+  {id:"Q2",group:"ELIM",phase:"huitiemes",home:"V. R3",away:"V. R6",date:"4 Juil.",dk:"2026-07-04",time:"23h00",city:"Philadelphie",tv:"beIN / M6"},
+  {id:"Q3",group:"ELIM",phase:"huitiemes",home:"V. R2",away:"V. R5",date:"5 Juil.",dk:"2026-07-05",time:"22h00",city:"New York",tv:"beIN / M6"},
+  {id:"Q4",group:"ELIM",phase:"huitiemes",home:"V. R7",away:"V. R8",date:"6 Juil.",dk:"2026-07-06",time:"02h00",city:"Mexico",tv:"beIN"},
+  {id:"Q5",group:"ELIM",phase:"huitiemes",home:"V. R12",away:"V. R11",date:"6 Juil.",dk:"2026-07-06",time:"21h00",city:"Dallas",tv:"beIN / M6"},
+  {id:"Q6",group:"ELIM",phase:"huitiemes",home:"V. R10",away:"V. R9",date:"7 Juil.",dk:"2026-07-07",time:"02h00",city:"Seattle",tv:"beIN"},
+  {id:"Q7",group:"ELIM",phase:"huitiemes",home:"V. R15",away:"V. R14",date:"7 Juil.",dk:"2026-07-07",time:"18h00",city:"Atlanta",tv:"beIN / M6"},
+  {id:"Q8",group:"ELIM",phase:"huitiemes",home:"V. R16",away:"V. R13",date:"7 Juil.",dk:"2026-07-07",time:"22h00",city:"Vancouver",tv:"beIN / M6"},
   // QUARTS DE FINALE
-  {id:"S1",group:"ELIM",phase:"quarts",home:"V. Q1",away:"V. Q2",date:"10 Juil.",dk:"2026-07-10",time:"22h00",city:"Boston",tv:"beIN / M6"},
-  {id:"S2",group:"ELIM",phase:"quarts",home:"V. Q3",away:"V. Q4",date:"11 Juil.",dk:"2026-07-11",time:"21h00",city:"Los Angeles",tv:"beIN / M6"},
-  {id:"S3",group:"ELIM",phase:"quarts",home:"V. Q5",away:"V. Q6",date:"12 Juil.",dk:"2026-07-12",time:"23h00",city:"Miami",tv:"beIN / M6"},
-  {id:"S4",group:"ELIM",phase:"quarts",home:"V. Q7",away:"V. Q8",date:"13 Juil.",dk:"2026-07-13",time:"03h00",city:"Kansas City",tv:"beIN"},
+  {id:"S1",group:"ELIM",phase:"quarts",home:"V. Q1",away:"V. Q2",date:"9 Juil.",dk:"2026-07-09",time:"22h00",city:"Boston",tv:"beIN / M6"},
+  {id:"S2",group:"ELIM",phase:"quarts",home:"V. Q3",away:"V. Q4",date:"10 Juil.",dk:"2026-07-10",time:"21h00",city:"Los Angeles",tv:"beIN / M6"},
+  {id:"S3",group:"ELIM",phase:"quarts",home:"V. Q5",away:"V. Q6",date:"11 Juil.",dk:"2026-07-11",time:"23h00",city:"Miami",tv:"beIN / M6"},
+  {id:"S4",group:"ELIM",phase:"quarts",home:"V. Q7",away:"V. Q8",date:"12 Juil.",dk:"2026-07-12",time:"03h00",city:"Kansas City",tv:"beIN"},
   // DEMI-FINALES
-  {id:"SF1",group:"ELIM",phase:"demis",home:"V. S1",away:"V. S2",date:"15 Juil.",dk:"2026-07-15",time:"22h00",city:"Dallas",tv:"beIN / M6"},
-  {id:"SF2",group:"ELIM",phase:"demis",home:"V. S3",away:"V. S4",date:"16 Juil.",dk:"2026-07-16",time:"22h00",city:"Los Angeles",tv:"beIN / M6"},
+  {id:"SF1",group:"ELIM",phase:"demis",home:"V. S1",away:"V. S2",date:"14 Juil.",dk:"2026-07-14",time:"21h00",city:"Dallas",tv:"beIN / M6"},
+  {id:"SF2",group:"ELIM",phase:"demis",home:"V. S3",away:"V. S4",date:"15 Juil.",dk:"2026-07-15",time:"21h00",city:"Atlanta",tv:"beIN / M6"},
   // 3E PLACE & FINALE
-  {id:"P3",group:"ELIM",phase:"p3",home:"Perdant SF1",away:"Perdant SF2",date:"19 Juil.",dk:"2026-07-19",time:"23h00",city:"Miami",tv:"beIN / M6"},
-  {id:"FIN",group:"ELIM",phase:"finale",home:"Vainqueur SF1",away:"Vainqueur SF2",date:"20 Juil.",dk:"2026-07-20",time:"21h00",city:"New York",tv:"beIN / M6"},
+  {id:"P3",group:"ELIM",phase:"p3",home:"Perdant SF1",away:"Perdant SF2",date:"15 Juil.",dk:"2026-07-15",time:"23h00",city:"Miami",tv:"beIN / M6"},
+  {id:"FIN",group:"ELIM",phase:"finale",home:"Vainqueur SF1",away:"Vainqueur SF2",date:"19 Juil.",dk:"2026-07-19",time:"21h00",city:"New York",tv:"beIN / M6"},
 ];
 
 // ══════════════════════════════════════════
@@ -1198,8 +1199,8 @@ function teamStatsInGroup(team, gid, results, scores = {}) {
  */
 let _thirdCache = { key: "", assignment: {} };
 
-function build3rdAssignment(results, scores = {}) {
-  const key = JSON.stringify(results) + "|" + JSON.stringify(scores);
+function build3rdAssignment(results, scores = {}, officialThirds = {}) {
+  const key = JSON.stringify(results) + "|" + JSON.stringify(scores) + "|" + JSON.stringify(officialThirds);
   if (_thirdCache.key === key) return _thirdCache.assignment;
 
   // 1. 3e de chaque groupe + ses stats
@@ -1247,13 +1248,83 @@ function build3rdAssignment(results, scores = {}) {
     }
   }
 
+  // Override avec les picks officiels de l'admin si présents
+  Object.entries(officialThirds).forEach(([key2, group]) => {
+    if (!group) return;
+    // key2 = "R3_home" ou "R7_away" etc.
+    const matchPart = key2.replace(/_home$|_away$/, '');
+    const match = MATCHES.find(m => m.id === matchPart);
+    if (!match) return;
+    const side = key2.endsWith('_home') ? 'home' : 'away';
+    const slot = match[side];
+    const px = slot && slot.match(/^3e ([A-L]+)$/);
+    if (px && !assignment[px[1]]) {
+      assignment[px[1]] = group;
+    }
+  });
+
   _thirdCache = { key, assignment };
   return assignment;
 }
 
 // Résolution récursive des équipes dans les phases éliminatoires
+// Basée sur les résultats OFFICIELS en priority, puis sur les prédictions du joueur en fallback
+function resolveTeamWithPredictions(ph, results, predictions = {}, scores = {}, officialThirds = {}) {
+  if (!results && !predictions) return ph;
+  if (FLAGS[ph]) return ph; // déjà une vraie équipe
+
+  // "1er A" → 1er du groupe A
+  const m1 = ph.match(/^1er ([A-L])$/);
+  if (m1) { const s = groupStandings(m1[1], predictions || results, scores); return s[0] || ph; }
+
+  // "2e A" → 2e du groupe A
+  const m2 = ph.match(/^2e ([A-L])$/);
+  if (m2) { const s = groupStandings(m2[1], predictions || results, scores); return s[1] || ph; }
+
+  // "3e ABCDF" → assignation GLOBALE unique
+  const m3 = ph.match(/^3e ([A-L]+)$/);
+  if (m3) {
+    const assignment = build3rdAssignment(results, scores, officialThirds);
+    return assignment[m3[1]] || ph;
+  }
+
+  // "V. R1" / "V. Q1" / "V. S1" → vainqueur du match correspondant
+  const vMatch = ph.match(/^V\.\s*([A-Z0-9]+)$/);
+  if (vMatch) {
+    const refId = vMatch[1];
+    // Chercher d'abord dans les résultats officiels
+    let resultToUse = results[refId];
+    // Si pas de résultat officiel, utiliser la prédiction du joueur
+    if (!resultToUse && predictions) {
+      resultToUse = predictions[refId];
+    }
+    
+    if (!resultToUse) {
+      // Toujours pas de résultat : afficher les équipes du match source
+      const ref = MATCHES.find(m => m.id === refId);
+      if (!ref) return ph;
+      const homeTeam = resolveTeamWithPredictions(ref.home, results, predictions, scores, officialThirds);
+      const awayTeam = resolveTeamWithPredictions(ref.away, results, predictions, scores, officialThirds);
+      return `${homeTeam} ou ${awayTeam}`;
+    }
+    
+    const ref = MATCHES.find(m => m.id === refId);
+    if (!ref) return ph;
+    const team = resultToUse === "1" ? ref.home : resultToUse === "2" ? ref.away : null;
+    if (!team) return ph;
+    return resolveTeamWithPredictions(team, results, predictions, scores, officialThirds);
+  }
+
+  // Autres cas (Vainqueur SF, Perdant SF, etc.)
+  if (ph.startsWith("Vainqueur SF") || ph.startsWith("Perdant SF")) {
+    return ph; // Ces cas sont traités ailleurs
+  }
+  
+  return ph;
+}
+
 // Basée uniquement sur les résultats OFFICIELS (admin)
-function resolveTeam(ph, results, scores = {}) {
+function resolveTeam(ph, results, scores = {}, officialThirds = {}) {
   if (!results) return ph;
   if (FLAGS[ph]) return ph; // déjà une vraie équipe
 
@@ -1268,7 +1339,7 @@ function resolveTeam(ph, results, scores = {}) {
   // "3e ABCDF" → assignation GLOBALE unique (corrige le bug des doublons)
   const m3 = ph.match(/^3e ([A-L]+)$/);
   if (m3) {
-    const assignment = build3rdAssignment(results, scores);
+    const assignment = build3rdAssignment(results, scores, officialThirds);
     return assignment[m3[1]] || ph;
   }
 
@@ -1282,14 +1353,14 @@ function resolveTeam(ph, results, scores = {}) {
       const ref = MATCHES.find(m => m.id === refId);
       if (!ref) return ph;
       // Retourner un placeholder avec les équipes attendues
-      const homeTeam = resolveTeam(ref.home, results, scores);
-      const awayTeam = resolveTeam(ref.away, results, scores);
+      const homeTeam = resolveTeam(ref.home, results, scores, officialThirds);
+      const awayTeam = resolveTeam(ref.away, results, scores, officialThirds);
       return `${homeTeam} ou ${awayTeam}`;
     }
     const ref = MATCHES.find(m => m.id === refId);
     if (!ref) return ph;
     const team = official === "1" ? ref.home : ref.away;
-    return resolveTeam(team, results, scores);
+    return resolveTeam(team, results, scores, officialThirds);
   }
 
   // "Vainqueur SF1" / "Vainqueur SF2" → vainqueur des demi-finales
@@ -1300,7 +1371,7 @@ function resolveTeam(ph, results, scores = {}) {
     if (!official) return ph;
     const ref = MATCHES.find(m => m.id === sfId);
     if (!ref) return ph;
-    return resolveTeam(official === "1" ? ref.home : ref.away, results, scores);
+    return resolveTeam(official === "1" ? ref.home : ref.away, results, scores, officialThirds);
   }
 
   // "Perdant SF1" / "Perdant SF2" → perdant des demi-finales (3e place)
@@ -1311,7 +1382,7 @@ function resolveTeam(ph, results, scores = {}) {
     if (!official) return ph;
     const ref = MATCHES.find(m => m.id === sfId);
     if (!ref) return ph;
-    return resolveTeam(official === "1" ? ref.away : ref.home, results, scores);
+    return resolveTeam(official === "1" ? ref.away : ref.home, results, scores, officialThirds);
   }
 
   // Placeholder non résolu → label lisible
@@ -1488,11 +1559,11 @@ function calcScores(st) {
 
         const actualWinner = resolveTeam(
           outcome === "1" ? match.home : match.away,
-          officialResults
+          officialResults, {}, offThirds
         );
         const predictedWinner = resolveTeam(
           pred === "1" ? match.home : match.away,
-          mixedResults
+          mixedResults, {}, offThirds
         );
 
         // Points uniquement si les deux équipes sont identifiables ET identiques
@@ -1646,7 +1717,7 @@ const t = {
 // MATCH CARD
 // ══════════════════════════════════════════
 function MatchCard({ m, pred, official, score, locked, onPick, isAdmin, onScore, onClear, results, userRole, predictions,
-  thirdPick, onThirdPick, takenGroups }) {
+  thirdPick, onThirdPick, takenGroups, officialThirds }) {
   const isElim = m.phase !== "poules";
   const btns = isElim ? ["1","2"] : ["1","N","2"];
   const correct = official && pred === official;
@@ -1655,12 +1726,10 @@ function MatchCard({ m, pred, official, score, locked, onPick, isAdmin, onScore,
 
   // For team resolution, try official results first, then player's predictions as fallback
   const resolveWithFallback = (team) => {
-    const resolved = resolveTeam(team, results);
-    if (isElim && !FLAGS[resolved] && predictions) {
-      const resolvedWithPred = resolveTeam(team, predictions);
-      if (FLAGS[resolvedWithPred]) return resolvedWithPred;
-    }
-    return resolved;
+    // Les équipes sont déjà résolues avant d'arriver ici pour les phases élim
+    // Pour les poules, on utilise les résultats officiels normalement
+    if (FLAGS[team]) return team;
+    return resolveTeam(team, results||{}, score||{}, officialThirds||{});
   };
 
   // Résolution spéciale pour les "3e xxx" avec le pick du groupe
@@ -1910,8 +1979,8 @@ function MatchCard({ m, pred, official, score, locked, onPick, isAdmin, onScore,
       {/* En phase éliminatoire, affiche le pronostic original du joueur (équipes qu'il avait) */}
       {isElim && official && pred && !isAdmin && predictions && (() => {
         // Résoudre les équipes telles que vues par le joueur (via ses pronos, pas résultats officiels)
-        const predHome = resolveTeam(m.home, predictions);
-        const predAway = resolveTeam(m.away, predictions);
+        const predHome = resolveTeam(m.home, predictions, {}, {});
+        const predAway = resolveTeam(m.away, predictions, {}, {});
         const offHome  = rHome; // équipes officielles (résultats admin)
         const offAway  = rAway;
         const predTeam = pred === "1" ? predHome : predAway;
@@ -2402,7 +2471,7 @@ export default function App() {
   // 3) pour "3e X" : thirdPick du joueur + standings selon ses pronos
   function resolveForPlayer(team, matchId, side) {
     const sc = st.scores || {};
-    const off = resolveTeam(team, st.results||{}, sc);
+    const off = resolveTeam(team, st.results||{}, sc, st.officialThirds||{});
     if (FLAGS[off]) return off;                          // résolu officiellement ✓
 
     if (team.startsWith("3e ")) {
@@ -2422,7 +2491,7 @@ export default function App() {
     }
 
     // Équipes éliminatoires (V. R1, V. Q1…) → chaîne de résolution via pronos
-    const withPred = resolveTeam(team, preds, {});
+    const withPred = resolveTeam(team, preds, {}, st.officialThirds||{});
     if (FLAGS[withPred]) return withPred;
 
     // Si "X ou Y" trop verbeux → retourner juste le placeholder original
@@ -2435,7 +2504,7 @@ export default function App() {
   function resolveForCalendar(team, matchId, side) {
     const sc  = st.scores  || {};
     const res = st.results || {};
-    const off = resolveTeam(team, res, sc);
+    const off = resolveTeam(team, res, sc, st.officialThirds||{});
     if (FLAGS[off]) return off;                          // résolu officiellement ✓
 
     // "3e XXXXX" : utiliser uniquement le pick officiel de l'admin
@@ -2746,8 +2815,8 @@ export default function App() {
     
     // Feedback : affiche le résultat mis à jour
     if (updated.h && updated.a) {
-      const homeTeam = resolveTeam(match.home, ns.results||{});
-      const awayTeam = resolveTeam(match.away, ns.results||{});
+      const homeTeam = resolveTeam(match.home, ns.results||{}, {}, ns.officialThirds||{});
+      const awayTeam = resolveTeam(match.away, ns.results||{}, {}, ns.officialThirds||{});
       const outcomeText = outcome === "1" ? `${homeTeam} gagne` : outcome === "2" ? `${awayTeam} gagne` : "Match nul";
       showNotif("success", `⚽ ${homeTeam} ${updated.h}-${updated.a} ${awayTeam}`);
     }
@@ -3921,7 +3990,7 @@ export default function App() {
                         <MatchCard key={m.id} m={m} pred={preds[m.id]}
                           official={(st.results||{})[m.id]} score={(st.scores||{})[m.id]}
                           locked={true}
-                          onPick={()=>{}} results={st.results} userRole={role} />
+                          onPick={()=>{}} results={st.results||{}} officialThirds={st.officialThirds||{}} userRole={role} />
                       ))
                   }
                 </>
@@ -4033,7 +4102,7 @@ export default function App() {
             <GroupStandings g={grp}/>
             {MATCHES.filter(m=>m.group===grp&&m.phase==="poules").map(m=>(
               <MatchCard key={m.id} m={m} pred={preds[m.id]} official={(st.results||{})[m.id]} score={(st.scores||{})[m.id]}
-                locked={locked} onPick={pick} results={st.results||{}} userRole={role} />
+                locked={locked} onPick={pick} results={st.results||{}} officialThirds={st.officialThirds||{}} userRole={role} />
             ))}
             <ValidationBox g={grp}/>
             <div style={{height:16}}/>
@@ -4116,14 +4185,53 @@ export default function App() {
                 <>
                   {!locked && <div style={{...t.aWarn,marginBottom:12}}>⚽ Pas de match nul en phase éliminatoire</div>}
                   {locked   && <div style={{...t.aLock,marginBottom:12}}>🔒 Lecture seule</div>}
-                  {phaseMatches.map(m=>{
+                  {(() => {
+                    const userThirdsGlobal = (st.thirdPicks||{})[user] || {};
+                    const offThirdsGlobal  = st.officialThirds || {};
+
+                    // Résout "V. Rx" → équipe qualifiée selon pronos du joueur
+                    // Gère aussi les slots "3e XYZ" via thirdPicks du joueur
+                    const resolveFromSeizieme = (slot, refMatchId, refSide) => {
+                      if (FLAGS[slot]) return slot;
+
+                      // "V. Rx" → regarder preds["Rx"]
+                      const vMatch = slot.match(/^V\.\s*(R\d+)$/);
+                      if (vMatch) {
+                        const refId = vMatch[1];
+                        const result = (st.results||{})[refId] || preds[refId];
+                        if (!result) return slot;
+                        const ref = MATCHES.find(m => m.id === refId);
+                        if (!ref) return slot;
+                        const winnerSide = result === "1" ? "home" : "away";
+                        const winnerSlot = ref[winnerSide];
+                        // Si déjà une vraie équipe
+                        if (FLAGS[winnerSlot]) return winnerSlot;
+                        // Si "1er X" ou "2e X" → scores officiels
+                        if (winnerSlot.match(/^(1er|2e) [A-L]$/)) {
+                          const r = resolveTeam(winnerSlot, st.results||{}, st.scores||{}, offThirdsGlobal);
+                          return (r && r !== winnerSlot) ? r : winnerSlot;
+                        }
+                        // Si "3e XYZ" → utiliser le choix du joueur pour ce match
+                        if (winnerSlot.startsWith("3e ")) {
+                          const key = refId + "_" + winnerSide;
+                          const chosenGroup = offThirdsGlobal[key] || userThirdsGlobal[key];
+                          if (!chosenGroup) return winnerSlot;
+                          const s = groupStandings(chosenGroup, st.results||{}, st.scores||{});
+                          return s[2] || winnerSlot;
+                        }
+                        return winnerSlot;
+                      }
+
+                      // "V. Qx", "V. Sx" etc → résolution officielle
+                      return resolveTeam(slot, st.results||{}, st.scores||{}, offThirdsGlobal) || slot;
+                    };
+
+                    return phaseMatches.map(m=>{
                     const hasThirdHome = m.home.startsWith("3e ");
                     const hasThirdAway = m.away.startsWith("3e ");
-                    const userThirds   = (st.thirdPicks||{})[user] || {};
-                    const offThirds    = st.officialThirds || {};
+                    const userThirds   = userThirdsGlobal;
+                    const offThirds    = offThirdsGlobal;
 
-                    // Groupes déjà attribués dans les AUTRES matches de seizièmes
-                    // → on les grise dans le picker de CE match
                     let takenGroups = undefined;
                     if (m.phase === "seiziemes" && (hasThirdHome || hasThirdAway)) {
                       takenGroups = new Set();
@@ -4138,9 +4246,17 @@ export default function App() {
                       });
                     }
 
+                    // Seizièmes : match original (picker 3e fonctionne)
+                    // Huitièmes et au-delà : équipes résolues depuis pronos seizièmes
+                    const mToUse = m.phase === "seiziemes" ? m : {
+                      ...m,
+                      home: resolveFromSeizieme(m.home),
+                      away: resolveFromSeizieme(m.away),
+                    };
+
                     return (
-                    <MatchCard key={m.id} m={m} pred={preds[m.id]} official={(st.results||{})[m.id]} score={(st.scores||{})[m.id]}
-                      locked={locked} onPick={pick} results={st.results} userRole={role} predictions={preds}
+                    <MatchCard key={m.id} m={mToUse} pred={preds[m.id]} official={(st.results||{})[m.id]} score={(st.scores||{})[m.id]}
+                      locked={locked} onPick={pick} results={st.results||{}} userRole={role} predictions={preds} officialThirds={st.officialThirds||{}}
                       thirdPick={hasThirdHome||hasThirdAway ? {
                         home: hasThirdHome ? (offThirds[m.id+"_home"] || userThirds[m.id+"_home"] || null) : null,
                         away: hasThirdAway ? (offThirds[m.id+"_away"] || userThirds[m.id+"_away"] || null) : null,
@@ -4152,7 +4268,8 @@ export default function App() {
                       isAdmin={isAdmin}
                     />
                     );
-                  })}
+                  });
+                  })()}
                   {!locked && (
                     isVal
                       ? isFinale && allPhasesValidated(validated)
@@ -4271,8 +4388,8 @@ export default function App() {
                       const off = (st.results||{})[m.id];
                       const ok = p && off && p===off;
                       const ko = p && off && p!==off;
-                      const rH = resolveTeam(m.home, st.results||{});
-                      const rA = resolveTeam(m.away, st.results||{});
+                              const rH = resolveTeam(m.home, st.results||{}, {}, st.officialThirds||{});
+                              const rA = resolveTeam(m.away, st.results||{}, {}, st.officialThirds||{});
                       return (
                         <div key={m.id} style={{
                           display:"flex",alignItems:"center",padding:"8px 0",
@@ -4364,8 +4481,8 @@ export default function App() {
               {chatTab==="byMatch" && (
                 <>
                   {MATCHES.filter(m=>(st.results||{})[m.id]).map(m=>{
-                    const rH=resolveTeam(m.home,st.results||{});
-                    const rA=resolveTeam(m.away,st.results||{});
+                    const rH=resolveTeam(m.home,st.results||{},{},st.officialThirds||{});
+                    const rA=resolveTeam(m.away,st.results||{},{},st.officialThirds||{});
                     const matchMsgs = getChatMsgs(m.id);
                     return (
                       <div key={m.id} style={{...t.card,padding:0,overflow:"hidden",marginBottom:10}}>
@@ -4805,11 +4922,11 @@ export default function App() {
                                 const ko=p&&off&&p!==off;
                                 // Résolution via chaîne de pronos du joueur pour les élims
                                 const rH = isElimP
-                                  ? resolveTeam(m.home, mixedR, st.scores||{})
-                                  : resolveTeam(m.home, st.results||{}, st.scores||{});
+                                  ? resolveTeam(m.home, mixedR, st.scores||{}, st.officialThirds||{})
+                                  : resolveTeam(m.home, st.results||{}, st.scores||{}, st.officialThirds||{});
                                 const rA = isElimP
-                                  ? resolveTeam(m.away, mixedR, st.scores||{})
-                                  : resolveTeam(m.away, st.results||{}, st.scores||{});
+                                  ? resolveTeam(m.away, mixedR, st.scores||{}, st.officialThirds||{})
+                                  : resolveTeam(m.away, st.results||{}, st.scores||{}, st.officialThirds||{});
                                 // Équipe pronostiquée gagnante par le joueur
                                 const predWinner = p==="1" ? rH : p==="2" ? rA : null;
                                 const predEmoji = predWinner && FLAGS[predWinner] ? FLAGS[predWinner] : "";
@@ -4883,8 +5000,8 @@ export default function App() {
                           </div>
                           {matchList.map(m=>{
                             const official = (st.results||{})[m.id];
-                            const rH = resolveTeam(m.home, st.results||{}, st.scores||{});
-                            const rA = resolveTeam(m.away, st.results||{}, st.scores||{});
+                            const rH = resolveTeam(m.home, st.results||{}, st.scores||{}, st.officialThirds||{});
+                            const rA = resolveTeam(m.away, st.results||{}, st.scores||{}, st.officialThirds||{});
                             return (
                               <div key={m.id} style={{display:"grid",gridTemplateColumns:`130px repeat(${players.length},1fr)`,gap:4,marginBottom:4,padding:"4px 0",borderBottom:"1px solid rgba(255,255,255,.05)"}}>
                                 <div style={{fontSize:10,color:"rgba(255,255,255,.6)",lineHeight:1.4}}>
@@ -5022,8 +5139,8 @@ export default function App() {
                           const total = players.filter(u => !!(st.predictions[u]||{})[m.id]).length;
                           const pct = total ? Math.round(correct.length/total*100) : 0;
                           const mixedR = {...(st.results||{})};
-                          const rH = resolveTeam(m.home, mixedR, st.scores||{});
-                          const rA = resolveTeam(m.away, mixedR, st.scores||{});
+                          const rH = resolveTeam(m.home, mixedR, st.scores||{}, st.officialThirds||{});
+                          const rA = resolveTeam(m.away, mixedR, st.scores||{}, st.officialThirds||{});
                           const winnerName = official==="1" ? rH : official==="2" ? rA : "Nul";
                           const winnerFlag = official==="1" ? (FLAGS[rH]||"") : official==="2" ? (FLAGS[rA]||"") : "🤝";
                           return (
@@ -5287,7 +5404,7 @@ export default function App() {
                   return (
                     <MatchCard key={m.id} m={m} official={(st.results||{})[m.id]}
                       score={(st.scores||{})[m.id]}
-                      isAdmin onScore={setScore} onClear={clearScore} results={st.results}
+                      isAdmin onScore={setScore} onClear={clearScore} results={st.results||{}} officialThirds={st.officialThirds||{}}
                       thirdPick={(hasThirdHome||hasThirdAway) ? {
                         home: hasThirdHome ? (offThirds[m.id+"_home"] || null) : null,
                         away: hasThirdAway ? (offThirds[m.id+"_away"] || null) : null,
