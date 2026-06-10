@@ -2566,7 +2566,7 @@ export default function App() {
   // N'importe quel client connecté (y compris admin) déclenche le verrou global
   useEffect(() => {
     if (!user) return;
-    const deadline = new Date("2026-06-10T23:59:00");
+    const deadline = new Date("2026-06-11T20:00:00");
     const allKeys = [...GROUPS, "ELIM_seiziemes","ELIM_huitiemes","ELIM_quarts","ELIM_demis","ELIM_p3","ELIM_finale"];
     const tryLock = () => {
       if (new Date() < deadline) return;
@@ -2656,7 +2656,7 @@ export default function App() {
     if (u === "admin") {
       if (pw !== "2026") { showNotif("error", "❌ Mot de passe incorrect"); return; }
       let ns = {...st, users:{...st.users, admin:{role:"admin"}}};
-      const deadline = new Date("2026-06-10T23:59:00");
+      const deadline = new Date("2026-06-11T20:00:00");
       if (new Date() >= deadline) {
         const allKeys = [...GROUPS, "ELIM_seiziemes","ELIM_huitiemes","ELIM_quarts","ELIM_demis","ELIM_p3","ELIM_finale"];
         Object.keys(ns.users).forEach(player => {
@@ -3571,7 +3571,7 @@ export default function App() {
             Tu dois remplir <strong>tous tes pronostics</strong> :<br/>
             les matchs de poules <strong>ET</strong> toutes les phases éliminatoires<br/>
             jusqu'à la <strong>finale</strong> — avant le<br/>
-            <strong>10 juin à 23h59</strong> ⏰<br/>
+            <strong>11 juin à 20h00</strong> ⏰<br/>
             <span style={{fontSize:11,color:"rgba(255,150,150,.7)"}}>Après cette date, plus aucune modification possible.</span>
           </div>
 
