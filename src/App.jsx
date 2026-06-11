@@ -1273,13 +1273,23 @@ function resolveTeamWithPredictions(ph, results, predictions = {}, scores = {}, 
   if (!results && !predictions) return ph;
   if (FLAGS[ph]) return ph; // déjà une vraie équipe
 
-  // "1er A" → 1er du groupe A
+  // "1er A" → 1er du groupe A (résultats officiels en priorité, pronos en fallback)
   const m1 = ph.match(/^1er ([A-L])$/);
-  if (m1) { const s = groupStandings(m1[1], predictions || results, scores); return s[0] || ph; }
+  if (m1) {
+    const sOff = groupStandings(m1[1], results, scores);
+    if (sOff[0]) return sOff[0];
+    const sPred = groupStandings(m1[1], predictions, scores);
+    return sPred[0] || ph;
+  }
 
   // "2e A" → 2e du groupe A
   const m2 = ph.match(/^2e ([A-L])$/);
-  if (m2) { const s = groupStandings(m2[1], predictions || results, scores); return s[1] || ph; }
+  if (m2) {
+    const sOff = groupStandings(m2[1], results, scores);
+    if (sOff[1]) return sOff[1];
+    const sPred = groupStandings(m2[1], predictions, scores);
+    return sPred[1] || ph;
+  }
 
   // "3e ABCDF" → assignation GLOBALE unique
   const m3 = ph.match(/^3e ([A-L]+)$/);
@@ -1300,12 +1310,16 @@ function resolveTeamWithPredictions(ph, results, predictions = {}, scores = {}, 
     }
     
     if (!resultToUse) {
-      // Toujours pas de résultat : afficher les équipes du match source
+      // Pas encore de résultat — retourner placeholder court
       const ref = MATCHES.find(m => m.id === refId);
       if (!ref) return ph;
       const homeTeam = resolveTeamWithPredictions(ref.home, results, predictions, scores, officialThirds);
       const awayTeam = resolveTeamWithPredictions(ref.away, results, predictions, scores, officialThirds);
-      return `${homeTeam} ou ${awayTeam}`;
+      // Si les deux équipes sont identifiées → montrer "X ou Y", sinon placeholder court
+      if (FLAGS[homeTeam] && FLAGS[awayTeam]) return `${homeTeam} / ${awayTeam}`;
+      if (FLAGS[homeTeam]) return homeTeam;
+      if (FLAGS[awayTeam]) return awayTeam;
+      return ph;
     }
     
     const ref = MATCHES.find(m => m.id === refId);
@@ -1384,13 +1398,14 @@ function resolveTeam(ph, results, scores = {}, officialThirds = {}) {
     const refId = vMatch[1];
     const official = results[refId];
     if (!official) {
-      // Pas encore de résultat : afficher les équipes du match source pour que l'utilisateur comprenne
       const ref = MATCHES.find(m => m.id === refId);
       if (!ref) return ph;
-      // Retourner un placeholder avec les équipes attendues
       const homeTeam = resolveTeam(ref.home, results, scores, officialThirds);
       const awayTeam = resolveTeam(ref.away, results, scores, officialThirds);
-      return `${homeTeam} ou ${awayTeam}`;
+      if (FLAGS[homeTeam] && FLAGS[awayTeam]) return `${homeTeam} / ${awayTeam}`;
+      if (FLAGS[homeTeam]) return homeTeam;
+      if (FLAGS[awayTeam]) return awayTeam;
+      return ph;
     }
     const ref = MATCHES.find(m => m.id === refId);
     if (!ref) return ph;
@@ -1486,7 +1501,7 @@ async function _initFirebase() {
 
 // Fallback localStorage (si Firebase non configuré ou hors ligne)
 const KEY = "wc2026_v2";
-const blank = () => ({ users:{}, predictions:{}, results:{}, scores:{}, validatedGroups:{}, finalLock:{}, seenAnim:{}, officialThirds:{}, thirdPicks:{}, seenEgg:{}, presence:{}, chat:{famille:[],collegues:[]}, matchComments:{}, chatEnabled:true, appVersion: APP_VERSION, forceLogoutSignal: 0, seenChat:{} });
+const blank = () => ({ users:{}, predictions:{}, results:{}, scores:{}, validatedGroups:{}, finalLock:{}, seenAnim:{}, officialThirds:{}, thirdPicks:{}, seenEgg:{}, presence:{}, chat:{famille:[],collegues:[],externe:[]}, matchComments:{}, chatEnabled:true, appVersion: APP_VERSION, forceLogoutSignal: 0, seenChat:{} });
 function load() {
   try {
     // Vérifier si la version a changé
@@ -1535,7 +1550,7 @@ async function persistFirebase(ns) {
         officialThirds:  ns.officialThirds  || {},
         thirdPicks:      ns.thirdPicks      || {},
         seenEgg:         ns.seenEgg         || {},
-        chat:            ns.chat            || {famille:[],collegues:[]},
+        chat:            ns.chat            || {famille:[],collegues:[],externe:[]},
         matchComments:   ns.matchComments   || {},
         chatEnabled:     ns.chatEnabled !== false,
         forceLogoutSignal: ns.forceLogoutSignal || 0,
@@ -1550,8 +1565,8 @@ async function persistFirebase(ns) {
 // CALC SCORES
 // ══════════════════════════════════════════
 function calcScores(st) {
-  const phasePoints = PHASE_POINTS; // défini au niveau module
-
+  const phasePoints = PHASE_POINTS;
+  const offThirds = st.officialThirds || {};
   const officialResults = st.results || {};
 
   const sc = {};
@@ -1733,6 +1748,7 @@ const t = {
   brole:{flex:1,padding:"8px 4px",borderRadius:10,border:`1px solid ${BRD}`,background:"rgba(255,255,255,.03)",color:MUTED,fontWeight:600,fontSize:12,cursor:"pointer",fontFamily:"inherit",minHeight:40,transition:"all .15s"},
   bFam:{background:"linear-gradient(135deg,#1d4ed8,#3b82f6)",borderColor:"transparent",color:"#fff",boxShadow:"0 2px 10px rgba(59,130,246,.3)"},
   bCol:{background:"linear-gradient(135deg,#7c3aed,#a855f7)",borderColor:"transparent",color:"#fff",boxShadow:"0 2px 10px rgba(168,85,247,.3)"},
+  bExt:{background:"linear-gradient(135deg,#0f766e,#0d9488)",borderColor:"transparent",color:"#fff",boxShadow:"0 2px 10px rgba(13,148,136,.3)"},
   bRes:{flex:1,padding:"10px 4px",borderRadius:10,border:`1px solid ${BRD}`,background:"rgba(255,255,255,.03)",color:MUTED,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit",minHeight:44,transition:"all .15s"},
   bResOn:{background:"linear-gradient(135deg,#FF4757,#ff6b81)",borderColor:"transparent",color:"#fff"},
 
@@ -2562,25 +2578,20 @@ export default function App() {
     return off;
   }
 
-  // Auto-lock le 10 juin 23h59 — verrouille TOUS les joueurs non-admin
-  // N'importe quel client connecté (y compris admin) déclenche le verrou global
+  // Auto-lock le 11 juin à 20h00 — verrouille TOUS les joueurs non-admin
+  // Ne modifie PAS validatedGroups : si on déverrouille un joueur, il retrouve ses pronos là où il en était
   useEffect(() => {
     if (!user) return;
     const deadline = new Date("2026-06-11T20:00:00");
-    const allKeys = [...GROUPS, "ELIM_seiziemes","ELIM_huitiemes","ELIM_quarts","ELIM_demis","ELIM_p3","ELIM_finale"];
     const tryLock = () => {
       if (new Date() < deadline) return;
       setSt(prev => {
         const players = Object.keys(prev.users).filter(u => prev.users[u]?.role !== "admin");
         const anyUnlocked = players.some(u => !prev.finalLock[u]);
-        if (!anyUnlocked) return prev; // tout le monde déjà verrouillé → rien à faire
-        const newFinalLock  = {...prev.finalLock};
-        const newValidated  = {...prev.validatedGroups};
-        players.forEach(u => {
-          newFinalLock[u] = true;
-          newValidated[u] = [...new Set([...(newValidated[u]||[]), ...allKeys])];
-        });
-        const ns = {...prev, finalLock: newFinalLock, validatedGroups: newValidated};
+        if (!anyUnlocked) return prev;
+        const newFinalLock = {...prev.finalLock};
+        players.forEach(u => { newFinalLock[u] = true; });
+        const ns = {...prev, finalLock: newFinalLock};
         persistFirebase(ns);
         return ns;
       });
@@ -2588,7 +2599,7 @@ export default function App() {
     tryLock();
     const iv = setInterval(tryLock, 60000);
     return () => clearInterval(iv);
-  }, [user]); // dépend uniquement de user — admin inclus pour couvrir les absents
+  }, [user]);
 
   // Musique selon l'écran
   useEffect(() => {
@@ -2836,6 +2847,21 @@ export default function App() {
     const ns={...st,users:{...st.users,[u]:{...(st.users[u]||{}), role:r}}}; 
     save(ns); 
   }
+
+  function toggleLock(u) {
+    // Verrouille ou déverrouille un joueur SANS toucher à ses pronos ni ses validations
+    const isLocked = !!st.finalLock[u];
+    const newFinalLock = {...st.finalLock};
+    if (isLocked) {
+      delete newFinalLock[u]; // déverrouille
+    } else {
+      newFinalLock[u] = true; // verrouille
+    }
+    const ns = {...st, finalLock: newFinalLock};
+    save(ns);
+    showNotif(isLocked ? "success" : "info", 
+      isLocked ? `🔓 ${u} déverrouillé — ses pronos sont intacts` : `🔒 ${u} verrouillé`);
+  }
   function setScore(id, side, val) {
     // side = "h" ou "a", val = string chiffre
     const cur = (st.scores||{})[id] || {h:"", a:""};
@@ -2957,7 +2983,7 @@ export default function App() {
   // ── CHAT — filtré par groupe (famille / collègues) ─────────────
   const chatRole = (st.users[user]||{}).role;
   const validChatRole = (role === "admin") ? adminChatGroup
-    : (chatRole === "famille" || chatRole === "collegues") ? chatRole : null;
+    : (chatRole === "famille" || chatRole === "collegues" || chatRole === "externe") ? chatRole : null;
 
   function getChatMsgs(matchId) {
     if (!validChatRole) return [];
@@ -4088,7 +4114,7 @@ export default function App() {
             <div style={t.divider}/>
             <div style={t.stitle}>📊 Classement</div>
             {isAdmin
-              ? <><LB filterRole="famille" title="Famille"/><LB filterRole="collegues" title="Collègues"/></>
+              ? <><LB filterRole="famille" title="Famille"/><LB filterRole="collegues" title="Collègues"/><LB filterRole="externe" title="Externes"/></>
               : <LB filterRole={role} title="Classement"/>
             }
           </div>
@@ -4220,20 +4246,82 @@ export default function App() {
                   {!locked && <div style={{...t.aWarn,marginBottom:12}}>⚽ Pas de match nul en phase éliminatoire</div>}
                   {locked   && <div style={{...t.aLock,marginBottom:12}}>🔒 Lecture seule</div>}
                   {(() => {
-                    // Construire l'objet "predictedResults" avec TOUTES les prédictions du joueur
-                    // Ça permet de résoudre les équipes en huitièmes même si le joueur n'a pas rempli tous les seizièmes
-                    const predictedResults = {...preds};
-                    // Aussi inclure les résultats officiels si disponibles (priority aux résultats officiels)
-                    const mixedResults = {...predictedResults, ...(st.results||{})};
-                    
+                    const userThirdsGlobal = (st.thirdPicks||{})[user] || {};
+                    const offThirdsGlobal  = st.officialThirds || {};
+
+                    // Résolution récursive depuis les pronos du joueur
+                    // Remonte toute la chaîne : V.Rx → V.Qx → V.Sx → Vainqueur SFx / Perdant SFx
+                    // Gère les slots "3e XYZ" via thirdPicks du joueur
+                    const resolveFromPreds = (slot) => {
+                      if (!slot) return slot;
+                      if (FLAGS[slot]) return slot;
+
+                      // "Vainqueur SFx" → vainqueur de la demi
+                      const vSF = slot.match(/^Vainqueur SF(\d+)$/);
+                      if (vSF) {
+                        const refId = "SF" + vSF[1];
+                        const result = (st.results||{})[refId] || preds[refId];
+                        if (!result) return slot;
+                        const ref = MATCHES.find(m => m.id === refId);
+                        if (!ref) return slot;
+                        return resolveFromPreds(result === "1" ? ref.home : ref.away);
+                      }
+
+                      // "Perdant SFx" → perdant de la demi (3e place)
+                      const pSF = slot.match(/^Perdant SF(\d+)$/);
+                      if (pSF) {
+                        const refId = "SF" + pSF[1];
+                        const result = (st.results||{})[refId] || preds[refId];
+                        if (!result) return slot;
+                        const ref = MATCHES.find(m => m.id === refId);
+                        if (!ref) return slot;
+                        return resolveFromPreds(result === "1" ? ref.away : ref.home);
+                      }
+
+                      // "V. Xx" → vainqueur du match Xx
+                      const vMatch = slot.match(/^V\.\s*([A-Z]+\d+)$/);
+                      if (vMatch) {
+                        const refId = vMatch[1];
+                        const result = (st.results||{})[refId] || preds[refId];
+                        if (!result) return slot;
+                        const ref = MATCHES.find(m => m.id === refId);
+                        if (!ref) return slot;
+                        const winnerSide = result === "1" ? "home" : "away";
+                        const winnerSlot = ref[winnerSide];
+                        if (FLAGS[winnerSlot]) return winnerSlot;
+                        // "1er X" ou "2e X" → scores officiels de poules
+                        if (winnerSlot.match(/^(1er|2e) [A-L]$/)) {
+                          const r = resolveTeam(winnerSlot, st.results||{}, st.scores||{}, offThirdsGlobal);
+                          return (r && r !== winnerSlot) ? r : winnerSlot;
+                        }
+                        // "3e XYZ" → choix du joueur pour CE match
+                        if (winnerSlot.startsWith("3e ")) {
+                          const key = refId + "_" + winnerSide;
+                          const chosenGroup = offThirdsGlobal[key] || userThirdsGlobal[key];
+                          if (!chosenGroup) return winnerSlot;
+                          const s = groupStandings(chosenGroup, st.results||{}, st.scores||{});
+                          return s[2] || winnerSlot;
+                        }
+                        // Autre slot → résoudre récursivement
+                        return resolveFromPreds(winnerSlot);
+                      }
+
+                      // "1er X" ou "2e X" → scores officiels
+                      if (slot.match(/^(1er|2e) [A-L]$/)) {
+                        const r = resolveTeam(slot, st.results||{}, st.scores||{}, offThirdsGlobal);
+                        return (r && r !== slot) ? r : slot;
+                      }
+
+                      return slot;
+                    };
+
                     return phaseMatches.map(m=>{
                     const hasThirdHome = m.home.startsWith("3e ");
                     const hasThirdAway = m.away.startsWith("3e ");
-                    const userThirds   = (st.thirdPicks||{})[user] || {};
-                    const offThirds    = st.officialThirds || {};
+                    const userThirds   = userThirdsGlobal;
+                    const offThirds    = offThirdsGlobal;
 
                     // Groupes déjà attribués dans les AUTRES matches de seizièmes
-                    // → on les grise dans le picker de CE match
                     let takenGroups = undefined;
                     if (m.phase === "seiziemes" && (hasThirdHome || hasThirdAway)) {
                       takenGroups = new Set();
@@ -4248,9 +4336,17 @@ export default function App() {
                       });
                     }
 
+                    // Seizièmes : match original (picker 3e fonctionne)
+                    // Huitièmes et au-delà : équipes pré-résolues depuis pronos du joueur
+                    const mToUse = m.phase === "seiziemes" ? m : {
+                      ...m,
+                      home: resolveFromPreds(m.home),
+                      away: resolveFromPreds(m.away),
+                    };
+
                     return (
-                    <MatchCard key={m.id} m={m} pred={preds[m.id]} official={(st.results||{})[m.id]} score={(st.scores||{})[m.id]}
-                      locked={locked} onPick={pick} results={mixedResults} userRole={role} predictions={predictedResults} officialThirds={st.officialThirds||{}}
+                    <MatchCard key={m.id} m={mToUse} pred={preds[m.id]} official={(st.results||{})[m.id]} score={(st.scores||{})[m.id]}
+                      locked={locked} onPick={pick} results={st.results||{}} userRole={role} predictions={preds} officialThirds={st.officialThirds||{}}
                       thirdPick={hasThirdHome||hasThirdAway ? {
                         home: hasThirdHome ? (offThirds[m.id+"_home"] || userThirds[m.id+"_home"] || null) : null,
                         away: hasThirdAway ? (offThirds[m.id+"_away"] || userThirds[m.id+"_away"] || null) : null,
@@ -4382,9 +4478,64 @@ export default function App() {
                       const off = (st.results||{})[m.id];
                       const ok = p && off && p===off;
                       const ko = p && off && p!==off;
-                      const gpPreds = (st.predictions[groupPronoPlayer]||{});
-                      const rH = resolveTeamWithPredictions(m.home, st.results||{}, gpPreds, st.scores||{}, st.officialThirds||{});
-                      const rA = resolveTeamWithPredictions(m.away, st.results||{}, gpPreds, st.scores||{}, st.officialThirds||{});
+                      const gpPreds  = st.predictions[groupPronoPlayer] || {};
+                      const gpThirds = (st.thirdPicks||{})[groupPronoPlayer] || {};
+                      const offThirds = st.officialThirds || {};
+
+                      // Résolution récursive depuis les pronos du joueur sélectionné
+                      const resolveForPeer = (slot) => {
+                        if (!slot) return slot;
+                        if (FLAGS[slot]) return slot;
+                        const vSF = slot.match(/^Vainqueur SF(\d+)$/);
+                        if (vSF) {
+                          const refId = "SF" + vSF[1];
+                          const result = (st.results||{})[refId] || gpPreds[refId];
+                          if (!result) return slot;
+                          const ref = MATCHES.find(x => x.id === refId);
+                          if (!ref) return slot;
+                          return resolveForPeer(result === "1" ? ref.home : ref.away);
+                        }
+                        const pSF = slot.match(/^Perdant SF(\d+)$/);
+                        if (pSF) {
+                          const refId = "SF" + pSF[1];
+                          const result = (st.results||{})[refId] || gpPreds[refId];
+                          if (!result) return slot;
+                          const ref = MATCHES.find(x => x.id === refId);
+                          if (!ref) return slot;
+                          return resolveForPeer(result === "1" ? ref.away : ref.home);
+                        }
+                        const vMatch = slot.match(/^V\.\s*([A-Z]+\d+)$/);
+                        if (vMatch) {
+                          const refId = vMatch[1];
+                          const result = (st.results||{})[refId] || gpPreds[refId];
+                          if (!result) return slot;
+                          const ref = MATCHES.find(x => x.id === refId);
+                          if (!ref) return slot;
+                          const winnerSide = result === "1" ? "home" : "away";
+                          const winnerSlot = ref[winnerSide];
+                          if (FLAGS[winnerSlot]) return winnerSlot;
+                          if (winnerSlot.match(/^(1er|2e) [A-L]$/)) {
+                            const r = resolveTeam(winnerSlot, st.results||{}, st.scores||{}, offThirds);
+                            return (r && r !== winnerSlot) ? r : winnerSlot;
+                          }
+                          if (winnerSlot.startsWith("3e ")) {
+                            const key = refId + "_" + winnerSide;
+                            const chosenGroup = offThirds[key] || gpThirds[key];
+                            if (!chosenGroup) return winnerSlot;
+                            const s = groupStandings(chosenGroup, st.results||{}, st.scores||{});
+                            return s[2] || winnerSlot;
+                          }
+                          return resolveForPeer(winnerSlot);
+                        }
+                        if (slot.match(/^(1er|2e) [A-L]$/)) {
+                          const r = resolveTeam(slot, st.results||{}, st.scores||{}, offThirds);
+                          return (r && r !== slot) ? r : slot;
+                        }
+                        return slot;
+                      };
+
+                      const rH = isElimSel ? resolveForPeer(m.home) : resolveTeam(m.home, st.results||{}, st.scores||{}, st.officialThirds||{});
+                      const rA = isElimSel ? resolveForPeer(m.away) : resolveTeam(m.away, st.results||{}, st.scores||{}, st.officialThirds||{});
                       return (
                         <div key={m.id} style={{
                           display:"flex",alignItems:"center",padding:"8px 0",
@@ -4548,6 +4699,7 @@ export default function App() {
               const allP = Object.keys(st.users).filter(u=>u!=="admin");
               const fam  = allP.filter(u=>st.users[u].role==="famille");
               const col  = allP.filter(u=>st.users[u].role==="collegues");
+              const ext  = allP.filter(u=>st.users[u].role==="externe");
               const wait = allP.filter(u=>st.users[u].role==="waiting");
               const scoresEntered = Object.keys(st.scores||{}).filter(id=>{const sc=st.scores[id];return sc&&sc.h!==""&&sc.h!=null&&sc.a!==""&&sc.a!=null;}).length;
               const totalPoolMatches = MATCHES.filter(m=>m.phase==="poules").length;
@@ -4687,6 +4839,17 @@ export default function App() {
                           </div>
                           <div style={{display:"flex",gap:6}}>
                             <button
+                              title={st.finalLock[u] ? "Déverrouiller ce joueur" : "Verrouiller ce joueur"}
+                              style={{
+                                background: st.finalLock[u] ? "rgba(34,197,94,.1)" : "rgba(239,68,68,.1)",
+                                border: `1px solid ${st.finalLock[u] ? "rgba(34,197,94,.3)" : "rgba(239,68,68,.3)"}`,
+                                color: st.finalLock[u] ? GREEN : RED,
+                                borderRadius:8, padding:"5px 8px", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit"
+                              }}
+                              onClick={() => toggleLock(u)}>
+                              {st.finalLock[u] ? "🔓" : "🔒"}
+                            </button>
+                            <button
                               title="Remettre les pronos à zéro"
                               style={{background:"rgba(245,158,11,.1)",border:"1px solid rgba(245,158,11,.3)",color:AMB,borderRadius:8,padding:"5px 8px",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}
                               onClick={()=>setAdminConfirmUser({name:u,action:"reset"})}>
@@ -4709,6 +4872,7 @@ export default function App() {
                         <div style={t.rrow}>
                           <button style={{...t.brole,...(r==="famille"?t.bFam:{})}} onClick={()=>setRole(u,"famille")}>Famille</button>
                           <button style={{...t.brole,...(r==="collegues"?t.bCol:{})}} onClick={()=>setRole(u,"collegues")}>Collègues</button>
+                          <button style={{...t.brole,...(r==="externe"?t.bExt:{})}} onClick={()=>setRole(u,"externe")}>Externe</button>
                           <button style={{...t.brole,...(r==="waiting"?{background:SURF2,color:TXT}:{})}} onClick={()=>setRole(u,"waiting")}>Attente</button>
                         </div>
 
@@ -5028,11 +5192,13 @@ export default function App() {
 
               const famille = allPlayers.filter(u=>st.users[u].role==="famille");
               const collegues = allPlayers.filter(u=>st.users[u].role==="collegues");
+              const externe = allPlayers.filter(u=>st.users[u].role==="externe");
 
               return (
                 <div>
                   {renderGroupPronos(famille, "👨‍👩‍👧 Famille")}
                   {renderGroupPronos(collegues, "💼 Collègues")}
+                  {renderGroupPronos(externe, "🌐 Externes")}
                 </div>
               );
             })()}
@@ -5230,9 +5396,9 @@ export default function App() {
                                     {rank===0&&(scores[u]||0)>0?"🥇":rank===1?"🥈":rank===2?"🥉":`#${rank+1}`} {u.toUpperCase()}
                                   </span>
                                   <span style={{fontSize:10,
-                                    background:uRole==="famille"?"rgba(59,130,246,.15)":"rgba(168,85,247,.15)",
-                                    border:`1px solid ${uRole==="famille"?"rgba(59,130,246,.3)":"rgba(168,85,247,.3)"}`,
-                                    color:uRole==="famille"?"#93c5fd":"#d8b4fe",
+                                    background:uRole==="famille"?"rgba(59,130,246,.15)":uRole==="externe"?"rgba(13,148,136,.15)":"rgba(168,85,247,.15)",
+                                    border:`1px solid ${uRole==="famille"?"rgba(59,130,246,.3)":uRole==="externe"?"rgba(13,148,136,.3)":"rgba(168,85,247,.3)"}`,
+                                    color:uRole==="famille"?"#93c5fd":uRole==="externe"?"#5eead4":"#d8b4fe",
                                     borderRadius:6,padding:"1px 6px",fontWeight:700
                                   }}>{uRole}</span>
                                   {isFullyVal && <span style={{fontSize:10,color:GREEN}}>🔒</span>}
@@ -5312,13 +5478,31 @@ export default function App() {
                     </div>
                   ))}
 
+              <div style={{fontSize:13,fontWeight:700,marginBottom:10,marginTop:16}}>💬 Chat Externes</div>
+              {(st.chat?.externe || []).length === 0
+                ? <div style={t.empty}>Aucun message</div>
+                : (st.chat?.externe || []).map((msg, idx) => (
+                    <div key={idx} style={{
+                      background:SURF2,borderRadius:10,padding:"10px 12px",marginBottom:8,
+                      display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8
+                    }}>
+                      <div style={{flex:1,fontSize:12}}>
+                        <div style={{fontWeight:700,color:"#0d9488"}}>{msg.user}</div>
+                        <div style={{color:TXT,marginTop:2}}>{msg.text}</div>
+                        <div style={{fontSize:10,color:MUTED,marginTop:4}}>{new Date(msg.ts).toLocaleString()}</div>
+                      </div>
+                      <button style={{...t.btnXS,background:"rgba(239,68,68,.2)",color:RED,padding:"4px 8px"}} 
+                        onClick={() => deleteMessage("externe", idx)}>🗑️</button>
+                    </div>
+                  ))}
+
               <div style={{fontSize:13,fontWeight:700,marginBottom:10,marginTop:16}}>📝 Commentaires Matchs</div>
               {Object.keys(st.matchComments || {}).length === 0
                 ? <div style={t.empty}>Aucun commentaire</div>
                 : Object.entries(st.matchComments || {}).map(([matchId, matchData]) => {
                     const familleComments = (matchData?.famille || []);
                     const colleaguesComments = (matchData?.collegues || []);
-                    const totalComments = familleComments.length + colleaguesComments.length;
+                    const totalComments = familleComments.length + colleaguesComments.length + (matchData?.externe||[]).length;
                     
                     if (totalComments === 0) return null;
                     
@@ -5361,6 +5545,25 @@ export default function App() {
                                 </div>
                                 <button style={{...t.btnXS,background:"rgba(239,68,68,.2)",color:RED,padding:"2px 6px",fontSize:10}} 
                                   onClick={() => deleteMatchComment(matchId, "collegues", idx)}>🗑️</button>
+                              </div>
+                            ))}
+                          </>
+                        )}
+                        {/* Commentaires Externes */}
+                        {(matchData?.externe||[]).length > 0 && (
+                          <>
+                            <div style={{fontSize:10,color:"#0d9488",fontWeight:700,marginBottom:6,marginTop:10}}>🌐 Externes</div>
+                            {(matchData.externe||[]).map((comment, idx) => (
+                              <div key={`ext-${idx}`} style={{
+                                background:"rgba(13,148,136,.08)",borderRadius:8,padding:"8px 10px",marginBottom:6,
+                                display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8
+                              }}>
+                                <div style={{flex:1,fontSize:11}}>
+                                  <div style={{fontWeight:700,color:"#0d9488"}}>{comment.user}</div>
+                                  <div style={{color:TXT,marginTop:1}}>{comment.text}</div>
+                                </div>
+                                <button style={{...t.btnXS,background:"rgba(239,68,68,.2)",color:RED,padding:"2px 6px",fontSize:10}} 
+                                  onClick={() => deleteMatchComment(matchId, "externe", idx)}>🗑️</button>
                               </div>
                             ))}
                           </>
@@ -5533,7 +5736,7 @@ export default function App() {
             : 0;
           // Badge nouveaux messages chat
           const chatRole2 = (st.users[user]||{}).role;
-          const validCR2 = chatRole2==="famille"||chatRole2==="collegues" ? chatRole2 : null;
+          const validCR2 = chatRole2==="famille"||chatRole2==="collegues"||chatRole2==="externe" ? chatRole2 : null;
           const chatMsgsCount = n.k==="chat" && validCR2
             ? ((st.chat||{})[validCR2]||[]).length
             : 0;
