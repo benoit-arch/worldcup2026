@@ -5060,67 +5060,165 @@ export default function App() {
                         </div>
                         {adminPronoPlayer ? (()=>{
                           const uPreds = (st.predictions[adminPronoPlayer]||{});
+                          const uValidated = st.validatedGroups[adminPronoPlayer] || [];
+                          const uThirds = (st.thirdPicks||{})[adminPronoPlayer] || {};
                           const isElimP = ["seiziemes","huitiemes","quarts","demis","p3","finale"].includes(adminPronoGroup);
                           const ml = isElimP
                             ? MATCHES.filter(m=>m.group==="ELIM"&&m.phase===adminPronoGroup)
                             : MATCHES.filter(m=>m.group===adminPronoGroup&&m.phase==="poules");
-                          // Pour les élims : résoudre les équipes via la chaîne de pronos du joueur
-                          // (officialResults en base + pronos du joueur pour les matchs sans résultat officiel)
-                          const mixedR = {...(st.results||{}), ...uPreds};
+
+                          // Résolution des équipes pour les élims via pronos du joueur
+                          const resolveForAdmin = (slot) => {
+                            if (!slot) return slot;
+                            if (FLAGS[slot]) return slot;
+                            const vSF = slot.match(/^Vainqueur SF(\d+)$/);
+                            if (vSF) {
+                              const refId = "SF" + vSF[1];
+                              const result = (st.results||{})[refId] || uPreds[refId];
+                              if (!result) return slot;
+                              const ref = MATCHES.find(x => x.id === refId);
+                              if (!ref) return slot;
+                              return resolveForAdmin(result === "1" ? ref.home : ref.away);
+                            }
+                            const pSF = slot.match(/^Perdant SF(\d+)$/);
+                            if (pSF) {
+                              const refId = "SF" + pSF[1];
+                              const result = (st.results||{})[refId] || uPreds[refId];
+                              if (!result) return slot;
+                              const ref = MATCHES.find(x => x.id === refId);
+                              if (!ref) return slot;
+                              return resolveForAdmin(result === "1" ? ref.away : ref.home);
+                            }
+                            const vMatch = slot.match(/^V\.\s*([A-Z]+\d+)$/);
+                            if (vMatch) {
+                              const refId = vMatch[1];
+                              const result = (st.results||{})[refId] || uPreds[refId];
+                              if (!result) return slot;
+                              const ref = MATCHES.find(x => x.id === refId);
+                              if (!ref) return slot;
+                              const winnerSide = result === "1" ? "home" : "away";
+                              const winnerSlot = ref[winnerSide];
+                              if (FLAGS[winnerSlot]) return winnerSlot;
+                              if (winnerSlot.match(/^(1er|2e) [A-L]$/)) {
+                                const r = resolveTeam(winnerSlot, st.results||{}, st.scores||{}, st.officialThirds||{});
+                                return (r && r !== winnerSlot) ? r : winnerSlot;
+                              }
+                              if (winnerSlot.startsWith("3e ")) {
+                                const key = refId + "_" + winnerSide;
+                                const chosenGroup = (st.officialThirds||{})[key] || uThirds[key];
+                                if (!chosenGroup) return winnerSlot;
+                                const s = groupStandings(chosenGroup, st.results||{}, st.scores||{});
+                                return s[2] || winnerSlot;
+                              }
+                              return resolveForAdmin(winnerSlot);
+                            }
+                            if (slot.match(/^(1er|2e) [A-L]$/)) {
+                              const r = resolveTeam(slot, st.results||{}, st.scores||{}, st.officialThirds||{});
+                              return (r && r !== slot) ? r : slot;
+                            }
+                            return slot;
+                          };
+
+                          // Saisir un prono pour un joueur
+                          const adminPick = (matchId, val) => {
+                            const ns = {...st, predictions: {
+                              ...st.predictions,
+                              [adminPronoPlayer]: {...uPreds, [matchId]: val}
+                            }};
+                            save(ns);
+                          };
+
+                          // Valider/dévalider un groupe pour un joueur
+                          const adminValidate = (groupKey) => {
+                            const alreadyVal = uValidated.includes(groupKey);
+                            const newVal = alreadyVal
+                              ? uValidated.filter(k => k !== groupKey)
+                              : [...uValidated, groupKey];
+                            const ns = {...st, validatedGroups: {
+                              ...st.validatedGroups,
+                              [adminPronoPlayer]: newVal
+                            }};
+                            save(ns);
+                            showNotif("success", alreadyVal
+                              ? `↩️ ${adminPronoPlayer} : ${groupKey} dévalidé`
+                              : `✅ ${adminPronoPlayer} : ${groupKey} validé`);
+                          };
+
+                          const currentKey = isElimP ? "ELIM_"+adminPronoGroup : adminPronoGroup;
+                          const isCurrentValidated = uValidated.includes(currentKey);
+                          const allMatchesDone = ml.every(m => uPreds[m.id]);
+
                           return (
                             <div style={t.card}>
-                              <div style={{fontWeight:800,fontSize:14,marginBottom:10,display:"flex",justifyContent:"space-between"}}>
+                              <div style={{fontWeight:800,fontSize:14,marginBottom:10,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                                 <span>{adminPronoPlayer.toUpperCase()} {onlinePlayers.includes(adminPronoPlayer)?"🟢":""}</span>
                                 <span style={{color:GOLD}}>{scores[adminPronoPlayer]||0} pts</span>
                               </div>
+
                               {ml.length===0 && <div style={{color:MUTED,fontSize:12,textAlign:"center",padding:"8px 0"}}>Aucun match dans cette phase</div>}
                               {ml.map(m=>{
-                                const p=uPreds[m.id];
-                                const off=(st.results||{})[m.id];
-                                const ok=p&&off&&p===off;
-                                const ko=p&&off&&p!==off;
-                                // Résolution via chaîne de pronos du joueur pour les élims
-                                const rH = isElimP
-                                  ? resolveTeam(m.home, mixedR, st.scores||{}, st.officialThirds||{})
-                                  : resolveTeam(m.home, st.results||{}, st.scores||{}, st.officialThirds||{});
-                                const rA = isElimP
-                                  ? resolveTeam(m.away, mixedR, st.scores||{}, st.officialThirds||{})
-                                  : resolveTeam(m.away, st.results||{}, st.scores||{}, st.officialThirds||{});
-                                // Équipe pronostiquée gagnante par le joueur
-                                const predWinner = p==="1" ? rH : p==="2" ? rA : null;
-                                const predEmoji = predWinner && FLAGS[predWinner] ? FLAGS[predWinner] : "";
+                                const p = uPreds[m.id];
+                                const off = (st.results||{})[m.id];
+                                const ok = p && off && p===off;
+                                const ko = p && off && p!==off;
+                                const rH = isElimP ? resolveForAdmin(m.home) : resolveTeam(m.home, st.results||{}, st.scores||{}, st.officialThirds||{});
+                                const rA = isElimP ? resolveForAdmin(m.away) : resolveTeam(m.away, st.results||{}, st.scores||{}, st.officialThirds||{});
+                                const btns = isElimP ? ["1","2"] : ["1","N","2"];
                                 return (
-                                  <div key={m.id} style={{padding:"8px 0",borderBottom:`1px solid ${BRD}`}}>
-                                    {/* Ligne des équipes */}
-                                    <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:4}}>
+                                  <div key={m.id} style={{padding:"10px 0",borderBottom:`1px solid ${BRD}`}}>
+                                    {/* Équipes */}
+                                    <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
                                       <span style={{fontSize:18}}>{FLAGS[rH]||"❓"}</span>
-                                      <span style={{fontSize:11,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:TXT}}>{rH}</span>
-                                      <span style={{fontSize:10,color:MUTED,fontWeight:700,minWidth:20,textAlign:"center"}}>vs</span>
-                                      <span style={{fontSize:11,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:TXT,textAlign:"right"}}>{rA}</span>
+                                      <span style={{fontSize:11,flex:1,color:TXT,fontWeight:600}}>{rH}</span>
+                                      <span style={{fontSize:10,color:MUTED,fontWeight:700}}>vs</span>
+                                      <span style={{fontSize:11,flex:1,color:TXT,fontWeight:600,textAlign:"right"}}>{rA}</span>
                                       <span style={{fontSize:18}}>{FLAGS[rA]||"❓"}</span>
                                     </div>
-                                    {/* Prono du joueur */}
-                                    <div style={{display:"flex",alignItems:"center",gap:6}}>
-                                      <span style={{fontSize:10,color:MUTED}}>Prono :</span>
-                                      {p ? (
-                                        <span style={{
-                                          fontSize:12,fontWeight:800,padding:"2px 8px",borderRadius:6,
-                                          background:ok?"rgba(34,197,94,.2)":ko?"rgba(239,68,68,.2)":"rgba(245,200,66,.1)",
-                                          color:ok?GREEN:ko?RED:GOLD,
-                                          display:"flex",alignItems:"center",gap:4
-                                        }}>
-                                          {predEmoji && <span style={{fontSize:14}}>{predEmoji}</span>}
-                                          {predWinner||p}
-                                          {ok&&" ✅"}{ko&&" ❌"}
-                                        </span>
-                                      ) : (
-                                        <span style={{fontSize:11,color:MUTED,fontStyle:"italic"}}>Pas de prono</span>
-                                      )}
-                                      {off&&!p&&<span style={{fontSize:10,color:MUTED,marginLeft:"auto"}}>Résultat : {off==="1"?`${FLAGS[rH]||""} ${rH}`:off==="2"?`${FLAGS[rA]||""} ${rA}`:"Nul"}</span>}
+                                    {/* Boutons de saisie */}
+                                    <div style={{display:"flex",gap:6}}>
+                                      {btns.map(v => {
+                                        const label = v==="1" ? `🏆 ${rH}` : v==="2" ? `🏆 ${rA}` : "🤝 Nul";
+                                        const isSelected = p === v;
+                                        return (
+                                          <button key={v}
+                                            onClick={() => adminPick(m.id, isSelected ? null : v)}
+                                            style={{
+                                              flex:1, padding:"6px 4px", fontSize:10, fontWeight:700,
+                                              borderRadius:8, cursor:"pointer", fontFamily:"inherit",
+                                              border: isSelected
+                                                ? `2px solid ${ok?GREEN:ko?RED:GOLD}`
+                                                : `1px solid ${BRD}`,
+                                              background: isSelected
+                                                ? ok?"rgba(34,197,94,.2)":ko?"rgba(239,68,68,.2)":"rgba(255,210,52,.15)"
+                                                : "rgba(255,255,255,.05)",
+                                              color: isSelected
+                                                ? ok?GREEN:ko?RED:GOLD
+                                                : MUTED,
+                                            }}>
+                                            {label}
+                                          </button>
+                                        );
+                                      })}
                                     </div>
                                   </div>
                                 );
                               })}
+
+                              {/* Bouton Valider/Dévalider */}
+                              {ml.length > 0 && (
+                                <button
+                                  onClick={() => adminValidate(currentKey)}
+                                  style={{
+                                    width:"100%", marginTop:12, padding:"10px",
+                                    fontSize:13, fontWeight:800, borderRadius:10,
+                                    cursor:"pointer", fontFamily:"inherit",
+                                    background: isCurrentValidated ? "rgba(239,68,68,.15)" : allMatchesDone ? "rgba(34,197,94,.15)" : "rgba(255,255,255,.05)",
+                                    border: `2px solid ${isCurrentValidated ? RED : allMatchesDone ? GREEN : BRD}`,
+                                    color: isCurrentValidated ? RED : allMatchesDone ? GREEN : MUTED,
+                                  }}>
+                                  {isCurrentValidated ? "↩️ Dévalider cette phase" : allMatchesDone ? "✅ Valider cette phase" : `⚠️ Valider (${ml.filter(m=>uPreds[m.id]).length}/${ml.length} pronos)`}
+                                </button>
+                              )}
                             </div>
                           );
                         })() : <div style={t.empty}>Sélectionne un joueur</div>}
