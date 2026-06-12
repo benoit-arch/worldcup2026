@@ -2578,29 +2578,6 @@ export default function App() {
     return off;
   }
 
-  // Auto-lock le 11 juin à 20h00 — verrouille TOUS les joueurs non-admin
-  // Ne modifie PAS validatedGroups : si on déverrouille un joueur, il retrouve ses pronos là où il en était
-  useEffect(() => {
-    if (!user) return;
-    const deadline = new Date("2026-06-11T20:00:00");
-    const tryLock = () => {
-      if (new Date() < deadline) return;
-      setSt(prev => {
-        const players = Object.keys(prev.users).filter(u => prev.users[u]?.role !== "admin");
-        const anyUnlocked = players.some(u => !prev.finalLock[u]);
-        if (!anyUnlocked) return prev;
-        const newFinalLock = {...prev.finalLock};
-        players.forEach(u => { newFinalLock[u] = true; });
-        const ns = {...prev, finalLock: newFinalLock};
-        persistFirebase(ns);
-        return ns;
-      });
-    };
-    tryLock();
-    const iv = setInterval(tryLock, 60000);
-    return () => clearInterval(iv);
-  }, [user]);
-
   // Musique selon l'écran
   useEffect(() => {
     if (scr === "login") {
@@ -2667,16 +2644,6 @@ export default function App() {
     if (u === "admin") {
       if (pw !== "2026") { showNotif("error", "❌ Mot de passe incorrect"); return; }
       let ns = {...st, users:{...st.users, admin:{role:"admin"}}};
-      const deadline = new Date("2026-06-11T20:00:00");
-      if (new Date() >= deadline) {
-        const allKeys = [...GROUPS, "ELIM_seiziemes","ELIM_huitiemes","ELIM_quarts","ELIM_demis","ELIM_p3","ELIM_finale"];
-        Object.keys(ns.users).forEach(player => {
-          if (player !== "admin" && !ns.finalLock?.[player]) {
-            ns.finalLock = {...(ns.finalLock||{}), [player]: true};
-            ns.validatedGroups = {...(ns.validatedGroups||{}), [player]: allKeys};
-          }
-        });
-      }
       soundLogin(); stopLoginMusic(); save(ns); localStorage.setItem("APP_VERSION", APP_VERSION); setUser("admin");
       seen.current = new Set(Object.keys(ns.seenAnim||{}));
       showNotif("success", "✅ Connecté en tant qu'Admin");
@@ -2775,6 +2742,43 @@ export default function App() {
     save(ns);
   }
 
+  // ── ADMIN: modifier les pronos d'un joueur ──
+  function adminEditPred(targetUser, matchId, value) {
+    const currentPreds = st.predictions[targetUser] || {};
+    const ns = {
+      ...st,
+      predictions: {
+        ...st.predictions,
+        [targetUser]: { ...currentPreds, [matchId]: value }
+      }
+    };
+    save(ns);
+    showNotif("success", `✅ Prono de ${targetUser.toUpperCase()} modifié`);
+  }
+
+  // ── ADMIN: modifier le choix du meilleur 3e d'un joueur ──
+  function adminEditThird(targetUser, matchId, side, group) {
+    const userThirds = (st.thirdPicks||{})[targetUser] || {};
+    // Vérifier qu'un autre match n'a pas déjà ce groupe pour ce joueur
+    const alreadyUsed = Object.entries(userThirds).some(([key, val]) => {
+      const [mId] = key.split("_");
+      return mId !== matchId && val === group;
+    });
+    if (alreadyUsed) {
+      showNotif("error", `❌ Le groupe ${group} est déjà utilisé dans un autre match pour ${targetUser.toUpperCase()}`);
+      return;
+    }
+    const ns = {
+      ...st,
+      thirdPicks: {
+        ...(st.thirdPicks||{}),
+        [targetUser]: { ...userThirds, [matchId+"_"+side]: group }
+      }
+    };
+    save(ns);
+    showNotif("success", `✅ 3e du groupe ${group} assigné à ${targetUser.toUpperCase()}`);
+  }
+
   // ── 3e ÉQUIPE (sélection du groupe pour les seizièmes) ──
   function pickThird(matchId, side, group) {
     if (locked) return;
@@ -2831,13 +2835,11 @@ export default function App() {
   }
   // ── FINAL LOCK ──
   function doLock() {
-    // On valide toutes les phases pour permettre la navigation en lecture seule après verrouillage
-    const allKeys = [...GROUPS, "ELIM_seiziemes","ELIM_huitiemes","ELIM_quarts","ELIM_demis","ELIM_p3","ELIM_finale"];
-    const prev = st.validatedGroups[user] || [];
+    // On pose uniquement le verrou — validatedGroups reste intact (ce que le joueur a vraiment validé)
+    // La navigation en lecture seule fonctionne via le bypass "locked || isPhaseUnlocked"
     const ns = {
       ...st,
       finalLock: {...st.finalLock, [user]: true},
-      validatedGroups: {...st.validatedGroups, [user]: [...new Set([...prev, ...allKeys])]},
     };
     soundLock(); save(ns); setModal(false); celebrate("finale");
   }
@@ -2846,21 +2848,6 @@ export default function App() {
   function setRole(u,r) { 
     const ns={...st,users:{...st.users,[u]:{...(st.users[u]||{}), role:r}}}; 
     save(ns); 
-  }
-
-  function toggleLock(u) {
-    // Verrouille ou déverrouille un joueur SANS toucher à ses pronos ni ses validations
-    const isLocked = !!st.finalLock[u];
-    const newFinalLock = {...st.finalLock};
-    if (isLocked) {
-      delete newFinalLock[u]; // déverrouille
-    } else {
-      newFinalLock[u] = true; // verrouille
-    }
-    const ns = {...st, finalLock: newFinalLock};
-    save(ns);
-    showNotif(isLocked ? "success" : "info", 
-      isLocked ? `🔓 ${u} déverrouillé — ses pronos sont intacts` : `🔒 ${u} verrouillé`);
   }
   function setScore(id, side, val) {
     // side = "h" ou "a", val = string chiffre
@@ -4246,82 +4233,20 @@ export default function App() {
                   {!locked && <div style={{...t.aWarn,marginBottom:12}}>⚽ Pas de match nul en phase éliminatoire</div>}
                   {locked   && <div style={{...t.aLock,marginBottom:12}}>🔒 Lecture seule</div>}
                   {(() => {
-                    const userThirdsGlobal = (st.thirdPicks||{})[user] || {};
-                    const offThirdsGlobal  = st.officialThirds || {};
-
-                    // Résolution récursive depuis les pronos du joueur
-                    // Remonte toute la chaîne : V.Rx → V.Qx → V.Sx → Vainqueur SFx / Perdant SFx
-                    // Gère les slots "3e XYZ" via thirdPicks du joueur
-                    const resolveFromPreds = (slot) => {
-                      if (!slot) return slot;
-                      if (FLAGS[slot]) return slot;
-
-                      // "Vainqueur SFx" → vainqueur de la demi
-                      const vSF = slot.match(/^Vainqueur SF(\d+)$/);
-                      if (vSF) {
-                        const refId = "SF" + vSF[1];
-                        const result = (st.results||{})[refId] || preds[refId];
-                        if (!result) return slot;
-                        const ref = MATCHES.find(m => m.id === refId);
-                        if (!ref) return slot;
-                        return resolveFromPreds(result === "1" ? ref.home : ref.away);
-                      }
-
-                      // "Perdant SFx" → perdant de la demi (3e place)
-                      const pSF = slot.match(/^Perdant SF(\d+)$/);
-                      if (pSF) {
-                        const refId = "SF" + pSF[1];
-                        const result = (st.results||{})[refId] || preds[refId];
-                        if (!result) return slot;
-                        const ref = MATCHES.find(m => m.id === refId);
-                        if (!ref) return slot;
-                        return resolveFromPreds(result === "1" ? ref.away : ref.home);
-                      }
-
-                      // "V. Xx" → vainqueur du match Xx
-                      const vMatch = slot.match(/^V\.\s*([A-Z]+\d+)$/);
-                      if (vMatch) {
-                        const refId = vMatch[1];
-                        const result = (st.results||{})[refId] || preds[refId];
-                        if (!result) return slot;
-                        const ref = MATCHES.find(m => m.id === refId);
-                        if (!ref) return slot;
-                        const winnerSide = result === "1" ? "home" : "away";
-                        const winnerSlot = ref[winnerSide];
-                        if (FLAGS[winnerSlot]) return winnerSlot;
-                        // "1er X" ou "2e X" → scores officiels de poules
-                        if (winnerSlot.match(/^(1er|2e) [A-L]$/)) {
-                          const r = resolveTeam(winnerSlot, st.results||{}, st.scores||{}, offThirdsGlobal);
-                          return (r && r !== winnerSlot) ? r : winnerSlot;
-                        }
-                        // "3e XYZ" → choix du joueur pour CE match
-                        if (winnerSlot.startsWith("3e ")) {
-                          const key = refId + "_" + winnerSide;
-                          const chosenGroup = offThirdsGlobal[key] || userThirdsGlobal[key];
-                          if (!chosenGroup) return winnerSlot;
-                          const s = groupStandings(chosenGroup, st.results||{}, st.scores||{});
-                          return s[2] || winnerSlot;
-                        }
-                        // Autre slot → résoudre récursivement
-                        return resolveFromPreds(winnerSlot);
-                      }
-
-                      // "1er X" ou "2e X" → scores officiels
-                      if (slot.match(/^(1er|2e) [A-L]$/)) {
-                        const r = resolveTeam(slot, st.results||{}, st.scores||{}, offThirdsGlobal);
-                        return (r && r !== slot) ? r : slot;
-                      }
-
-                      return slot;
-                    };
-
+                    // Construire l'objet "predictedResults" avec TOUTES les prédictions du joueur
+                    // Ça permet de résoudre les équipes en huitièmes même si le joueur n'a pas rempli tous les seizièmes
+                    const predictedResults = {...preds};
+                    // Aussi inclure les résultats officiels si disponibles (priority aux résultats officiels)
+                    const mixedResults = {...predictedResults, ...(st.results||{})};
+                    
                     return phaseMatches.map(m=>{
                     const hasThirdHome = m.home.startsWith("3e ");
                     const hasThirdAway = m.away.startsWith("3e ");
-                    const userThirds   = userThirdsGlobal;
-                    const offThirds    = offThirdsGlobal;
+                    const userThirds   = (st.thirdPicks||{})[user] || {};
+                    const offThirds    = st.officialThirds || {};
 
                     // Groupes déjà attribués dans les AUTRES matches de seizièmes
+                    // → on les grise dans le picker de CE match
                     let takenGroups = undefined;
                     if (m.phase === "seiziemes" && (hasThirdHome || hasThirdAway)) {
                       takenGroups = new Set();
@@ -4336,17 +4261,9 @@ export default function App() {
                       });
                     }
 
-                    // Seizièmes : match original (picker 3e fonctionne)
-                    // Huitièmes et au-delà : équipes pré-résolues depuis pronos du joueur
-                    const mToUse = m.phase === "seiziemes" ? m : {
-                      ...m,
-                      home: resolveFromPreds(m.home),
-                      away: resolveFromPreds(m.away),
-                    };
-
                     return (
-                    <MatchCard key={m.id} m={mToUse} pred={preds[m.id]} official={(st.results||{})[m.id]} score={(st.scores||{})[m.id]}
-                      locked={locked} onPick={pick} results={st.results||{}} userRole={role} predictions={preds} officialThirds={st.officialThirds||{}}
+                    <MatchCard key={m.id} m={m} pred={preds[m.id]} official={(st.results||{})[m.id]} score={(st.scores||{})[m.id]}
+                      locked={locked} onPick={pick} results={mixedResults} userRole={role} predictions={predictedResults} officialThirds={st.officialThirds||{}}
                       thirdPick={hasThirdHome||hasThirdAway ? {
                         home: hasThirdHome ? (offThirds[m.id+"_home"] || userThirds[m.id+"_home"] || null) : null,
                         away: hasThirdAway ? (offThirds[m.id+"_away"] || userThirds[m.id+"_away"] || null) : null,
@@ -4478,64 +4395,9 @@ export default function App() {
                       const off = (st.results||{})[m.id];
                       const ok = p && off && p===off;
                       const ko = p && off && p!==off;
-                      const gpPreds  = st.predictions[groupPronoPlayer] || {};
-                      const gpThirds = (st.thirdPicks||{})[groupPronoPlayer] || {};
-                      const offThirds = st.officialThirds || {};
-
-                      // Résolution récursive depuis les pronos du joueur sélectionné
-                      const resolveForPeer = (slot) => {
-                        if (!slot) return slot;
-                        if (FLAGS[slot]) return slot;
-                        const vSF = slot.match(/^Vainqueur SF(\d+)$/);
-                        if (vSF) {
-                          const refId = "SF" + vSF[1];
-                          const result = (st.results||{})[refId] || gpPreds[refId];
-                          if (!result) return slot;
-                          const ref = MATCHES.find(x => x.id === refId);
-                          if (!ref) return slot;
-                          return resolveForPeer(result === "1" ? ref.home : ref.away);
-                        }
-                        const pSF = slot.match(/^Perdant SF(\d+)$/);
-                        if (pSF) {
-                          const refId = "SF" + pSF[1];
-                          const result = (st.results||{})[refId] || gpPreds[refId];
-                          if (!result) return slot;
-                          const ref = MATCHES.find(x => x.id === refId);
-                          if (!ref) return slot;
-                          return resolveForPeer(result === "1" ? ref.away : ref.home);
-                        }
-                        const vMatch = slot.match(/^V\.\s*([A-Z]+\d+)$/);
-                        if (vMatch) {
-                          const refId = vMatch[1];
-                          const result = (st.results||{})[refId] || gpPreds[refId];
-                          if (!result) return slot;
-                          const ref = MATCHES.find(x => x.id === refId);
-                          if (!ref) return slot;
-                          const winnerSide = result === "1" ? "home" : "away";
-                          const winnerSlot = ref[winnerSide];
-                          if (FLAGS[winnerSlot]) return winnerSlot;
-                          if (winnerSlot.match(/^(1er|2e) [A-L]$/)) {
-                            const r = resolveTeam(winnerSlot, st.results||{}, st.scores||{}, offThirds);
-                            return (r && r !== winnerSlot) ? r : winnerSlot;
-                          }
-                          if (winnerSlot.startsWith("3e ")) {
-                            const key = refId + "_" + winnerSide;
-                            const chosenGroup = offThirds[key] || gpThirds[key];
-                            if (!chosenGroup) return winnerSlot;
-                            const s = groupStandings(chosenGroup, st.results||{}, st.scores||{});
-                            return s[2] || winnerSlot;
-                          }
-                          return resolveForPeer(winnerSlot);
-                        }
-                        if (slot.match(/^(1er|2e) [A-L]$/)) {
-                          const r = resolveTeam(slot, st.results||{}, st.scores||{}, offThirds);
-                          return (r && r !== slot) ? r : slot;
-                        }
-                        return slot;
-                      };
-
-                      const rH = isElimSel ? resolveForPeer(m.home) : resolveTeam(m.home, st.results||{}, st.scores||{}, st.officialThirds||{});
-                      const rA = isElimSel ? resolveForPeer(m.away) : resolveTeam(m.away, st.results||{}, st.scores||{}, st.officialThirds||{});
+                      const gpPreds = (st.predictions[groupPronoPlayer]||{});
+                      const rH = resolveTeamWithPredictions(m.home, st.results||{}, gpPreds, st.scores||{}, st.officialThirds||{});
+                      const rA = resolveTeamWithPredictions(m.away, st.results||{}, gpPreds, st.scores||{}, st.officialThirds||{});
                       return (
                         <div key={m.id} style={{
                           display:"flex",alignItems:"center",padding:"8px 0",
@@ -4793,6 +4655,50 @@ export default function App() {
               {Object.keys(st.users).filter(u=>u!=="admin").length===0
                 ? <div style={t.empty}>Aucun joueur.</div>
                 : <>
+                  {/* ── Verrouillage global ── */}
+                  {(() => {
+                    const players = Object.keys(st.users).filter(u=>u!=="admin");
+                    const allLocked = players.length>0 && players.every(u=>st.finalLock[u]);
+                    const allKeys = [...GROUPS,"ELIM_seiziemes","ELIM_huitiemes","ELIM_quarts","ELIM_demis","ELIM_p3","ELIM_finale"];
+                    return (
+                      <div style={{...t.card,display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,padding:"12px 14px"}}>
+                        <div>
+                          <div style={{fontWeight:700,fontSize:13}}>
+                            {allLocked ? "🔒 Tous verrouillés" : "🔓 Verrouillage des pronos"}
+                          </div>
+                          <div style={{fontSize:11,color:MUTED,marginTop:2}}>
+                            {allLocked
+                              ? "Tous les joueurs sont en lecture seule"
+                              : `${players.filter(u=>st.finalLock[u]).length}/${players.length} verrouillés`}
+                          </div>
+                        </div>
+                        <div style={{display:"flex",gap:8,flexShrink:0}}>
+                          <button
+                            title="Verrouiller tous les joueurs"
+                            onClick={()=>{
+                              const ns={...st};
+                              players.forEach(u=>{
+                                ns.finalLock={...ns.finalLock,[u]:true};
+                                // On ne touche PAS validatedGroups — le joueur retrouve son avancement exact au déverrouillage
+                              });
+                              save(ns); showNotif("success","🔒 Tous les joueurs verrouillés");
+                            }}
+                            style={{background:"rgba(239,68,68,.12)",border:"1px solid rgba(239,68,68,.35)",color:RED,borderRadius:10,padding:"7px 12px",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>
+                            🔒 Tout verrouiller
+                          </button>
+                          <button
+                            title="Déverrouiller tous les joueurs"
+                            onClick={()=>{
+                              const ns={...st,finalLock:{}};
+                              save(ns); showNotif("success","🔓 Tous les joueurs déverrouillés");
+                            }}
+                            style={{background:"rgba(34,197,94,.1)",border:"1px solid rgba(34,197,94,.35)",color:GREEN,borderRadius:10,padding:"7px 12px",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>
+                            🔓 Tout déverrouiller
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })()}
                   {/* Info sur la mise à jour mot de passe */}
                   {Object.keys(st.users).some(u=>u!=="admin"&&!st.users[u].pw) && (
                     <div style={{
@@ -4838,15 +4744,27 @@ export default function App() {
                             <div style={{fontSize:11,color:MUTED,marginTop:2}}>Rôle : {r} · {scores[u]||0} pts{onlinePlayers.includes(u)?" · en ligne":""}</div>
                           </div>
                           <div style={{display:"flex",gap:6}}>
+                            {/* Verrou individuel */}
                             <button
                               title={st.finalLock[u] ? "Déverrouiller ce joueur" : "Verrouiller ce joueur"}
                               style={{
                                 background: st.finalLock[u] ? "rgba(34,197,94,.1)" : "rgba(239,68,68,.1)",
-                                border: `1px solid ${st.finalLock[u] ? "rgba(34,197,94,.3)" : "rgba(239,68,68,.3)"}`,
+                                border: `1px solid ${st.finalLock[u] ? "rgba(34,197,94,.35)" : "rgba(239,68,68,.3)"}`,
                                 color: st.finalLock[u] ? GREEN : RED,
-                                borderRadius:8, padding:"5px 8px", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit"
+                                borderRadius:8,padding:"5px 8px",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"
                               }}
-                              onClick={() => toggleLock(u)}>
+                              onClick={()=>{
+                                if (st.finalLock[u]) {
+                                  // Déverrouiller — validatedGroups intact = le joueur retrouve son avancement exact
+                                  const {[u]:_removed,...rest} = st.finalLock;
+                                  const ns={...st,finalLock:rest};
+                                  save(ns); showNotif("success",`🔓 ${u.toUpperCase()} déverrouillé`);
+                                } else {
+                                  // Verrouiller — on ne touche PAS validatedGroups
+                                  const ns={...st, finalLock:{...st.finalLock,[u]:true}};
+                                  save(ns); showNotif("success",`🔒 ${u.toUpperCase()} verrouillé`);
+                                }
+                              }}>
                               {st.finalLock[u] ? "🔓" : "🔒"}
                             </button>
                             <button
@@ -5032,9 +4950,9 @@ export default function App() {
                       <span style={{fontSize:10,color:MUTED,fontWeight:400}}>{players.length} joueur{players.length>1?"s":""}</span>
                     </div>
 
-                    {/* Toggle vue tableau / joueur */}
+                    {/* Toggle vue tableau / joueur / éditer */}
                     <div style={{display:"flex",gap:6,marginBottom:10}}>
-                      {[{k:"tableau",l:"📊 Tableau"},{k:"joueur",l:"👤 Par joueur"}].map(v=>(
+                      {[{k:"tableau",l:"📊 Tableau"},{k:"joueur",l:"👤 Par joueur"},{k:"editer",l:"✏️ Éditer"}].map(v=>(
                         <button key={v.k}
                           style={{...t.tab,flex:1,fontSize:12,...(adminPronoView===v.k?t.tabOn:{})}}
                           onClick={()=>{ setAdminPronoView(v.k); setAdminPronoPlayer(null); }}>
@@ -5042,6 +4960,256 @@ export default function App() {
                         </button>
                       ))}
                     </div>
+
+                    {/* ── MODE ÉDITER ── */}
+                    {adminPronoView==="editer" && (
+                      <div style={{marginBottom:10}}>
+                        {/* Sélection joueur */}
+                        <div style={{fontSize:11,color:MUTED,marginBottom:6,fontWeight:700}}>Sélectionne un joueur à modifier :</div>
+                        <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
+                          {players.map(u=>(
+                            <button key={u}
+                              style={{...t.tab,padding:"5px 10px",fontSize:12,...(adminPronoPlayer===u?t.tabOn:{}),
+                                borderColor:onlinePlayers.includes(u)?"rgba(46,204,113,.6)":undefined}}
+                              onClick={()=>setAdminPronoPlayer(u)}>
+                              {onlinePlayers.includes(u)&&<span style={{color:GREEN,marginRight:3}}>🟢</span>}
+                              {u.toUpperCase()}
+                              <span style={{fontSize:10,marginLeft:4,color:adminPronoPlayer===u?"#0a0e1a":MUTED}}>({scores[u]||0}pts)</span>
+                            </button>
+                          ))}
+                        </div>
+
+                        {adminPronoPlayer ? (()=>{
+                          const uPreds = st.predictions[adminPronoPlayer] || {};
+                          const isElimPhase = ["seiziemes","huitiemes","quarts","demis","p3","finale"].includes(adminPronoGroup);
+
+                          // Résolution des équipes selon les pronos du joueur (même logique que le joueur voit)
+                          const resolveForPlayer = (team) => {
+                            if (FLAGS[team]) return team;
+                            const hasOfficialGroupResults = (gid) =>
+                              MATCHES.some(m => m.group === gid && m.phase === "poules" && (st.results||{})[m.id]);
+                            const m1 = team.match(/^1er ([A-L])$/);
+                            if (m1) {
+                              if (hasOfficialGroupResults(m1[1])) { const s=groupStandings(m1[1],st.results||{},st.scores||{}); if(s[0]) return s[0]; }
+                              const s=groupStandings(m1[1],uPreds,{}); return s[0]||team;
+                            }
+                            const m2 = team.match(/^2e ([A-L])$/);
+                            if (m2) {
+                              if (hasOfficialGroupResults(m2[1])) { const s=groupStandings(m2[1],st.results||{},st.scores||{}); if(s[1]) return s[1]; }
+                              const s=groupStandings(m2[1],uPreds,{}); return s[1]||team;
+                            }
+                            const vm = team.match(/^V\.\s*([A-Z]+\d+)$/);
+                            if (vm) {
+                              const refId=vm[1];
+                              const result=(st.results||{})[refId]||uPreds[refId];
+                              if (!result) return team;
+                              const ref=MATCHES.find(m=>m.id===refId);
+                              if (!ref) return team;
+                              return resolveForPlayer(result==="1"?ref.home:ref.away);
+                            }
+                            if (team.startsWith("Vainqueur")) {
+                              const sfm=team.match(/SF(\d+)/);
+                              if(sfm){ const r=(st.results||{})["SF"+sfm[1]]||uPreds["SF"+sfm[1]]; if(!r) return team; const ref=MATCHES.find(m=>m.id==="SF"+sfm[1]); if(!ref) return team; return resolveForPlayer(r==="1"?ref.home:ref.away); }
+                            }
+                            if (team.startsWith("Perdant")) {
+                              const sfm=team.match(/SF(\d+)/);
+                              if(sfm){ const r=(st.results||{})["SF"+sfm[1]]||uPreds["SF"+sfm[1]]; if(!r) return team; const ref=MATCHES.find(m=>m.id==="SF"+sfm[1]); if(!ref) return team; return resolveForPlayer(r==="1"?ref.away:ref.home); }
+                            }
+                            return team;
+                          };
+
+                          const matchList = isElimPhase
+                            ? MATCHES.filter(m=>m.group==="ELIM"&&m.phase===adminPronoGroup)
+                            : MATCHES.filter(m=>m.group===adminPronoGroup&&m.phase==="poules");
+
+                          return (
+                            <div>
+                              {/* Infos joueur */}
+                              <div style={{...t.card,marginBottom:10,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                                <div>
+                                  <div style={{fontWeight:800,fontSize:14}}>{adminPronoPlayer.toUpperCase()} {onlinePlayers.includes(adminPronoPlayer)?"🟢":""}</div>
+                                  <div style={{fontSize:11,color:MUTED,marginTop:2}}>
+                                    {(st.users[adminPronoPlayer]?.fname||"")} {(st.users[adminPronoPlayer]?.lname||"")}
+                                    {st.finalLock?.[adminPronoPlayer] && <span style={{color:RED,marginLeft:6,fontSize:10}}>🔒 VERROUILLÉ</span>}
+                                  </div>
+                                </div>
+                                <div style={{textAlign:"right"}}>
+                                  <div style={{color:GOLD,fontWeight:700,fontSize:16}}>{scores[adminPronoPlayer]||0} pts</div>
+                                  {st.finalLock?.[adminPronoPlayer] && (
+                                    <div style={{fontSize:10,color:AMB,marginTop:2}}>Modif. possible (admin)</div>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Sélecteur phase */}
+                              <div style={{...t.tabs,paddingLeft:0,paddingRight:0,marginBottom:10,flexWrap:"wrap"}}>
+                                {GROUPS.map(g=>(
+                                  <button key={g} style={{...t.tab,padding:"5px 10px",fontSize:12,...(adminPronoGroup===g?t.tabOn:{})}} onClick={()=>setAdminPronoGroup(g)}>{g}</button>
+                                ))}
+                                {[["seiziemes","1/16"],["huitiemes","1/8"],["quarts","QF"],["demis","SF"],["p3","3e"],["finale","🏆"]].map(([ph,lbl])=>(
+                                  <button key={ph} style={{...t.tab,padding:"5px 10px",fontSize:12,...(adminPronoGroup===ph?t.tabOn:{})}} onClick={()=>setAdminPronoGroup(ph)}>{lbl}</button>
+                                ))}
+                              </div>
+
+                              {/* Matches à modifier */}
+                              {matchList.length===0 && <div style={t.empty}>Aucun match dans cette phase</div>}
+                              <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                                {matchList.map(m=>{
+                                  const cur = uPreds[m.id];
+                                  const off = (st.results||{})[m.id];
+                                  const rH = resolveForPlayer(m.home);
+                                  const rA = resolveForPlayer(m.away);
+                                  const btns = m.phase==="poules" ? ["1","N","2"] : ["1","2"];
+                                  const lbls = {
+                                    "1": `${FLAGS[rH]||"❓"} ${rH}`,
+                                    "N": "🟰 Nul",
+                                    "2": `${FLAGS[rA]||"❓"} ${rA}`
+                                  };
+
+                                  // Détecter les slots "3e XXXXX" pour ce match
+                                  const homeIs3e = m.home.startsWith("3e ");
+                                  const awayIs3e = m.away.startsWith("3e ");
+                                  const userThirdsEdit = (st.thirdPicks||{})[adminPronoPlayer] || {};
+                                  const homeGroups = homeIs3e ? m.home.replace("3e ","").split("") : [];
+                                  const awayGroups = awayIs3e ? m.away.replace("3e ","").split("") : [];
+                                  const homeThirdPick = userThirdsEdit[m.id+"_home"] || null;
+                                  const awayThirdPick = userThirdsEdit[m.id+"_away"] || null;
+                                  // Pour résoudre la 3e équipe si un groupe est choisi
+                                  const resolve3e = (side, chosenGroup) => {
+                                    if (!chosenGroup) return null;
+                                    const hasOff = MATCHES.some(mm => mm.group===chosenGroup && mm.phase==="poules" && (st.results||{})[mm.id]);
+                                    const s = hasOff
+                                      ? groupStandings(chosenGroup, st.results||{}, st.scores||{})
+                                      : groupStandings(chosenGroup, uPreds, {});
+                                    return s[2] || null;
+                                  };
+
+                                  return (
+                                    <div key={m.id} style={{...t.card,padding:"10px 12px"}}>
+                                      {/* Header match */}
+                                      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+                                        <div style={{fontSize:10,color:MUTED}}>{m.date} · {m.time} · {m.city}</div>
+                                        {off && (
+                                          <div style={{fontSize:10,fontWeight:700,color:off==="1"?GREEN:off==="2"?GREEN:AMB}}>
+                                            Officiel : {off==="1"?`${FLAGS[rH]||""} ${rH}`:off==="2"?`${FLAGS[rA]||""} ${rA}`:"Nul"}
+                                          </div>
+                                        )}
+                                      </div>
+
+                                      {/* Sélecteur 3e HOME si besoin */}
+                                      {homeIs3e && (
+                                        <div style={{marginBottom:8,padding:"6px 8px",background:"rgba(245,200,66,.07)",borderRadius:8,border:`1px solid rgba(245,200,66,.2)`}}>
+                                          <div style={{fontSize:10,color:GOLD,fontWeight:700,marginBottom:5}}>
+                                            🎯 Meilleur 3e {m.home} (côté domicile)
+                                          </div>
+                                          <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+                                            {homeGroups.map(g=>{
+                                              const team3 = resolve3e("home", g);
+                                              const isSelected = homeThirdPick===g;
+                                              return (
+                                                <button key={g}
+                                                  onClick={()=>adminEditThird(adminPronoPlayer, m.id, "home", g)}
+                                                  style={{
+                                                    padding:"4px 8px",borderRadius:6,border:"none",cursor:"pointer",
+                                                    fontSize:11,fontWeight:700,fontFamily:"inherit",
+                                                    background:isSelected?"rgba(245,200,66,.3)":"rgba(255,255,255,.07)",
+                                                    color:isSelected?GOLD:MUTED,
+                                                    boxShadow:isSelected?`0 0 0 1.5px ${GOLD}`:"none"
+                                                  }}>
+                                                  Grp {g}{team3?` · ${FLAGS[team3]||""} ${team3}`:""}
+                                                </button>
+                                              );
+                                            })}
+                                          </div>
+                                          {homeThirdPick && (
+                                            <div style={{fontSize:10,color:GOLD,marginTop:4}}>
+                                              ✅ Choix actuel : Groupe {homeThirdPick} — {FLAGS[resolve3e("home",homeThirdPick)]||"❓"} {resolve3e("home",homeThirdPick)||"?"}
+                                            </div>
+                                          )}
+                                        </div>
+                                      )}
+
+                                      {/* Sélecteur 3e AWAY si besoin */}
+                                      {awayIs3e && (
+                                        <div style={{marginBottom:8,padding:"6px 8px",background:"rgba(245,200,66,.07)",borderRadius:8,border:`1px solid rgba(245,200,66,.2)`}}>
+                                          <div style={{fontSize:10,color:GOLD,fontWeight:700,marginBottom:5}}>
+                                            🎯 Meilleur 3e {m.away} (côté extérieur)
+                                          </div>
+                                          <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+                                            {awayGroups.map(g=>{
+                                              const team3 = resolve3e("away", g);
+                                              const isSelected = awayThirdPick===g;
+                                              return (
+                                                <button key={g}
+                                                  onClick={()=>adminEditThird(adminPronoPlayer, m.id, "away", g)}
+                                                  style={{
+                                                    padding:"4px 8px",borderRadius:6,border:"none",cursor:"pointer",
+                                                    fontSize:11,fontWeight:700,fontFamily:"inherit",
+                                                    background:isSelected?"rgba(245,200,66,.3)":"rgba(255,255,255,.07)",
+                                                    color:isSelected?GOLD:MUTED,
+                                                    boxShadow:isSelected?`0 0 0 1.5px ${GOLD}`:"none"
+                                                  }}>
+                                                  Grp {g}{team3?` · ${FLAGS[team3]||""} ${team3}`:""}
+                                                </button>
+                                              );
+                                            })}
+                                          </div>
+                                          {awayThirdPick && (
+                                            <div style={{fontSize:10,color:GOLD,marginTop:4}}>
+                                              ✅ Choix actuel : Groupe {awayThirdPick} — {FLAGS[resolve3e("away",awayThirdPick)]||"❓"} {resolve3e("away",awayThirdPick)||"?"}
+                                            </div>
+                                          )}
+                                        </div>
+                                      )}
+                                      {/* Équipes */}
+                                      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
+                                        <div style={{flex:1,textAlign:"center"}}>
+                                          <div style={{fontSize:22}}>{FLAGS[rH]||"❓"}</div>
+                                          <div style={{fontSize:11,fontWeight:700,color:TXT,marginTop:2}}>{rH}</div>
+                                        </div>
+                                        <div style={{fontSize:11,color:MUTED,fontWeight:700}}>VS</div>
+                                        <div style={{flex:1,textAlign:"center"}}>
+                                          <div style={{fontSize:22}}>{FLAGS[rA]||"❓"}</div>
+                                          <div style={{fontSize:11,fontWeight:700,color:TXT,marginTop:2}}>{rA}</div>
+                                        </div>
+                                      </div>
+                                      {/* Boutons de prono */}
+                                      <div style={{display:"flex",gap:6}}>
+                                        {btns.map(v=>{
+                                          const isSelected = cur === v;
+                                          const correct = off && v === off;
+                                          return (
+                                            <button key={v}
+                                              onClick={()=>adminEditPred(adminPronoPlayer, m.id, v)}
+                                              style={{
+                                                flex:1, padding:"8px 4px", borderRadius:10, border:"none",
+                                                fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit",
+                                                minHeight:44, transition:"all .15s",
+                                                background: isSelected
+                                                  ? (off ? (correct?"rgba(34,197,94,.35)":"rgba(239,68,68,.35)") : "rgba(245,200,66,.25)")
+                                                  : "rgba(255,255,255,.06)",
+                                                color: isSelected
+                                                  ? (off ? (correct?GREEN:RED) : GOLD)
+                                                  : MUTED,
+                                                boxShadow: isSelected ? `0 0 0 2px ${off?(correct?GREEN:RED):GOLD}` : "none",
+                                              }}>
+                                              {lbls[v]}
+                                              {isSelected && off && (correct?" ✅":" ❌")}
+                                            </button>
+                                          );
+                                        })}
+                                      </div>
+                                      {/* Prono actuel */}
+                                      {!cur && <div style={{textAlign:"center",fontSize:10,color:MUTED,marginTop:6,fontStyle:"italic"}}>Aucun prono — clique pour en ajouter un</div>}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        })() : <div style={t.empty}>👆 Sélectionne un joueur ci-dessus</div>}
+                      </div>
+                    )}
 
                     {/* Vue par joueur */}
                     {adminPronoView==="joueur" && (
@@ -5060,165 +5228,67 @@ export default function App() {
                         </div>
                         {adminPronoPlayer ? (()=>{
                           const uPreds = (st.predictions[adminPronoPlayer]||{});
-                          const uValidated = st.validatedGroups[adminPronoPlayer] || [];
-                          const uThirds = (st.thirdPicks||{})[adminPronoPlayer] || {};
                           const isElimP = ["seiziemes","huitiemes","quarts","demis","p3","finale"].includes(adminPronoGroup);
                           const ml = isElimP
                             ? MATCHES.filter(m=>m.group==="ELIM"&&m.phase===adminPronoGroup)
                             : MATCHES.filter(m=>m.group===adminPronoGroup&&m.phase==="poules");
-
-                          // Résolution des équipes pour les élims via pronos du joueur
-                          const resolveForAdmin = (slot) => {
-                            if (!slot) return slot;
-                            if (FLAGS[slot]) return slot;
-                            const vSF = slot.match(/^Vainqueur SF(\d+)$/);
-                            if (vSF) {
-                              const refId = "SF" + vSF[1];
-                              const result = (st.results||{})[refId] || uPreds[refId];
-                              if (!result) return slot;
-                              const ref = MATCHES.find(x => x.id === refId);
-                              if (!ref) return slot;
-                              return resolveForAdmin(result === "1" ? ref.home : ref.away);
-                            }
-                            const pSF = slot.match(/^Perdant SF(\d+)$/);
-                            if (pSF) {
-                              const refId = "SF" + pSF[1];
-                              const result = (st.results||{})[refId] || uPreds[refId];
-                              if (!result) return slot;
-                              const ref = MATCHES.find(x => x.id === refId);
-                              if (!ref) return slot;
-                              return resolveForAdmin(result === "1" ? ref.away : ref.home);
-                            }
-                            const vMatch = slot.match(/^V\.\s*([A-Z]+\d+)$/);
-                            if (vMatch) {
-                              const refId = vMatch[1];
-                              const result = (st.results||{})[refId] || uPreds[refId];
-                              if (!result) return slot;
-                              const ref = MATCHES.find(x => x.id === refId);
-                              if (!ref) return slot;
-                              const winnerSide = result === "1" ? "home" : "away";
-                              const winnerSlot = ref[winnerSide];
-                              if (FLAGS[winnerSlot]) return winnerSlot;
-                              if (winnerSlot.match(/^(1er|2e) [A-L]$/)) {
-                                const r = resolveTeam(winnerSlot, st.results||{}, st.scores||{}, st.officialThirds||{});
-                                return (r && r !== winnerSlot) ? r : winnerSlot;
-                              }
-                              if (winnerSlot.startsWith("3e ")) {
-                                const key = refId + "_" + winnerSide;
-                                const chosenGroup = (st.officialThirds||{})[key] || uThirds[key];
-                                if (!chosenGroup) return winnerSlot;
-                                const s = groupStandings(chosenGroup, st.results||{}, st.scores||{});
-                                return s[2] || winnerSlot;
-                              }
-                              return resolveForAdmin(winnerSlot);
-                            }
-                            if (slot.match(/^(1er|2e) [A-L]$/)) {
-                              const r = resolveTeam(slot, st.results||{}, st.scores||{}, st.officialThirds||{});
-                              return (r && r !== slot) ? r : slot;
-                            }
-                            return slot;
-                          };
-
-                          // Saisir un prono pour un joueur
-                          const adminPick = (matchId, val) => {
-                            const ns = {...st, predictions: {
-                              ...st.predictions,
-                              [adminPronoPlayer]: {...uPreds, [matchId]: val}
-                            }};
-                            save(ns);
-                          };
-
-                          // Valider/dévalider un groupe pour un joueur
-                          const adminValidate = (groupKey) => {
-                            const alreadyVal = uValidated.includes(groupKey);
-                            const newVal = alreadyVal
-                              ? uValidated.filter(k => k !== groupKey)
-                              : [...uValidated, groupKey];
-                            const ns = {...st, validatedGroups: {
-                              ...st.validatedGroups,
-                              [adminPronoPlayer]: newVal
-                            }};
-                            save(ns);
-                            showNotif("success", alreadyVal
-                              ? `↩️ ${adminPronoPlayer} : ${groupKey} dévalidé`
-                              : `✅ ${adminPronoPlayer} : ${groupKey} validé`);
-                          };
-
-                          const currentKey = isElimP ? "ELIM_"+adminPronoGroup : adminPronoGroup;
-                          const isCurrentValidated = uValidated.includes(currentKey);
-                          const allMatchesDone = ml.every(m => uPreds[m.id]);
-
+                          // Pour les élims : résoudre les équipes via la chaîne de pronos du joueur
+                          // (officialResults en base + pronos du joueur pour les matchs sans résultat officiel)
+                          const mixedR = {...(st.results||{}), ...uPreds};
                           return (
                             <div style={t.card}>
-                              <div style={{fontWeight:800,fontSize:14,marginBottom:10,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                              <div style={{fontWeight:800,fontSize:14,marginBottom:10,display:"flex",justifyContent:"space-between"}}>
                                 <span>{adminPronoPlayer.toUpperCase()} {onlinePlayers.includes(adminPronoPlayer)?"🟢":""}</span>
                                 <span style={{color:GOLD}}>{scores[adminPronoPlayer]||0} pts</span>
                               </div>
-
                               {ml.length===0 && <div style={{color:MUTED,fontSize:12,textAlign:"center",padding:"8px 0"}}>Aucun match dans cette phase</div>}
                               {ml.map(m=>{
-                                const p = uPreds[m.id];
-                                const off = (st.results||{})[m.id];
-                                const ok = p && off && p===off;
-                                const ko = p && off && p!==off;
-                                const rH = isElimP ? resolveForAdmin(m.home) : resolveTeam(m.home, st.results||{}, st.scores||{}, st.officialThirds||{});
-                                const rA = isElimP ? resolveForAdmin(m.away) : resolveTeam(m.away, st.results||{}, st.scores||{}, st.officialThirds||{});
-                                const btns = isElimP ? ["1","2"] : ["1","N","2"];
+                                const p=uPreds[m.id];
+                                const off=(st.results||{})[m.id];
+                                const ok=p&&off&&p===off;
+                                const ko=p&&off&&p!==off;
+                                // Résolution via chaîne de pronos du joueur pour les élims
+                                const rH = isElimP
+                                  ? resolveTeam(m.home, mixedR, st.scores||{}, st.officialThirds||{})
+                                  : resolveTeam(m.home, st.results||{}, st.scores||{}, st.officialThirds||{});
+                                const rA = isElimP
+                                  ? resolveTeam(m.away, mixedR, st.scores||{}, st.officialThirds||{})
+                                  : resolveTeam(m.away, st.results||{}, st.scores||{}, st.officialThirds||{});
+                                // Équipe pronostiquée gagnante par le joueur
+                                const predWinner = p==="1" ? rH : p==="2" ? rA : null;
+                                const predEmoji = predWinner && FLAGS[predWinner] ? FLAGS[predWinner] : "";
                                 return (
-                                  <div key={m.id} style={{padding:"10px 0",borderBottom:`1px solid ${BRD}`}}>
-                                    {/* Équipes */}
-                                    <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
+                                  <div key={m.id} style={{padding:"8px 0",borderBottom:`1px solid ${BRD}`}}>
+                                    {/* Ligne des équipes */}
+                                    <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:4}}>
                                       <span style={{fontSize:18}}>{FLAGS[rH]||"❓"}</span>
-                                      <span style={{fontSize:11,flex:1,color:TXT,fontWeight:600}}>{rH}</span>
-                                      <span style={{fontSize:10,color:MUTED,fontWeight:700}}>vs</span>
-                                      <span style={{fontSize:11,flex:1,color:TXT,fontWeight:600,textAlign:"right"}}>{rA}</span>
+                                      <span style={{fontSize:11,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:TXT}}>{rH}</span>
+                                      <span style={{fontSize:10,color:MUTED,fontWeight:700,minWidth:20,textAlign:"center"}}>vs</span>
+                                      <span style={{fontSize:11,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:TXT,textAlign:"right"}}>{rA}</span>
                                       <span style={{fontSize:18}}>{FLAGS[rA]||"❓"}</span>
                                     </div>
-                                    {/* Boutons de saisie */}
-                                    <div style={{display:"flex",gap:6}}>
-                                      {btns.map(v => {
-                                        const label = v==="1" ? `🏆 ${rH}` : v==="2" ? `🏆 ${rA}` : "🤝 Nul";
-                                        const isSelected = p === v;
-                                        return (
-                                          <button key={v}
-                                            onClick={() => adminPick(m.id, isSelected ? null : v)}
-                                            style={{
-                                              flex:1, padding:"6px 4px", fontSize:10, fontWeight:700,
-                                              borderRadius:8, cursor:"pointer", fontFamily:"inherit",
-                                              border: isSelected
-                                                ? `2px solid ${ok?GREEN:ko?RED:GOLD}`
-                                                : `1px solid ${BRD}`,
-                                              background: isSelected
-                                                ? ok?"rgba(34,197,94,.2)":ko?"rgba(239,68,68,.2)":"rgba(255,210,52,.15)"
-                                                : "rgba(255,255,255,.05)",
-                                              color: isSelected
-                                                ? ok?GREEN:ko?RED:GOLD
-                                                : MUTED,
-                                            }}>
-                                            {label}
-                                          </button>
-                                        );
-                                      })}
+                                    {/* Prono du joueur */}
+                                    <div style={{display:"flex",alignItems:"center",gap:6}}>
+                                      <span style={{fontSize:10,color:MUTED}}>Prono :</span>
+                                      {p ? (
+                                        <span style={{
+                                          fontSize:12,fontWeight:800,padding:"2px 8px",borderRadius:6,
+                                          background:ok?"rgba(34,197,94,.2)":ko?"rgba(239,68,68,.2)":"rgba(245,200,66,.1)",
+                                          color:ok?GREEN:ko?RED:GOLD,
+                                          display:"flex",alignItems:"center",gap:4
+                                        }}>
+                                          {predEmoji && <span style={{fontSize:14}}>{predEmoji}</span>}
+                                          {predWinner||p}
+                                          {ok&&" ✅"}{ko&&" ❌"}
+                                        </span>
+                                      ) : (
+                                        <span style={{fontSize:11,color:MUTED,fontStyle:"italic"}}>Pas de prono</span>
+                                      )}
+                                      {off&&!p&&<span style={{fontSize:10,color:MUTED,marginLeft:"auto"}}>Résultat : {off==="1"?`${FLAGS[rH]||""} ${rH}`:off==="2"?`${FLAGS[rA]||""} ${rA}`:"Nul"}</span>}
                                     </div>
                                   </div>
                                 );
                               })}
-
-                              {/* Bouton Valider/Dévalider */}
-                              {ml.length > 0 && (
-                                <button
-                                  onClick={() => adminValidate(currentKey)}
-                                  style={{
-                                    width:"100%", marginTop:12, padding:"10px",
-                                    fontSize:13, fontWeight:800, borderRadius:10,
-                                    cursor:"pointer", fontFamily:"inherit",
-                                    background: isCurrentValidated ? "rgba(239,68,68,.15)" : allMatchesDone ? "rgba(34,197,94,.15)" : "rgba(255,255,255,.05)",
-                                    border: `2px solid ${isCurrentValidated ? RED : allMatchesDone ? GREEN : BRD}`,
-                                    color: isCurrentValidated ? RED : allMatchesDone ? GREEN : MUTED,
-                                  }}>
-                                  {isCurrentValidated ? "↩️ Dévalider cette phase" : allMatchesDone ? "✅ Valider cette phase" : `⚠️ Valider (${ml.filter(m=>uPreds[m.id]).length}/${ml.length} pronos)`}
-                                </button>
-                              )}
                             </div>
                           );
                         })() : <div style={t.empty}>Sélectionne un joueur</div>}
