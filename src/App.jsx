@@ -2205,7 +2205,6 @@ async function persistFirebase(ns) {
         officialThirds:    ns.officialThirds  || {},
         thirdPicks:        ns.thirdPicks      || {},
         seenEgg:           ns.seenEgg         || {},
-        matchComments:     ns.matchComments   || {},
         chatEnabled:       ns.chatEnabled !== false,
         forceLogoutSignal: ns.forceLogoutSignal || 0,
         seenChat:          ns.seenChat         || {},
@@ -2218,9 +2217,10 @@ async function persistFirebase(ns) {
         challenges:        ns.challenges      || {},
         presence:          ns.presence        || {},
       };
-      // ⚠️ Le chat n'est PAS inclus ici — il est géré via pushChatMsg()
-      // pour éviter les race conditions (écrasement mutuel de messages)
-      // On l'inclut seulement s'il n'existait pas encore (initialisation)
+      // ⚠️ Le chat ET les commentaires par match ne sont PAS inclus ici —
+      // ils sont gérés via des écritures atomiques (sendChat/addReaction)
+      // pour éviter les race conditions (écrasement mutuel de messages
+      // quand une autre action quelconque appelle save() avec un état local périmé)
       const chatHasContent =
         (ns.chat?.famille?.length  || 0) > 0 ||
         (ns.chat?.collegues?.length || 0) > 0 ||
@@ -2228,6 +2228,11 @@ async function persistFirebase(ns) {
       if (!chatHasContent) {
         // Première fois ou chat vide → initialiser la structure
         updates.chat = { famille: [], collegues: [], externe: [] };
+      }
+      // matchComments : jamais réécrit en entier ici (uniquement via écritures
+      // atomiques) — sauf s'il n'existe pas encore du tout côté local (init)
+      if (!ns.matchComments || Object.keys(ns.matchComments).length === 0) {
+        updates.matchComments = {};
       }
       await _fbUpdate("/", updates);
     } catch(e) { console.warn("Firebase write error:", e); persist(ns); }
@@ -3465,18 +3470,32 @@ export default function App() {
   // ── MODERATION ──
   function deleteMessage(group, idx) {
     const msgs = st.chat?.[group] || [];
+    const msg = msgs[idx];
     const updated = msgs.filter((_, i) => i !== idx);
     const ns = {...st, chat: {...(st.chat||{}), [group]: updated}};
-    save(ns);
+    setSt(ns);
+    persist(ns);
+    if (FB_ENABLED && _fbReady && msg?._key) {
+      _fbUpdate("/", { [`chat/${group}/${msg._key}`]: null }).catch(e => console.warn("Delete chat msg error:", e));
+    } else {
+      save(ns); // fallback (ancien format sans _key)
+    }
     showNotif("success", "✅ Message supprimé");
   }
 
   function deleteMatchComment(matchId, group, idx) {
     const matchData = st.matchComments?.[matchId] || {};
     const comments = matchData[group] || [];
+    const msg = comments[idx];
     const updated = comments.filter((_, i) => i !== idx);
     const ns = {...st, matchComments: {...st.matchComments, [matchId]: {...matchData, [group]: updated.length > 0 ? updated : []}}};
-    save(ns);
+    setSt(ns);
+    persist(ns);
+    if (FB_ENABLED && _fbReady && msg?._key) {
+      _fbUpdate("/", { [`matchComments/${matchId}/${group}/${msg._key}`]: null }).catch(e => console.warn("Delete match comment error:", e));
+    } else {
+      save(ns); // fallback (ancien format sans _key)
+    }
     showNotif("success", "✅ Commentaire supprimé");
   }
 
