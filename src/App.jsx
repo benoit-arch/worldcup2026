@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 // ═══════════════════════════════════════════════════════════════
 // VERSION SYSTÈME — Force reconnexion si version change
 // ═══════════════════════════════════════════════════════════════
-const APP_VERSION = "v21.1"; // Augmente à chaque update majeure!
+const APP_VERSION = "v22.0"; // Augmente à chaque update majeure!
 
 // Inject CSS keyframes
 if (typeof document !== "undefined" && !document.getElementById("wc-styles")) {
@@ -2315,7 +2315,7 @@ const GRAD_NIGHT= "linear-gradient(180deg, #0a0e1a 0%, #0f1628 50%, #0a1020 100%
 
 const t = {
   root:{minHeight:"100vh",background:GRAD_NIGHT,color:TXT,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",WebkitFontSmoothing:"antialiased"},
-  wrap:{maxWidth:480,margin:"0 auto",paddingBottom:72},
+  wrap:{maxWidth:480,margin:"0 auto",paddingBottom:"calc(72px + env(safe-area-inset-bottom, 0px))"},
 
   // LOGIN
   loginWrap:{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:24},
@@ -2330,7 +2330,7 @@ const t = {
   btnXS:{background:"rgba(255,255,255,.06)",border:`1px solid ${BRD}`,color:TXT,borderRadius:8,padding:"6px 10px",fontSize:12,cursor:"pointer",fontFamily:"inherit"},
 
   // BOTTOM NAV
-  bnav:{position:"fixed",bottom:0,left:0,right:0,background:`linear-gradient(0deg, ${SURF} 0%, rgba(19,24,40,.98) 100%)`,borderTop:`1px solid ${BRD}`,display:"flex",zIndex:100},
+  bnav:{position:"fixed",bottom:0,left:0,right:0,background:`linear-gradient(0deg, ${SURF} 0%, rgba(19,24,40,.98) 100%)`,borderTop:`1px solid ${BRD}`,display:"flex",zIndex:100,paddingBottom:"env(safe-area-inset-bottom, 0px)"},
   nbtn:{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"9px 4px",background:"transparent",border:"none",cursor:"pointer",color:MUTED,fontSize:10,fontWeight:600,gap:2,fontFamily:"inherit",transition:"all .15s"},
   nbtnOn:{color:GOLD,textShadow:"0 0 8px rgba(255,210,52,.6)"},
 
@@ -2740,7 +2740,7 @@ function ChatInput({ onSend }) {
   );
 }
 
-function ChatBox({ matchId, title, getChatMsgs, addReaction, validChatRole, user, st, save, chatEnabled }) {
+function ChatBox({ matchId, title, getChatMsgs, addReaction, validChatRole, user, st, save, chatEnabled, sendChat }) {
   const msgs = getChatMsgs(matchId);
   const EMOJIS = ["👍","🔥","😂","😮","👏","💪","🎉","😢"];
   const endRef = useRef(null);
@@ -2856,20 +2856,7 @@ function ChatBox({ matchId, title, getChatMsgs, addReaction, validChatRole, user
       {role && role !== "waiting" && chatEnabled!==false && (
         <ChatInput onSend={txt => {
           if (!txt.trim() || !user || !validChatRole) return;
-          const msg = { user, text: txt.trim(), ts: Date.now(), reactions: {} };
-          let ns;
-          if (matchId) {
-            const mcPrev = (st.matchComments||{})[matchId] || {};
-            const groupPrev = Array.isArray(mcPrev) ? [] : (mcPrev[validChatRole] || []);
-            ns = { ...st, matchComments: { ...(st.matchComments||{}),
-              [matchId]: { ...(Array.isArray(mcPrev)?{}:mcPrev), [validChatRole]: [...groupPrev, msg] }
-            }};
-          } else {
-            const chatPrev = st.chat || {};
-            const groupPrev = Array.isArray(chatPrev) ? [] : (chatPrev[validChatRole] || []);
-            ns = { ...st, chat: { ...(Array.isArray(chatPrev)?{}:chatPrev), [validChatRole]: [...groupPrev, msg] }};
-          }
-          save(ns);
+          sendChat(matchId, txt);
         }}/>
       )}
       {role && role !== "waiting" && chatEnabled===false && (
@@ -3042,8 +3029,8 @@ export default function App() {
           const toArray = (data) => {
             if (!data) return [];
             if (Array.isArray(data)) return data; // ancien format: déjà array
-            // Nouveau format: objet {key1: msg, key2: msg} → trier par ts
-            return Object.values(data).sort((a, b) => (a.ts||0) - (b.ts||0));
+            // Nouveau format: objet {key1: msg, key2: msg} → conserver la clé (_key) et trier par ts
+            return Object.entries(data).map(([k,v])=>({...v, _key:k})).sort((a, b) => (a.ts||0) - (b.ts||0));
           };
           return {
             famille:  toArray(chatData.famille),
@@ -3060,7 +3047,7 @@ export default function App() {
             const toArray = (data) => {
               if (!data) return [];
               if (Array.isArray(data)) return data;
-              return Object.values(data).sort((a, b) => (a.ts||0) - (b.ts||0));
+              return Object.entries(data).map(([k,v])=>({...v, _key:k})).sort((a, b) => (a.ts||0) - (b.ts||0));
             };
             result[matchId] = {
               famille:  toArray(matchData.famille),
@@ -3741,8 +3728,8 @@ export default function App() {
     return Array.isArray(c) ? [] : (c[validChatRole] || []);
   }
 
-  function sendChat(matchId) {
-    const txt = chatMsg.trim();
+  function sendChat(matchId, textArg) {
+    const txt = (textArg !== undefined ? textArg : chatMsg).trim();
     if (!txt || !user || !validChatRole) return;
     const msg = { user, text: txt, ts: Date.now(), reactions: {} };
 
@@ -3759,7 +3746,7 @@ export default function App() {
       const groupPrev = Array.isArray(chatPrev) ? [] : (chatPrev[validChatRole] || []);
       ns = { ...st, chat: { ...(Array.isArray(chatPrev)?{}:chatPrev), [validChatRole]: [...groupPrev, msg] }};
     }
-    // Mise à jour état local immédiatement
+    // Mise à jour état local immédiatement (affichage instantané, sans toucher Firebase)
     setSt(ns);
     persist(ns);
 
@@ -3785,40 +3772,52 @@ export default function App() {
   function addReaction(emoji, msgIdx, matchId) {
     if (!validChatRole || !user) return;
     // reactions = { emoji: [user1, user2, ...] } — un user ne peut réagir qu'une fois par emoji
-    // Si le user a déjà réagi avec cet emoji → on retire (toggle)
     function toggleReaction(msg) {
       const reactions = { ...(msg.reactions||{}) };
-      // Vérifier si le user a déjà réagi avec UN emoji quelconque sur ce message
       const previousEmoji = Object.keys(reactions).find(e =>
         Array.isArray(reactions[e]) && reactions[e].includes(user)
       );
       if (previousEmoji && previousEmoji !== emoji) {
-        // Retirer l'ancien emoji
         reactions[previousEmoji] = reactions[previousEmoji].filter(u => u !== user);
       }
-      // Toggle le nouvel emoji
       const prev = Array.isArray(reactions[emoji]) ? reactions[emoji] : [];
       const alreadyReacted = prev.includes(user);
       reactions[emoji] = alreadyReacted ? prev.filter(u => u !== user) : [...prev, user];
       return { ...msg, reactions };
     }
+    const msgs = matchId
+      ? (Array.isArray((st.matchComments||{})[matchId]) ? [] : (((st.matchComments||{})[matchId]||{})[validChatRole]||[]))
+      : (Array.isArray(st.chat) ? [] : ((st.chat||{})[validChatRole]||[]));
+    if (!msgs[msgIdx]) return;
+    const updatedMsg = toggleReaction(msgs[msgIdx]);
+    const newReactions = updatedMsg.reactions;
+
+    // Mise à jour locale immédiate pour l'affichage
+    const newMsgs = [...msgs]; newMsgs[msgIdx] = updatedMsg;
     let ns;
     if (matchId) {
       const mcPrev = (st.matchComments||{})[matchId] || {};
-      const msgs = [...(Array.isArray(mcPrev)?[]:(mcPrev[validChatRole]||[]))];
-      if (!msgs[msgIdx]) return;
-      msgs[msgIdx] = toggleReaction(msgs[msgIdx]);
       ns = { ...st, matchComments: { ...(st.matchComments||{}),
-        [matchId]: { ...(Array.isArray(mcPrev)?{}:mcPrev), [validChatRole]: msgs }
+        [matchId]: { ...(Array.isArray(mcPrev)?{}:mcPrev), [validChatRole]: newMsgs }
       }};
     } else {
       const chatPrev = st.chat || {};
-      const msgs = [...(Array.isArray(chatPrev)?[]:(chatPrev[validChatRole]||[]))];
-      if (!msgs[msgIdx]) return;
-      msgs[msgIdx] = toggleReaction(msgs[msgIdx]);
-      ns = { ...st, chat: { ...(Array.isArray(chatPrev)?{}:chatPrev), [validChatRole]: msgs }};
+      ns = { ...st, chat: { ...(Array.isArray(chatPrev)?{}:chatPrev), [validChatRole]: newMsgs }};
     }
-    save(ns);
+    setSt(ns);
+    persist(ns);
+
+    // 🛡️ Écriture Firebase atomique sur le champ reactions UNIQUEMENT
+    // (utilise la clé Firebase _key du message, conservée par normalizeChat)
+    if (FB_ENABLED && _fbReady && updatedMsg._key) {
+      const base = matchId ? `matchComments/${matchId}/${validChatRole}` : `chat/${validChatRole}`;
+      _fbUpdate("/", {
+        [`${base}/${updatedMsg._key}/reactions`]: newReactions
+      }).catch(e => console.warn("Reaction Firebase write error:", e));
+    } else if (FB_ENABLED && _fbReady) {
+      // Fallback (message sans _key, ex: ancien format array) → on retombe sur save()
+      save(ns);
+    }
   }
 
 
@@ -5127,7 +5126,7 @@ export default function App() {
               {/* TAB 1 : Chat général du groupe */}
               {chatTab==="general" && (
                 <div style={{...t.card,padding:0,overflow:"hidden",marginBottom:12}}>
-                  <ChatBox matchId={null} title="💬 Chat du groupe" getChatMsgs={getChatMsgs} addReaction={addReaction} validChatRole={validChatRole} user={user} st={st} save={save} chatEnabled={st.chatEnabled}/>
+                  <ChatBox matchId={null} title="💬 Chat du groupe" getChatMsgs={getChatMsgs} addReaction={addReaction} validChatRole={validChatRole} user={user} st={st} save={save} chatEnabled={st.chatEnabled} sendChat={sendChat}/>
                 </div>
               )}
 
@@ -5155,7 +5154,7 @@ export default function App() {
                             <span style={{fontSize:12,color:MUTED}}>{chatMatchId===m.id?"▲":"▼"}</span>
                           </div>
                         </div>
-                        {chatMatchId===m.id&&<ChatBox matchId={m.id} title={`${rH} vs ${rA}`} getChatMsgs={getChatMsgs} addReaction={addReaction} validChatRole={validChatRole} user={user} st={st} save={save} chatEnabled={st.chatEnabled}/>}
+                        {chatMatchId===m.id&&<ChatBox matchId={m.id} title={`${rH} vs ${rA}`} getChatMsgs={getChatMsgs} addReaction={addReaction} validChatRole={validChatRole} user={user} st={st} save={save} chatEnabled={st.chatEnabled} sendChat={sendChat}/>}
                       </div>
                     );
                   })}
@@ -7694,6 +7693,7 @@ export default function App() {
                       </div>
                     );
                   })}
+                  <div style={{height:24}}/>
                 </div>
               );
             }
@@ -7795,6 +7795,7 @@ export default function App() {
                     ))}
                   </div>
                 )}
+                <div style={{height:24}}/>
               </div>
             );
           }
