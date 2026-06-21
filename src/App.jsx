@@ -3207,6 +3207,30 @@ export default function App() {
     persistFirebase(ns);
   }, []);
 
+  // ── Marque les messages comme lus EN CONTINU tant qu'on est sur l'onglet Chat ──
+  // (avant, le "vu" n'était mis à jour qu'au clic sur l'onglet : si de nouveaux
+  // messages arrivaient en temps réel pendant qu'on lisait déjà le chat, le
+  // compteur restait périmé et la pastille verte réapparaissait dès qu'on
+  // changeait d'onglet, même sans rien avoir manqué)
+  useEffect(() => {
+    if (tab !== "chat") return;
+    const chatRole2 = (st.users[user]||{}).role;
+    const myChatGroups = (user==="admin") ? ["famille","collegues","externe"]
+      : (chatRole2==="famille"||chatRole2==="collegues"||chatRole2==="externe" ? [chatRole2] : []);
+    if (!myChatGroups.length) return;
+    const seenForUser = (st.seenChat||{})[user];
+    const seenObj = (typeof seenForUser==="object" && seenForUser) ? seenForUser : {};
+    const updated = {...seenObj};
+    let changed = false;
+    myChatGroups.forEach(g => {
+      const len = ((st.chat||{})[g]||[]).length;
+      if (updated[g] !== len) { updated[g] = len; changed = true; }
+    });
+    if (changed) {
+      save({...st, seenChat:{...(st.seenChat||{}),[user]:updated}});
+    }
+  }, [tab, st.chat, user]);
+
   // ═══ ACCESSIBILITY HELPERS ═══
   const a11y = {
     btnLogin: {
@@ -3384,12 +3408,19 @@ export default function App() {
   }, [scr, tab]);
 
   // Scroll en haut à chaque changement d'onglet, de groupe, ou de sous-écran jeux
+  // (le scroll réel se fait sur contentRef, pas sur window/body — le shell racine
+  // est en height:100vh + overflow:hidden, donc window.scrollTo ne servait à rien)
   useEffect(() => {
-    window.scrollTo({top:0, behavior:"smooth"});
+    contentRef.current?.scrollTo({top:0, behavior:"smooth"});
   }, [tab, grp, ePhase, jeuxSubTab, gamePhase, activeGame]);
 
   // ── LOGIN ──
   function doLogin() {
+    // Filet de sécurité : repart toujours d'un écran jeux propre, même si
+    // doLogout n'a pas été appelé proprement (changement de session forcé, etc.)
+    setActiveGame(null); setGamePhase("menu"); setChallengePicker(null);
+    setChallengeTarget(null); setPenChallengeId(null); setActiveChallengeId(null);
+
     const u = uname.trim().toLowerCase();
     if (!u) { showNotif("error", "❌ Entre ton pseudo"); return; }
     if (u === "admin") {
@@ -3463,6 +3494,19 @@ export default function App() {
     stopAllMusic();
     _isMuted = false;
     setAudio(a => ({...a, muted: false}));
+    // ── Reset complet des états jeux — sinon ils "fuitent" vers la session
+    // du joueur suivant qui se connecte sur le même appareil (ex : écran de
+    // sélection d'adversaire qui réapparaît tout seul) ──
+    setActiveGame(null); setGamePhase("menu"); setJeuxSubTab("jouer");
+    setChallengePicker(null); setChallengeTarget(null);
+    setPenChallengeId(null); setActiveChallengeId(null); setTtChallengeQueue(null);
+    setQIdx(0); setQScore(0); setAnswered(null); setShowFact(false);
+    setIndiceIdx(0); setGuessInput(""); setGuessResult(null);
+    setQsjQ([]); setQuizSet([]);
+    setPmQ([]); setPmIdx(0); setPmInput(""); setPmAnswered(false); setPmTotal(0);
+    setTtCard1(null); setTtCard2(null); setTtRound(0); setTtWins(0); setTtReveal(null);
+    setPenShots([]); setPenPhase("shoot"); setPenZonePick(null); setPenRevealStage("none");
+    setButeurWinner(null); setButeurDeck([]); setButeurPick(null); setButeurDone(false);
     // Ne pas effacer le "Se souvenir" au logout — l'utilisateur a demandé à être mémorisé
     setUser(""); setUname(""); setPw(""); setLogin(l => ({...l, uname: l.rememberMe ? l.uname : "", pw: l.rememberMe ? l.pw : "", pwConfirm:"", fname:"", lname:""})); setScr("login");
   }
@@ -4451,9 +4495,28 @@ export default function App() {
   const allGroupsValidated = GROUPS.every(g=>(st.validatedGroups[user]||[]).includes(g));
 
   return (
-    <div style={t.root}>
+    <div style={{...t.root, height:"100vh", display:"flex", flexDirection:"column", overflow:"hidden"}}>
+      <style>{`
+        .app-scroll-area {
+          scrollbar-width: thin;
+          scrollbar-color: rgba(245,200,66,.4) rgba(255,255,255,.04);
+        }
+        .app-scroll-area::-webkit-scrollbar {
+          width: 6px;
+        }
+        .app-scroll-area::-webkit-scrollbar-track {
+          background: rgba(255,255,255,.04);
+        }
+        .app-scroll-area::-webkit-scrollbar-thumb {
+          background: rgba(245,200,66,.4);
+          border-radius: 6px;
+        }
+        .app-scroll-area::-webkit-scrollbar-thumb:hover {
+          background: rgba(245,200,66,.65);
+        }
+      `}</style>
       {/* HEADER */}
-      <div style={t.hdr}>
+      <div style={{...t.hdr, flexShrink:0, position:"static"}}>
         <div>
           <div style={t.hdrName}>{user.toUpperCase()}</div>
           <div style={t.hdrRole}>
@@ -4562,7 +4625,7 @@ export default function App() {
         </div>
       </div>
 
-      <div style={t.wrap}>
+      <div ref={contentRef} className="app-scroll-area" style={{...t.wrap, flex:1, minHeight:0, overflowY:"auto", WebkitOverflowScrolling:"touch", paddingBottom:24}}>
 
         {/* ── HOME ── */}
         {tab==="home" && (
@@ -6796,8 +6859,6 @@ export default function App() {
           </div>
         )}
 
-      </div>
-
         {/* ── HISTORIQUE RÉSULTATS ── */}
         {tab==="histo" && (
           <div style={t.sec}>
@@ -6913,8 +6974,10 @@ export default function App() {
           // Joueurs du même groupe que l'utilisateur (admin voit tout le monde)
           const sameGroupUsers = Object.keys(st.users).filter(u => u !== "admin" && (isAdmin || (st.users[u]||{}).role===role));
 
-          // ── Plafond quotidien anti-grind : seules les 3 premières parties par jour
-          // et par jeu comptent dans les stats (mais on peut rejouer librement pour le fun) ──
+          // ── Plafond quotidien anti-grind : maximum 3 parties par jour et par jeu.
+          // Au-delà, impossible de lancer une nouvelle partie OU un nouveau défi
+          // (et pas seulement "ça ne compte pas") — pour éviter de retomber sur
+          // les mêmes questions/cartes et fausser l'équité entre joueurs ──
           const DAILY_PLAY_LIMIT = 3;
           const gamePlaysToday = st.gamePlaysToday || {};
           const getDailyCount = (game, who) => {
@@ -6924,6 +6987,17 @@ export default function App() {
           const bumpDailyCount = (game, who) => {
             const cur = getDailyCount(game, who);
             return { ...gamePlaysToday, [game]: { ...(gamePlaysToday[game]||{}), [who]: { date: todayKey(), count: cur+1 } } };
+          };
+          // Renvoie true si BLOQUÉ (et affiche le message) — à appeler avant tout lancement de partie/défi
+          const blockIfDailyLimitReached = (game, who = user) => {
+            if (game === "buteur") return false; // pas de plafond pour Buteur (pas de "questions")
+            if (getDailyCount(game, who) >= DAILY_PLAY_LIMIT) {
+              showNotif("info", who===user
+                ? `⏳ Tu as déjà joué ${DAILY_PLAY_LIMIT} parties de ce jeu aujourd'hui. Reviens demain !`
+                : `⏳ ${who.toUpperCase()} a déjà joué ${DAILY_PLAY_LIMIT} parties de ce jeu aujourd'hui — défi impossible pour l'instant.`);
+              return true;
+            }
+            return false;
           };
 
           const saveGameScore = (game, score) => {
@@ -6938,6 +7012,8 @@ export default function App() {
             const newPlaysToday = bumpDailyCount(game, user);
 
             if (capped) {
+              // Filet de sécurité : ne devrait normalement plus arriver puisque le lancement
+              // est bloqué en amont par blockIfDailyLimitReached, mais on protège quand même le score.
               save({ ...st, gamePlaysToday: newPlaysToday });
               showNotif("info", `⏳ Limite quotidienne atteinte (${DAILY_PLAY_LIMIT}/${DAILY_PLAY_LIMIT}) pour ce jeu — cette partie ne compte pas dans ton score.`);
               return;
@@ -6987,6 +7063,8 @@ export default function App() {
             }
           };
           const sendGameChallenge = (toUser, game) => {
+            if (blockIfDailyLimitReached(game, user)) { setChallengePicker(null); return; }
+            if (blockIfDailyLimitReached(game, toUser)) { setChallengePicker(null); return; }
             // Un seul défi non résolu à la fois par (moi, adversaire, jeu)
             const existing = Object.values(challenges).find(c =>
               c.game===game && (c.status==="pending"||c.status==="accepted") &&
@@ -7006,6 +7084,8 @@ export default function App() {
             launchChallengeGame(id, chData);
           };
           const acceptChallenge = (id) => {
+            const ch = challenges[id];
+            if (ch && blockIfDailyLimitReached(ch.game, user)) return;
             save({...st, challenges:{...challenges,[id]:{...challenges[id],status:"accepted"}}});
             launchChallengeGame(id);
           };
@@ -7015,7 +7095,11 @@ export default function App() {
             showNotif("info",`Défi de ${ch.from.toUpperCase()} refusé`);
           };
           // Une fois "accepted", le challenger (from) doit aussi jouer son tour
-          const playMyTurn = (id) => launchChallengeGame(id);
+          const playMyTurn = (id) => {
+            const ch = challenges[id];
+            if (ch && blockIfDailyLimitReached(ch.game, user)) return;
+            launchChallengeGame(id);
+          };
 
           const myPendingChallenges = Object.entries(challenges).filter(([,c]) => CHALLENGE_GAMES.includes(c.game) && c.to===user && c.status==="pending");
           const myTurnToPlay = Object.entries(challenges).filter(([,c]) => CHALLENGE_GAMES.includes(c.game) && (
@@ -7188,7 +7272,10 @@ export default function App() {
                 <div key={id} style={{...t.card,marginBottom:8,border:`1px solid ${AMB}`,background:"rgba(245,158,11,.08)"}}>
                   <div style={{fontSize:12,color:AMB,marginBottom:6}}>⚔️ <strong>{ch.from.toUpperCase()}</strong> te défie au Penalty !</div>
                   <div style={{display:"flex",gap:8}}>
-                    <button onClick={()=>{setActiveGame("penalty");setGamePhase("playing");resetGame();playGameMusic("penalty");soundWhistle();setPenChallengeId(id);save({...st,challenges:{...challenges,[id]:{...ch,status:"active"}}});}}
+                    <button onClick={()=>{
+                        if (blockIfDailyLimitReached("penalty", user)) return;
+                        setActiveGame("penalty");setGamePhase("playing");resetGame();playGameMusic("penalty");soundWhistle();setPenChallengeId(id);save({...st,challenges:{...challenges,[id]:{...ch,status:"active"}}});
+                      }}
                       style={{flex:2,padding:"8px",borderRadius:8,border:"none",background:AMB,color:"#000",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
                       ✅ Accepter →
                     </button>
@@ -7256,18 +7343,24 @@ export default function App() {
                     {typeof (gameScores[g.id]||{})[user] === "string" && <div style={{fontSize:10,color:GOLD,marginTop:2}}>🏅 Choix : {(gameScores[g.id]||{})[user]}</div>}
                     {g.id!=="buteur" && (()=>{
                       const playedToday = getDailyCount(g.id, user);
-                      const remaining = Math.max(0, DAILY_PLAY_LIMIT - playedToday);
+                      const atLimit = playedToday >= DAILY_PLAY_LIMIT;
                       return (
-                        <div style={{fontSize:9,color:remaining===0?RED:MUTED,marginTop:3}}>
-                          {remaining===0 ? "⏳ Limite quotidienne atteinte" : `🎯 ${remaining}/${DAILY_PLAY_LIMIT} partie${remaining>1?"s":""} comptée${remaining>1?"s":""} aujourd'hui`}
+                        <div style={{fontSize:9,color:atLimit?RED:MUTED,marginTop:3}}>
+                          {atLimit ? "⏳ Limite quotidienne atteinte (3/3 jouées)" : `🎯 ${playedToday}/${DAILY_PLAY_LIMIT} partie${playedToday>1?"s":""} jouée${playedToday>1?"s":""} aujourd'hui`}
                         </div>
                       );
                     })()}
                   </div>
                   <div style={{display:"flex",flexDirection:"column",gap:6}}>
-                    <button onClick={()=>(g.id==="quiz"||g.id==="plusmoins")?askLength(g.id):startGame(g.id)} style={{padding:"8px 14px",borderRadius:8,border:"none",background:GOLD,color:"#0a0e1a",fontWeight:700,fontSize:12,cursor:"pointer"}}>Jouer</button>
+                    <button onClick={()=>{
+                      if (blockIfDailyLimitReached(g.id, user)) return;
+                      (g.id==="quiz"||g.id==="plusmoins")?askLength(g.id):startGame(g.id);
+                    }} style={{padding:"8px 14px",borderRadius:8,border:"none",background:GOLD,color:"#0a0e1a",fontWeight:700,fontSize:12,cursor:"pointer"}}>Jouer</button>
                     {CHALLENGE_GAMES.includes(g.id) && players.length>0 && (
-                      <button onClick={()=>setChallengePicker(g.id)} style={{padding:"6px 14px",borderRadius:8,border:`1px solid ${AMB}`,background:"rgba(245,158,11,.1)",color:AMB,fontWeight:700,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>⚔️ Défier</button>
+                      <button onClick={()=>{
+                        if (blockIfDailyLimitReached(g.id, user)) return;
+                        setChallengePicker(g.id);
+                      }} style={{padding:"6px 14px",borderRadius:8,border:`1px solid ${AMB}`,background:"rgba(245,158,11,.1)",color:AMB,fontWeight:700,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>⚔️ Défier</button>
                     )}
                   </div>
                 </div>
@@ -7703,6 +7796,8 @@ export default function App() {
                           <span style={{fontSize:10,color:MUTED,fontStyle:"italic"}}>Défi déjà en cours</span>
                         ) : (
                           <button onClick={()=>{
+                              if (blockIfDailyLimitReached("penalty", user)) return;
+                              if (blockIfDailyLimitReached("penalty", p)) return;
                               const id=`pen_${user}_${p}_${Date.now()}`;
                               const roleFrom=Math.random()<0.5?"tireur":"gardien";
                               save({...st,challenges:{...challenges,[id]:{from:user,to:p,game:"penalty",roleFrom,roleTo:roleFrom==="tireur"?"gardien":"tireur",shotFrom:null,shotTo:null,status:"pending",winner:null,ts:Date.now()}}});
@@ -7822,8 +7917,10 @@ export default function App() {
           return null;
         })()}
 
+      </div>
+
       {/* BOTTOM NAV */}
-      <div style={t.bnav}>
+      <div style={{...t.bnav, position:"static", flexShrink:0}}>
         {navItems.map(n=>{
           const isOn = tab===n.k;
           // Badge salle d'attente sur onglet Admin
