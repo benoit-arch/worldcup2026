@@ -70,6 +70,8 @@ if (typeof document !== "undefined" && !document.getElementById("wc-styles")) {
     input[type=number]::-webkit-outer-spin-button { -webkit-appearance:none; margin:0; }
     input[type=number] { -moz-appearance:textfield; }
     ::-webkit-scrollbar { display:none; }
+    *, *::before, *::after { box-sizing:border-box; }
+    html, body { overflow-x:hidden; max-width:100%; }
     * { scrollbar-width:none; -webkit-tap-highlight-color:transparent; }
   `;
   document.head.appendChild(style);
@@ -2320,7 +2322,7 @@ const GRAD_NIGHT= "linear-gradient(180deg, #0a0e1a 0%, #0f1628 50%, #0a1020 100%
 
 const t = {
   root:{minHeight:"100vh",background:GRAD_NIGHT,color:TXT,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",WebkitFontSmoothing:"antialiased"},
-  wrap:{maxWidth:480,margin:"0 auto",paddingBottom:"calc(72px + env(safe-area-inset-bottom, 0px))"},
+  wrap:{maxWidth:480,width:"100%",margin:"0 auto",paddingBottom:"calc(72px + env(safe-area-inset-bottom, 0px))",overflowX:"hidden"},
 
   // LOGIN
   loginWrap:{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:24},
@@ -2340,7 +2342,7 @@ const t = {
   nbtnOn:{color:GOLD,textShadow:"0 0 8px rgba(255,210,52,.6)"},
 
   // TABS
-  tabs:{display:"flex",gap:6,padding:"10px 12px",overflowX:"auto",scrollbarWidth:"none",WebkitOverflowScrolling:"touch"},
+  tabs:{display:"flex",gap:6,padding:"10px 12px",overflowX:"auto",overflowY:"hidden",scrollbarWidth:"none",WebkitOverflowScrolling:"touch",touchAction:"pan-x",minWidth:0,width:"100%"},
   tab:{background:SURF2,border:`1px solid ${BRD}`,borderRadius:10,padding:"7px 14px",fontSize:13,fontWeight:600,color:MUTED,cursor:"pointer",whiteSpace:"nowrap",fontFamily:"inherit",flexShrink:0,transition:"all .15s"},
   tabOn:{background:GRAD_SUN,color:"#0a0e1a",borderColor:"transparent",boxShadow:"0 2px 12px rgba(255,140,0,.35)"},
 
