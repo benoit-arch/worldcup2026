@@ -822,49 +822,52 @@ function playGameMusic(game) {
 }
 
 // ── EFFETS SONORES JEUX ─────────────────────────────────────────
-function soundGoal() { // Sifflet + foule
+function soundGoal() { // But marqué — clochette douce + petite foule
   if (_isMuted) return;
   try {
     const ctx = _sfx(); const now = ctx.currentTime;
-    // Sifflet aigu
-    [0, 0.3, 0.55].forEach(d => {
+    // Petite mélodie type clochette, douce, sans aucune stridence
+    [0, 0.12, 0.26].forEach((d,i) => {
       const o = ctx.createOscillator(), g = ctx.createGain();
       o.connect(g); g.connect(ctx.destination);
-      o.type = "sine"; o.frequency.value = 2400;
-      g.gain.setValueAtTime(0, now+d); g.gain.linearRampToValueAtTime(0.4, now+d+0.02);
-      g.gain.exponentialRampToValueAtTime(0.001, now+d+0.18);
-      o.start(now+d); o.stop(now+d+0.2);
+      o.type = "sine"; o.frequency.value = [660, 880, 1100][i];
+      g.gain.setValueAtTime(0, now+d); g.gain.linearRampToValueAtTime(0.16, now+d+0.06);
+      g.gain.exponentialRampToValueAtTime(0.001, now+d+0.3);
+      o.start(now+d); o.stop(now+d+0.32);
     });
-    // Foule qui monte (bruit blanc filtré)
-    const buf = ctx.createBuffer(1, ctx.sampleRate*1.5, ctx.sampleRate);
+    // Foule qui monte (bruit filtré très doux, registre grave)
+    const buf = ctx.createBuffer(1, ctx.sampleRate*1.2, ctx.sampleRate);
     const data = buf.getChannelData(0);
-    for (let i=0; i<data.length; i++) data[i] = (Math.random()*2-1)*0.3;
+    for (let i=0; i<data.length; i++) data[i] = (Math.random()*2-1)*0.25;
     const src = ctx.createBufferSource();
-    const filt = ctx.createBiquadFilter(); filt.type = "bandpass"; filt.frequency.value = 800;
+    const filt = ctx.createBiquadFilter(); filt.type = "bandpass"; filt.frequency.value = 450; filt.Q.value = 0.7;
     const gn = ctx.createGain();
     src.buffer = buf; src.connect(filt); filt.connect(gn); gn.connect(ctx.destination);
-    gn.gain.setValueAtTime(0, now+0.1); gn.gain.linearRampToValueAtTime(0.25, now+0.8);
-    gn.gain.exponentialRampToValueAtTime(0.001, now+1.5);
-    src.start(now+0.1); src.stop(now+1.6);
+    gn.gain.setValueAtTime(0, now+0.15); gn.gain.linearRampToValueAtTime(0.1, now+0.7);
+    gn.gain.exponentialRampToValueAtTime(0.001, now+1.2);
+    src.start(now+0.15); src.stop(now+1.3);
   } catch(e) {}
 }
 
-function soundSave() { // Arrêt penalty - grognement + sifflet court
+function soundSave() { // Arrêt penalty — petit "boop" descendant doux, pas de sifflet
   if (_isMuted) return;
   try {
     const ctx = _sfx(); const now = ctx.currentTime;
-    // Sifflet court
+    // Petit son descendant doux (déception légère, sans agressivité)
     const o = ctx.createOscillator(), g = ctx.createGain();
     o.connect(g); g.connect(ctx.destination);
-    o.type = "sine"; o.frequency.value = 2200;
-    g.gain.setValueAtTime(0.3, now); g.gain.exponentialRampToValueAtTime(0.001, now+0.12);
-    o.start(now); o.stop(now+0.13);
-    // Grosse caisse déçue
-    [0.2, 0.5].forEach(d => {
+    o.type = "sine";
+    o.frequency.setValueAtTime(440, now); o.frequency.exponentialRampToValueAtTime(260, now+0.25);
+    g.gain.setValueAtTime(0, now); g.gain.linearRampToValueAtTime(0.16, now+0.04);
+    g.gain.exponentialRampToValueAtTime(0.001, now+0.28);
+    o.start(now); o.stop(now+0.3);
+    // Petite caisse grave, douce
+    [0.2, 0.45].forEach(d => {
       const o2 = ctx.createOscillator(), g2 = ctx.createGain();
-      o2.connect(g2); g2.connect(ctx.destination); o2.type = "triangle";
-      o2.frequency.setValueAtTime(180, now+d); o2.frequency.exponentialRampToValueAtTime(40, now+d+0.3);
-      g2.gain.setValueAtTime(0.2, now+d); g2.gain.exponentialRampToValueAtTime(0.001, now+d+0.3);
+      o2.connect(g2); g2.connect(ctx.destination); o2.type = "sine";
+      o2.frequency.setValueAtTime(160, now+d); o2.frequency.exponentialRampToValueAtTime(50, now+d+0.3);
+      g2.gain.setValueAtTime(0, now+d); g2.gain.linearRampToValueAtTime(0.12, now+d+0.03);
+      g2.gain.exponentialRampToValueAtTime(0.001, now+d+0.3);
       o2.start(now+d); o2.stop(now+d+0.35);
     });
   } catch(e) {}
@@ -872,25 +875,25 @@ function soundSave() { // Arrêt penalty - grognement + sifflet court
 
 function soundCorrectGame() { // Bonne réponse quiz/jeux
   if (_isMuted) return;
-  [0,0.1,0.2].forEach((d,i) => playTone([523,659,784][i], "sine", 0.2, 0.25, d));
+  [0,0.1,0.2].forEach((d,i) => playTone([523,659,784][i], "sine", 0.22, 0.2, d));
 }
 
-function soundWrongGame() { // Mauvaise réponse
+function soundWrongGame() { // Mauvaise réponse — son doux, descendant, sans stridence
   if (_isMuted) return;
-  playTone(200, "sawtooth", 0.4, 0.2);
-  setTimeout(() => playTone(150, "sawtooth", 0.3, 0.15), 150);
+  playTone(330, "triangle", 0.22, 0.12);
+  setTimeout(() => playTone(247, "triangle", 0.28, 0.1), 130);
 }
 
-function soundWhistle() { // Sifflet de début de match
+function soundWhistle() { // Coup d'envoi — note douce, attaque progressive (pas un sifflet aigu)
   if (_isMuted) return;
   try {
     const ctx = _sfx(); const now = ctx.currentTime;
     const o = ctx.createOscillator(), g = ctx.createGain();
     o.connect(g); g.connect(ctx.destination);
-    o.type = "sine"; o.frequency.value = 2600;
-    g.gain.setValueAtTime(0, now); g.gain.linearRampToValueAtTime(0.35, now+0.03);
-    g.gain.setValueAtTime(0.35, now+0.25); g.gain.exponentialRampToValueAtTime(0.001, now+0.45);
-    o.start(now); o.stop(now+0.46);
+    o.type = "sine"; o.frequency.value = 900;
+    g.gain.setValueAtTime(0, now); g.gain.linearRampToValueAtTime(0.16, now+0.08);
+    g.gain.setValueAtTime(0.16, now+0.22); g.gain.exponentialRampToValueAtTime(0.001, now+0.42);
+    o.start(now); o.stop(now+0.44);
   } catch(e) {}
 }
 
@@ -3653,6 +3656,10 @@ export default function App() {
       // La musique démarre au premier clic via handleLoginInteraction
     } else if (scr === "app") {
       stopLoginMusic();
+      // Si une partie de jeu est en cours, ne pas écraser sa musique dédiée
+      // avec la musique de fond classique (sinon silence/coupure ressentie
+      // par le joueur en changeant d'onglet pendant une partie) ──
+      if (activeGame && gamePhase === "playing") return;
       if (!_isMuted) {
         if (musicSource === "mp3") {
           mp3LoopMode = playMode === "loop";
@@ -3705,6 +3712,21 @@ export default function App() {
   useEffect(() => {
     contentRef.current?.scrollTo({top:0, behavior:"smooth"});
   }, [tab, grp, ePhase, jeuxSubTab, gamePhase, activeGame]);
+
+  // ── Garde-fou musique de jeu : si une partie est en cours (activeGame défini,
+  // phase "playing") mais que la musique s'est arrêtée pour une raison externe
+  // (throttling navigateur en arrière-plan, changement d'onglet, etc.), on la
+  // relance automatiquement — sans ça le joueur se retrouve en silence total
+  // dès qu'il quitte l'onglet Jeux pendant une partie en cours ──
+  useEffect(() => {
+    if (!activeGame || gamePhase !== "playing" || _isMuted) return;
+    const check = setInterval(() => {
+      if (activeGame && gamePhase === "playing" && !_isMuted && !gameMusicPlaying) {
+        playGameMusic(activeGame);
+      }
+    }, 1500);
+    return () => clearInterval(check);
+  }, [activeGame, gamePhase, tab]);
 
   // ── LOGIN ──
   function doLogin() {
@@ -4536,7 +4558,6 @@ export default function App() {
             if (diff <= 0) return (
               <div style={{
                 marginTop:12,
-                background:"linear-gradient(135deg,rgba(46,204,113,.15),rgba(0,212,170,.1))",
                 border:"1px solid rgba(46,204,113,.4)",
                 borderRadius:14,padding:"10px 18px",
                 fontSize:13,fontWeight:800,
@@ -4898,14 +4919,13 @@ export default function App() {
 
                   {musicSource==="mp3" && (
                     <button
-                      title={playMode==="loop"?"Mode : boucle (cliquer → playlist)":"Mode : playlist (cliquer → boucle)"}
+                      title={playMode==="loop"?"🔁 Boucle (cliquer → playlist)":"📋 Playlist (cliquer → boucle)"}
                       onClick={()=>{ const n=playMode==="loop"?"playlist":"loop"; mp3LoopMode=n==="loop"; setAudio(a=>({...a,playMode:n})); }}
                       style={{...btnNav,fontSize:13,color:playMode==="loop"?"#22c55e":MUTED,
                         background:playMode==="loop"?"rgba(34,197,94,.1)":"none",
                         border:`1px solid ${playMode==="loop"?"rgba(34,197,94,.3)":"transparent"}`,
                         borderRadius:6,padding:"3px 5px",
                       }}
-                      title={playMode==="loop"?"🔁 Boucle":"📋 Playlist"}
                     >{playMode==="loop"?"🔁":"📋"}</button>
                   )}
                 </div>
@@ -5565,6 +5585,135 @@ export default function App() {
                 ? <><LB filterRole="famille" title="Famille"/><LB filterRole="collegues" title="Collègues"/><LB filterRole="externe" title="Externes"/></>
                 : <LB filterRole={role} title="Classement"/>
               }
+            </div>
+          );
+        })()}
+
+        {/* ── GROUPE : pronos des coéquipiers (visible une fois soi-même verrouillé) ── */}
+        {tab==="groupe" && canSeeGroupPronos && (()=>{
+          const teammates = Object.keys(st.users).filter(u => u!=="admin" && u!==user && (st.users[u]||{}).role===role);
+          const selected = groupPronoPlayer && teammates.includes(groupPronoPlayer) ? groupPronoPlayer : null;
+
+          if (!teammates.length) {
+            return (
+              <div style={t.sec}>
+                <div style={{height:16}}/>
+                <div style={{...t.card,textAlign:"center",padding:24}}>
+                  <div style={{fontSize:32,marginBottom:8}}>👥</div>
+                  <div style={{fontSize:13,color:MUTED}}>Aucun autre joueur dans ton groupe pour l'instant.</div>
+                </div>
+              </div>
+            );
+          }
+
+          if (!selected) {
+            return (
+              <div style={t.sec}>
+                <div style={{height:16}}/>
+                <div style={{fontSize:12,color:MUTED,marginBottom:10,fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>
+                  Voir les pronos de :
+                </div>
+                <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                  {teammates.map(u=>{
+                    const uLocked = !!st.finalLock[u];
+                    const uValidated = allPhasesValidated(st.validatedGroups[u]||[]) || uLocked;
+                    return (
+                      <button key={u} disabled={!uValidated} onClick={()=>setGroupPronoPlayer(u)}
+                        style={{...t.card,display:"flex",alignItems:"center",justifyContent:"space-between",
+                          cursor:uValidated?"pointer":"default",opacity:uValidated?1:.5,textAlign:"left",
+                          border:"1px solid rgba(255,255,255,.08)"}}>
+                        <div style={{display:"flex",alignItems:"center",gap:10}}>
+                          <div style={{fontSize:20}}>{onlinePlayers.includes(u)?"🟢":"⚪"}</div>
+                          <div>
+                            <div style={{fontWeight:800,fontSize:14}}>{u.toUpperCase()}</div>
+                            <div style={{fontSize:11,color:MUTED}}>
+                              {uLocked ? "🔒 Pronos verrouillés" : uValidated ? "✅ Tout validé" : "⏳ Pas encore terminé"}
+                            </div>
+                          </div>
+                        </div>
+                        <div style={{fontWeight:800,color:GOLD,fontSize:13}}>{scores[u]||0} pts</div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          }
+
+          // ── Détail des pronos du coéquipier sélectionné ──
+          const uPreds = st.predictions[selected] || {};
+          const uThirds = (st.thirdPicks||{})[selected] || {};
+          const resolve = (team, matchId, side) =>
+            resolveTeamWithPredictions(team, st.results||{}, uPreds, st.scores||{}, st.officialThirds||{}, uThirds);
+
+          return (
+            <div style={t.sec}>
+              <div style={{height:16}}/>
+              <button onClick={()=>setGroupPronoPlayer(null)} style={{...t.btnXS,marginBottom:12}}>← Tous les joueurs</button>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
+                <div style={{fontWeight:900,fontSize:16}}>{selected.toUpperCase()}</div>
+                <div style={{fontWeight:800,color:GOLD,fontSize:14}}>{scores[selected]||0} pts</div>
+              </div>
+
+              <div style={{fontSize:11,color:MUTED,marginBottom:8,fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>⚽ Phase de poules</div>
+              {GROUPS.map(g=>{
+                const gm = MATCHES.filter(m=>m.group===g && m.phase==="poules");
+                if (!gm.some(m=>uPreds[m.id])) return null;
+                return (
+                  <div key={g} style={{marginBottom:10}}>
+                    <div style={{fontSize:11,fontWeight:800,color:GOLD,marginBottom:4}}>Groupe {g}</div>
+                    {gm.map(m=>{
+                      const p = uPreds[m.id];
+                      if (!p) return null;
+                      const official = st.results?.[m.id];
+                      const correct = official && p===official;
+                      const wrong = official && p!==official;
+                      const label = p==="1"?m.home:p==="2"?m.away:"Nul";
+                      return (
+                        <div key={m.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",
+                          padding:"6px 10px",borderRadius:8,marginBottom:4,fontSize:12,
+                          background:correct?"rgba(46,204,113,.1)":wrong?"rgba(231,76,60,.08)":"rgba(255,255,255,.04)"}}>
+                          <span>{F(m.home)} {m.home.split(" ")[0]} - {m.away.split(" ")[0]} {F(m.away)}</span>
+                          <span style={{fontWeight:700,color:correct?GREEN:wrong?"#e74c3c":TXT}}>
+                            {label}{correct?" ✓":wrong?" ✗":""}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+
+              <div style={{fontSize:11,color:MUTED,margin:"14px 0 8px",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>🏆 Phase éliminatoire</div>
+              {elimPhases.map(ph=>{
+                const pm = MATCHES.filter(m=>m.group==="ELIM" && m.phase===ph.k);
+                if (!pm.some(m=>uPreds[m.id])) return null;
+                return (
+                  <div key={ph.k} style={{marginBottom:10}}>
+                    <div style={{fontSize:11,fontWeight:800,color:GOLD,marginBottom:4}}>{ph.l}</div>
+                    {pm.map(m=>{
+                      const p = uPreds[m.id];
+                      if (!p) return null;
+                      const homeR = resolve(m.home, m.id, "home");
+                      const awayR = resolve(m.away, m.id, "away");
+                      const official = st.results?.[m.id];
+                      const correct = official && p===official;
+                      const wrong = official && p!==official;
+                      const label = p==="1"?homeR:awayR;
+                      return (
+                        <div key={m.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",
+                          padding:"6px 10px",borderRadius:8,marginBottom:4,fontSize:12,
+                          background:correct?"rgba(46,204,113,.1)":wrong?"rgba(231,76,60,.08)":"rgba(255,255,255,.04)"}}>
+                          <span>{F(homeR)} {homeR.split(" ")[0]} - {awayR.split(" ")[0]} {F(awayR)}</span>
+                          <span style={{fontWeight:700,color:correct?GREEN:wrong?"#e74c3c":TXT}}>
+                            {label.split(" ")[0]}{correct?" ✓":wrong?" ✗":""}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })}
             </div>
           );
         })()}
@@ -7292,6 +7441,24 @@ export default function App() {
             return false;
           };
 
+          // ── Plafond quotidien sur les INVITATIONS ENVOYÉES (distinct des parties jouées) :
+          // max 3 défis envoyés par jour, par jeu, par joueur — même si certains sont
+          // refusés ou jamais terminés, pour empêcher le spam d'invitations ──
+          const DAILY_CHALLENGE_SEND_LIMIT = 3;
+          const challengesSentToday = st.challenges
+            ? Object.values(st.challenges).filter(c =>
+                c.from===user && new Date(c.ts).toDateString()===new Date().toDateString()
+              )
+            : [];
+          const getSentTodayCount = (game) => challengesSentToday.filter(c => c.game===game).length;
+          const blockIfSendLimitReached = (game) => {
+            if (getSentTodayCount(game) >= DAILY_CHALLENGE_SEND_LIMIT) {
+              showNotif("info", `⏳ Tu as déjà envoyé ${DAILY_CHALLENGE_SEND_LIMIT} défis pour ce jeu aujourd'hui. Réessaie demain !`);
+              return true;
+            }
+            return false;
+          };
+
           const saveGameScore = (game, score) => {
             const isNumeric = typeof score === "number";
             if (!isNumeric) {
@@ -7355,6 +7522,7 @@ export default function App() {
             }
           };
           const sendGameChallenge = (toUser, game) => {
+            if (blockIfSendLimitReached(game)) { setChallengePicker(null); return; }
             if (blockIfDailyLimitReached(game, user)) { setChallengePicker(null); return; }
             if (blockIfDailyLimitReached(game, toUser)) { setChallengePicker(null); return; }
             // Un seul défi non résolu à la fois par (moi, adversaire, jeu)
