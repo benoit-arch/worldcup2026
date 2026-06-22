@@ -2070,185 +2070,8 @@ const QUI_SUIS_JE = [
     "J'ai porté le maillot numéro 14, fait rare pour un capitaine",
     "Mon nom est aussi celui d'un stade emblématique à Amsterdam"
   ], answer:"Johan Cruyff", aliases:["cruyff","johan"], emoji:"🇳🇱" },
-  { indices:[
-    "Je suis né en Allemagne en 1945",
-    "Je suis attaquant, surnommé \"Der Bomber\"",
-    "J'ai remporté la Coupe du Monde 1974 avec l'Allemagne de l'Ouest",
-    "J'ai marqué le but vainqueur de cette finale face aux Pays-Bas",
-    "Je détiens le record de buts en Bundesliga pendant des décennies",
-    "J'ai aussi été champion d'Europe des nations en 1972",
-    "Mon prénom est Gerd"
-  ], answer:"Gerd Müller", aliases:["muller","müller","gerd","der bomber"], emoji:"🇩🇪" },
-  { indices:[
-    "Je suis né en Argentine en 1960",
-    "Je suis milieu offensif, capitaine de l'Argentine en 1986",
-    "J'ai marqué le \"but du siècle\" contre l'Angleterre en quart de finale 1986",
-    "J'ai aussi marqué le \"but de la main\" lors du même match",
-    "J'ai soulevé la Coupe du Monde 1986 au Mexique",
-    "Je suis considéré comme l'un des deux meilleurs joueurs de l'histoire avec Pelé",
-    "Mon nom commence par un M, mon prénom par un D"
-  ], answer:"Diego Maradona", aliases:["maradona","diego"], emoji:"🇦🇷" },
-  { indices:[
-    "Je suis né en France en 1977, fils d'immigrés guadeloupéens",
-    "Je suis attaquant, ancien recordman de buts en équipe de France",
-    "J'ai remporté la Coupe du Monde 1998 et l'Euro 2000 avec les Bleus",
-    "J'ai joué pour l'AS Monaco, Arsenal et le FC Barcelone notamment",
-    "Mon record de buts en Bleu a été battu par Olivier Giroud en 2022",
-    "Je suis aussi connu pour mon engagement contre le racisme dans le sport",
-    "Mon prénom est Thierry"
-  ], answer:"Thierry Henry", aliases:["henry","thierry"], emoji:"🇫🇷" },
-  { indices:[
-    "Je suis né au Portugal en 1942",
-    "Je suis attaquant, surnommé la Panthère Noire",
-    "J'ai marqué 9 buts lors du seul Mondial que j'ai disputé, en 1966",
-    "J'ai remporté le titre de meilleur buteur de cette édition",
-    "J'ai mené le Portugal à sa meilleure performance historique : 3e place",
-    "J'ai aussi remporté le Ballon d'Or en 1965",
-    "Je suis né au Mozambique, alors colonie portugaise"
-  ], answer:"Eusébio", aliases:["eusebio"], emoji:"🇵🇹" },
-  { indices:[
-    "Je suis né au Brésil en 1933",
-    "Mon vrai nom est Manuel Francisco dos Santos",
-    "Je suis surnommé l'Ange aux Jambes Tordues, en raison d'une malformation",
-    "J'ai remporté deux Coupes du Monde avec le Brésil, en 1958 et 1962",
-    "Beaucoup me considèrent comme le meilleur dribbleur de l'histoire",
-    "J'ai souvent formé un duo légendaire avec Pelé en attaque",
-    "Mon surnom est aussi le nom d'un petit oiseau brésilien"
-  ], answer:"Garrincha", aliases:["garrincha","manuel francisco"], emoji:"🇧🇷" },
-  { indices:[
-    "Je suis né en Allemagne en 1945",
-    "Je suis défenseur central, surnommé le Kaiser",
-    "J'ai inventé le rôle moderne de libéro dans le football",
-    "J'ai remporté la Coupe du Monde 1974 comme capitaine, puis 1990 comme sélectionneur",
-    "Je suis l'un des deux seuls hommes à avoir gagné le Mondial en tant que joueur ET entraîneur",
-    "J'ai remporté le Ballon d'Or à deux reprises (1972, 1976)",
-    "Mon surnom impérial évoque la grandeur du football allemand"
-  ], answer:"Franz Beckenbauer", aliases:["beckenbauer","kaiser","franz"], emoji:"🇩🇪" },
-  { indices:[
-    "Je suis né en Italie en 1968",
-    "Je suis défenseur central, j'ai joué toute ma carrière à l'AC Milan",
-    "J'ai disputé un record de 4 finales de Coupe du Monde sans jamais être sacré",
-    "Je suis considéré comme l'un des plus grands défenseurs de l'histoire du football",
-    "J'ai remporté 5 Ligues des Champions avec mon club",
-    "Mon fils Christian est aussi devenu footballeur professionnel",
-    "Mon prénom est Paolo"
-  ], answer:"Paolo Maldini", aliases:["maldini","paolo"], emoji:"🇮🇹" },
-  { indices:[
-    "Je suis né en Italie en 1967",
-    "Je suis attaquant, surnommé le Divin Codino pour ma queue de cheval",
-    "J'ai inscrit le pénalty décisif manqué en finale du Mondial 1994",
-    "J'ai remporté le Ballon d'Or en 1993",
-    "J'ai marqué 9 buts en Coupe du Monde sur 3 participations",
-    "Je suis aussi connu pour ma pratique du bouddhisme",
-    "Mon prénom est Roberto"
-  ], answer:"Roberto Baggio", aliases:["baggio","roberto","divin codino"], emoji:"🇮🇹" },
-  { indices:[
-    "Je suis né en URSS (actuelle Russie) en 1929",
-    "Je suis gardien de but, surnommé l'Araignée Noire",
-    "Je suis le seul gardien de l'histoire à avoir remporté le Ballon d'Or",
-    "J'ai reçu cette récompense en 1963",
-    "J'ai disputé 4 Coupes du Monde avec l'Union Soviétique entre 1958 et 1970",
-    "Je suis considéré comme l'un des meilleurs gardiens du 20e siècle",
-    "Mon prénom est Lev"
-  ], answer:"Lev Yashin", aliases:["yashin","lev","araignee noire"], emoji:"🇷🇺" },
-  { indices:[
-    "Je suis né au Brésil en 1970",
-    "Je suis défenseur latéral droit, surnommé le Pendulinho",
-    "Je détiens le record de matchs en Coupe du Monde pour un joueur brésilien (16)",
-    "Je suis le seul joueur à avoir disputé 3 finales consécutives de Coupe du Monde (1994, 1998, 2002)",
-    "J'ai remporté 2 titres mondiaux avec le Brésil",
-    "J'ai joué pour la Roma et l'AC Milan en Italie",
-    "Mon prénom complet est Marcos Evangelista de Moraes"
-  ], answer:"Cafu", aliases:["cafu"], emoji:"🇧🇷" },
-  { indices:[
-    "Je suis né au Brésil en 1953",
-    "Je suis milieu offensif, surnommé le Pelé Blanc",
-    "Je n'ai jamais remporté la Coupe du Monde malgré mon immense talent",
-    "J'étais réputé pour la précision de mes coups francs et corners",
-    "J'ai marqué 4 buts en Coupe du Monde sur 3 participations",
-    "J'ai longtemps été dirigeant et entraîneur après ma carrière de joueur",
-    "Mon vrai prénom est Arthur Antunes Coimbra"
-  ], answer:"Zico", aliases:["zico","pele blanc"], emoji:"🇧🇷" },
-  { indices:[
-    "Je suis né en Allemagne en 1961",
-    "Je suis milieu de terrain, j'ai disputé un record de 5 Coupes du Monde",
-    "J'ai remporté le titre mondial en 1990 comme capitaine de l'Allemagne",
-    "J'ai été élu Ballon d'Or en 1990 et meilleur joueur FIFA de l'année",
-    "J'ai aussi joué pour l'Inter Milan en Serie A",
-    "Mon record de sélections en Coupe du Monde n'a été égalé que récemment",
-    "Mon nom commence par un M, mon prénom par un L"
-  ], answer:"Lothar Matthäus", aliases:["matthaus","matthäus","lothar"], emoji:"🇩🇪" },
-  { indices:[
-    "Je suis né au Brésil en 1980",
-    "Je suis milieu offensif, connu pour mon sourire et mes dribbles chaloupés",
-    "J'ai remporté la Coupe du Monde 2002 avec le Brésil",
-    "J'ai été élu Ballon d'Or et meilleur joueur FIFA en 2005",
-    "J'ai joué pour le PSG, le FC Barcelone puis l'AC Milan",
-    "Mon style de jeu joyeux a marqué toute une génération de fans",
-    "Mon surnom complet finit par 'inho'"
-  ], answer:"Ronaldinho", aliases:["ronaldinho"], emoji:"🇧🇷" },
-  { indices:[
-    "Je suis né en Italie en 1956",
-    "Je suis attaquant, héros inattendu du Mondial 1982",
-    "Après une suspension de 2 ans pour affaire de paris truqués, j'ai explosé lors de cette Coupe du Monde",
-    "J'ai inscrit un triplé historique contre le Brésil en quart de finale",
-    "J'ai terminé meilleur buteur du tournoi et j'ai été élu Ballon d'Or 1982",
-    "J'ai soulevé le trophée avec l'Italie à Madrid",
-    "Mon prénom est Paolo, mon nom de famille évoque la couleur rouge"
-  ], answer:"Paolo Rossi", aliases:["paolo rossi","rossi"], emoji:"🇮🇹" },
-  { indices:[
-    "Je suis né en Angleterre en 1937",
-    "Je suis milieu offensif, survivant de la catastrophe aérienne de Munich en 1958",
-    "J'ai remporté la seule Coupe du Monde de l'histoire de l'Angleterre, en 1966",
-    "J'ai inscrit 2 buts en finale contre l'Allemagne de l'Ouest",
-    "J'ai joué toute ma carrière de club à Manchester United",
-    "J'ai été fait chevalier (Sir) pour mes services au football",
-    "Mon prénom est Bobby"
-  ], answer:"Bobby Charlton", aliases:["charlton","bobby"], emoji:"🏴" },
-  { indices:[
-    "Je suis né en Argentine en 1949",
-    "Je suis attaquant, héros du Mondial 1978 organisé à domicile",
-    "J'ai terminé meilleur buteur du tournoi avec 6 réalisations",
-    "J'ai inscrit un doublé lors de la finale victorieuse contre les Pays-Bas",
-    "J'ai été élu meilleur joueur de la compétition en 1978",
-    "J'ai aussi joué en Espagne, au Valence CF notamment",
-    "Mon prénom est Mario"
-  ], answer:"Mario Kempes", aliases:["kempes","mario"], emoji:"🇦🇷" },
-  { indices:[
-    "Je suis né en Bulgarie en 1966",
-    "Je suis attaquant, surnommé le 'Maradona des Balkans' pour mon tempérament",
-    "J'ai co-terminé meilleur buteur de la Coupe du Monde 1994 avec 6 buts",
-    "J'ai mené la Bulgarie à sa meilleure performance historique : demi-finaliste",
-    "J'ai été élu Ballon d'Or en 1994",
-    "J'ai joué pour le FC Barcelone notamment",
-    "Mon prénom est Hristo"
-  ], answer:"Hristo Stoichkov", aliases:["stoichkov","hristo"], emoji:"🇧🇬" },
-  { indices:[
-    "Je suis né en Argentine en 1987 à Rosario",
-    "Je suis défenseur central et capitaine emblématique de mon équipe nationale",
-    "J'ai soulevé la Coupe du Monde 2022 comme capitaine de l'Argentine",
-    "Je suis surnommé el Cuti par mes coéquipiers",
-    "J'évolue en Premier League depuis plusieurs saisons",
-    "Mon prénom est Cristian mais on m'appelle souvent par mon diminutif"
-  ], answer:"Cristian Romero", aliases:["romero","cuti","cristian romero"], emoji:"🇦🇷" },
-  { indices:[
-    "Je suis né en France en 1998 à Bondy",
-    "Je suis attaquant, j'ai rejoint le Real Madrid en 2024",
-    "J'ai remporté la Coupe du Monde 2018 à seulement 19 ans",
-    "J'ai inscrit un triplé en finale 2022, mais l'Argentine a gagné aux tirs au but",
-    "J'ai été deux fois meilleur buteur du Mondial (2022)",
-    "Je suis le capitaine de l'équipe de France depuis le départ d'Hugo Lloris"
-  ], answer:"Kylian Mbappé", aliases:["mbappe","kylian"], emoji:"🇫🇷" },
-  { indices:[
-    "Je suis né en Argentine en 1987 à Rosario",
-    "Je suis attaquant, considéré par beaucoup comme le meilleur joueur du 21e siècle",
-    "J'ai remporté la Coupe du Monde 2022 et j'ai été élu meilleur joueur du tournoi",
-    "J'ai disputé un record de 26 matchs de Coupe du Monde dans ma carrière",
-    "J'ai remporté 8 Ballons d'Or, un record absolu",
-    "Je joue désormais en Major League Soccer aux États-Unis",
-    "Mon surnom est la Pulga (la puce)"
-  ], answer:"Lionel Messi", aliases:["messi","leo","pulga"], emoji:"🇦🇷" },
 ];
+
 
 const PLUS_MOINS_QUESTIONS = [
   { q:"Combien de buts Miroslav Klose a-t-il marqués en Coupe du Monde ?", answer:16, unit:"buts", hint:"Le record all-time, battu en 2014" },
@@ -3259,6 +3082,8 @@ export default function App() {
   const [activeGame, setActiveGame]       = useState(null);
   const [gamePhase, setGamePhase]         = useState("menu");
   const [jeuxSubTab, setJeuxSubTab]       = useState("jouer"); // "jouer" | "classements"
+  const [scoresSubTab, setScoresSubTab]   = useState("pronos"); // "pronos" | "jeux"
+  const [statsMatchPlayer, setStatsMatchPlayer] = useState(null); // joueur sélectionné pour stats détaillées (admin)
   const [qIdx, setQIdx]                   = useState(0);
   const [qScore, setQScore]               = useState(0);
   const [answered, setAnswered]           = useState(null);
@@ -3713,20 +3538,10 @@ export default function App() {
     contentRef.current?.scrollTo({top:0, behavior:"smooth"});
   }, [tab, grp, ePhase, jeuxSubTab, gamePhase, activeGame]);
 
-  // ── Garde-fou musique de jeu : si une partie est en cours (activeGame défini,
-  // phase "playing") mais que la musique s'est arrêtée pour une raison externe
-  // (throttling navigateur en arrière-plan, changement d'onglet, etc.), on la
-  // relance automatiquement — sans ça le joueur se retrouve en silence total
-  // dès qu'il quitte l'onglet Jeux pendant une partie en cours ──
-  useEffect(() => {
-    if (!activeGame || gamePhase !== "playing" || _isMuted) return;
-    const check = setInterval(() => {
-      if (activeGame && gamePhase === "playing" && !_isMuted && !gameMusicPlaying) {
-        playGameMusic(activeGame);
-      }
-    }, 1500);
-    return () => clearInterval(check);
-  }, [activeGame, gamePhase, tab]);
+  // (La relance de la musique de jeu après changement d'onglet se fait au moment
+  // du clic sur la nav elle-même — voir onClick du bottom nav — car sur mobile,
+  // un AudioContext suspendu ne peut être repris que depuis un vrai geste
+  // utilisateur, pas depuis un setInterval/setTimeout en arrière-plan.)
 
   // ── LOGIN ──
   function doLogin() {
@@ -3812,6 +3627,8 @@ export default function App() {
     // du joueur suivant qui se connecte sur le même appareil (ex : écran de
     // sélection d'adversaire qui réapparaît tout seul) ──
     setActiveGame(null); setGamePhase("menu"); setJeuxSubTab("jouer");
+    setScoresSubTab("pronos"); setGroupPronoPlayer(null); setStatsMatchPlayer(null);
+    setTab("home");
     setChallengePicker(null); setChallengeTarget(null);
     setPenChallengeId(null); setActiveChallengeId(null); setTtChallengeQueue(null);
     setQIdx(0); setQScore(0); setAnswered(null); setShowFact(false);
@@ -4803,6 +4620,16 @@ export default function App() {
        ...(canSeeGroupPronos?[{k:"groupe",l:"👥",lbl:"Groupe"}]:[]),
        {k:"jeux",l:"🎮",lbl:"Jeux"},{k:"chat",l:"💬",lbl:"Chat"},{k:"histo",l:"📋",lbl:"Résultats"}];
 
+  // ── Constantes partagées entre l'onglet Stats (sous-onglet Jeux) et l'onglet Jeux lui-même ──
+  const NUMERIC_GAMES = ["quiz","quisuisje","plusmoins","toptrumps","penalty"]; // exclut "buteur" (score = nom, pas un nombre)
+  const ALL_GAMES_LIST = ["quiz","quisuisje","plusmoins","toptrumps","penalty","buteur"];
+  const sameGroupUsers = Object.keys(st.users).filter(u => u !== "admin" && (isAdmin || (st.users[u]||{}).role===role));
+  const allNonAdminUsers = Object.keys(st.users).filter(u => u !== "admin");
+  const gameScores = st.gameScores || {};
+  const gameScoresTotal = st.gameScoresTotal || {};
+  const gamePlaysToday = st.gamePlaysToday || {};
+  const GAME_LABELS = {quiz:"🧠 Quiz Coupe du Monde",quisuisje:"👤 Qui suis-je ?",plusmoins:"🔢 Plus ou Moins",toptrumps:"🃏 Qui a le plus ?",penalty:"⚽ Tirs au but",buteur:"🥅 Buteur"};
+
   const elimPhases=[{k:"seiziemes",l:"1/16"},{k:"huitiemes",l:"1/8"},{k:"quarts",l:"Quarts"},{k:"demis",l:"Demis"},{k:"p3",l:"3e pl."},{k:"finale",l:"Finale"}];
   const todayMatches = MATCHES.filter(m=>m.dk===today);
   const allGroupsValidated = GROUPS.every(g=>(st.validatedGroups[user]||[]).includes(g));
@@ -5566,10 +5393,177 @@ export default function App() {
           const myScore = scores[user]||0;
           const peers = Object.keys(st.users).filter(u=>st.users[u].role===role&&u!=="admin");
           const isLeading = peers.length>1 && myScore>0 && peers.every(u=>u===user||(scores[u]||0)<=myScore);
+          const challenges = st.challenges || {};
+          const DAILY_PLAY_LIMIT = 3; // doit rester synchronisé avec la valeur utilisée dans l'onglet Jeux
+
+          // ── Sous-onglet "Pronos du groupe par match" ──
+          function MatchStatsBlock() {
+            const groupUsers = isAdmin ? allNonAdminUsers : sameGroupUsers.concat(sameGroupUsers.includes(user)?[]:[user]);
+            const playedMatches = MATCHES.filter(m => (st.results||{})[m.id]);
+            if (!playedMatches.length) return <div style={t.empty}>Les stats par match apparaîtront dès le premier résultat officiel. ⚽</div>;
+            return (
+              <div>
+                {playedMatches.map(m => {
+                  const official = st.results[m.id];
+                  const voters = groupUsers.filter(u => (st.predictions[u]||{})[m.id]);
+                  const correct = voters.filter(u => (st.predictions[u]||{})[m.id]===official);
+                  const pct = voters.length ? Math.round(correct.length/voters.length*100) : 0;
+                  return (
+                    <div key={m.id} style={{...t.card,marginBottom:8,padding:"10px 12px"}}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+                        <span style={{fontSize:12,fontWeight:700}}>{F(m.home)} {m.home.split(" ")[0]} - {m.away.split(" ")[0]} {F(m.away)}</span>
+                        <span style={{fontSize:11,fontWeight:800,color:pct>=50?GREEN:pct>0?AMB:MUTED}}>{correct.length}/{voters.length} ({pct}%)</span>
+                      </div>
+                      <div style={{background:"rgba(255,255,255,.06)",borderRadius:6,height:5,overflow:"hidden",marginBottom:6}}>
+                        <div style={{height:"100%",width:pct+"%",background:pct>=50?GREEN:AMB,transition:"width .3s"}}/>
+                      </div>
+                      {voters.length>0 && (
+                        <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
+                          {voters.map(u=>{
+                            const ok = (st.predictions[u]||{})[m.id]===official;
+                            return (
+                              <span key={u} style={{fontSize:9,fontWeight:700,padding:"2px 6px",borderRadius:5,
+                                background:ok?"rgba(46,204,113,.12)":"rgba(231,76,60,.1)",color:ok?GREEN:"#e74c3c"}}>
+                                {ok?"✓":"✗"} {u.toUpperCase()}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          }
+
+          // ── Sous-onglet "Jeux" (admin uniquement) : stats avancées des jeux ──
+          function GamesStatsBlock() {
+            return (
+              <div>
+                <div style={{fontSize:12,color:MUTED,marginBottom:10,fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>🏅 Meilleur score — 1 partie</div>
+                {NUMERIC_GAMES.map(g=>{
+                  const rows=allNonAdminUsers.map(u=>({u,score:(gameScores[g]||{})[u]})).filter(r=>typeof r.score==="number").sort((a,b)=>b.score-a.score);
+                  return (
+                    <div key={g} style={{marginBottom:14}}>
+                      <div style={{fontSize:11,color:GOLD,fontWeight:700,marginBottom:6}}>{GAME_LABELS[g]}</div>
+                      {rows.length===0 ? (
+                        <div style={{fontSize:11,color:MUTED,fontStyle:"italic"}}>Personne n'a encore joué</div>
+                      ) : rows.map((r,i)=>(
+                        <div key={r.u} style={{...t.card,marginBottom:5,display:"flex",alignItems:"center",gap:10,padding:"6px 12px",background:"rgba(255,255,255,.04)"}}>
+                          <div style={{fontSize:13,fontWeight:900,color:i===0?GOLD:i===1?"#94a3b8":i===2?"#cd7f32":MUTED,width:18}}>{i+1}</div>
+                          <div style={{flex:1,fontSize:11,color:TXT}}>{r.u.toUpperCase()}</div>
+                          <div style={{fontSize:12,fontWeight:700,color:GOLD}}>{r.score} pts</div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })}
+
+                <div style={{marginTop:14,marginBottom:14}}>
+                  <div style={{fontSize:12,color:MUTED,marginBottom:8,fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>📈 Score cumulé — total</div>
+                  {allNonAdminUsers.map(u=>({
+                    u,total:NUMERIC_GAMES.reduce((s,g)=>s+((typeof (gameScoresTotal[g]||{})[u]==="number"?(gameScoresTotal[g]||{})[u]:0)),0)
+                  })).sort((a,b)=>b.total-a.total).map((entry,i)=>(
+                    <div key={entry.u} style={{...t.card,marginBottom:6,display:"flex",alignItems:"center",gap:10,padding:"8px 12px",background:"rgba(255,255,255,.04)"}}>
+                      <div style={{fontSize:14,fontWeight:900,color:i===0?"#60a5fa":i===1?"#94a3b8":i===2?"#cd7f32":MUTED,width:20}}>{i+1}</div>
+                      <div style={{flex:1,fontSize:12,color:TXT}}>{entry.u.toUpperCase()}</div>
+                      <div style={{fontSize:13,fontWeight:700,color:"#60a5fa"}}>{entry.total} pts</div>
+                    </div>
+                  ))}
+                </div>
+
+                <div style={{fontSize:12,color:MUTED,marginBottom:8,fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>🎯 Activité quotidienne (parties jouées aujourd'hui)</div>
+                {ALL_GAMES_LIST.map(g=>{
+                  const dayUsers = allNonAdminUsers.filter(u => {
+                    const v = (gamePlaysToday[g]||{})[u];
+                    return v && v.date===todayKey() && v.count>0;
+                  });
+                  const totalToday = dayUsers.reduce((s,u)=>s+((gamePlaysToday[g]||{})[u]?.count||0), 0);
+                  return (
+                    <div key={g} style={{...t.card,marginBottom:6,padding:"8px 12px"}}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                        <span style={{fontSize:11,fontWeight:700}}>{GAME_LABELS[g]}</span>
+                        <span style={{fontSize:11,fontWeight:800,color:GOLD}}>{totalToday} partie{totalToday>1?"s":""}</span>
+                      </div>
+                      {dayUsers.length>0 && (
+                        <div style={{fontSize:9,color:MUTED,marginTop:4}}>
+                          {dayUsers.map(u=>`${u.toUpperCase()} (${(gamePlaysToday[g]||{})[u]?.count||0}/${DAILY_PLAY_LIMIT})`).join(" · ")}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                <div style={{fontSize:12,color:MUTED,margin:"16px 0 8px",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>⚔️ Défis — vue d'ensemble</div>
+                {(()=>{
+                  const allCh = Object.values(challenges);
+                  const pending = allCh.filter(c=>c.status==="pending").length;
+                  const active = allCh.filter(c=>c.status==="active").length;
+                  const done = allCh.filter(c=>c.fromScore!=null && c.toScore!=null).length;
+                  const declined = allCh.filter(c=>c.status==="declined").length;
+                  return (
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14}}>
+                      <div style={{...t.card,padding:"10px",textAlign:"center"}}>
+                        <div style={{fontSize:18,fontWeight:900,color:AMB}}>{pending}</div>
+                        <div style={{fontSize:9,color:MUTED}}>En attente</div>
+                      </div>
+                      <div style={{...t.card,padding:"10px",textAlign:"center"}}>
+                        <div style={{fontSize:18,fontWeight:900,color:GOLD}}>{active}</div>
+                        <div style={{fontSize:9,color:MUTED}}>En cours</div>
+                      </div>
+                      <div style={{...t.card,padding:"10px",textAlign:"center"}}>
+                        <div style={{fontSize:18,fontWeight:900,color:GREEN}}>{done}</div>
+                        <div style={{fontSize:9,color:MUTED}}>Terminés</div>
+                      </div>
+                      <div style={{...t.card,padding:"10px",textAlign:"center"}}>
+                        <div style={{fontSize:18,fontWeight:900,color:"#e74c3c"}}>{declined}</div>
+                        <div style={{fontSize:9,color:MUTED}}>Refusés</div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                <div style={{fontSize:12,color:MUTED,marginBottom:8,fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>👤 Détail par joueur</div>
+                {allNonAdminUsers.map(u=>{
+                  const totalPlays = ALL_GAMES_LIST.reduce((s,g)=>{
+                    const v=(gamePlaysToday[g]||{})[u];
+                    return s + ((v&&v.date===todayKey())?v.count:0);
+                  },0);
+                  const sentChallenges = Object.values(challenges).filter(c=>c.from===u).length;
+                  const totalCumul = NUMERIC_GAMES.reduce((s,g)=>s+((typeof (gameScoresTotal[g]||{})[u]==="number"?(gameScoresTotal[g]||{})[u]:0)),0);
+                  return (
+                    <button key={u} onClick={()=>setStatsMatchPlayer(statsMatchPlayer===u?null:u)} style={{...t.card,marginBottom:6,width:"100%",textAlign:"left",cursor:"pointer",border:"1px solid rgba(255,255,255,.08)"}}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                        <span style={{fontSize:12,fontWeight:800}}>{u.toUpperCase()}</span>
+                        <span style={{fontSize:11,color:"#60a5fa",fontWeight:700}}>{totalCumul} pts cumulés</span>
+                      </div>
+                      {statsMatchPlayer===u && (
+                        <div style={{marginTop:8,paddingTop:8,borderTop:"1px solid rgba(255,255,255,.08)",display:"flex",flexDirection:"column",gap:4}}>
+                          <div style={{fontSize:10,color:MUTED}}>🎮 Parties jouées aujourd'hui : <strong style={{color:TXT}}>{totalPlays}</strong></div>
+                          <div style={{fontSize:10,color:MUTED}}>⚔️ Défis envoyés au total : <strong style={{color:TXT}}>{sentChallenges}</strong></div>
+                          {NUMERIC_GAMES.map(g=>{
+                            const best=(gameScores[g]||{})[u];
+                            if (typeof best!=="number") return null;
+                            return <div key={g} style={{fontSize:10,color:MUTED}}>{GAME_LABELS[g]} — meilleur : <strong style={{color:GOLD}}>{best} pts</strong></div>;
+                          })}
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            );
+          }
+
+          const scoresTabs = isAdmin
+            ? [{k:"pronos",l:"🏆 Pronos"},{k:"parmatch",l:"⚽ Par match"},{k:"jeux",l:"🎮 Jeux"}]
+            : [{k:"pronos",l:"🏆 Pronos"},{k:"parmatch",l:"⚽ Par match"}];
+
           return (
             <div style={t.sec}>
               <div style={{height:16}}/>
-              {isLeading && !isAdmin && (
+              {isLeading && !isAdmin && scoresSubTab==="pronos" && (
                 <div style={{
                   background:"linear-gradient(135deg,rgba(245,200,66,.15),rgba(255,140,0,.08))",
                   border:"1px solid rgba(245,200,66,.4)",borderRadius:16,
@@ -5581,10 +5575,30 @@ export default function App() {
                   <div style={{fontSize:11,color:MUTED,marginTop:4}}>{myScore} pts — Continue comme ça 🔥</div>
                 </div>
               )}
-              {isAdmin
-                ? <><LB filterRole="famille" title="Famille"/><LB filterRole="collegues" title="Collègues"/><LB filterRole="externe" title="Externes"/></>
-                : <LB filterRole={role} title="Classement"/>
-              }
+
+              {/* Switcher sous-onglets */}
+              <div style={{display:"flex",gap:6,marginBottom:14,background:"rgba(255,255,255,.04)",borderRadius:10,padding:4}}>
+                {scoresTabs.map(s=>(
+                  <button key={s.k} onClick={()=>setScoresSubTab(s.k)} style={{flex:1,padding:"8px",borderRadius:8,border:"none",cursor:"pointer",fontWeight:700,fontSize:11,fontFamily:"inherit",
+                    background:scoresSubTab===s.k?GOLD:"transparent",color:scoresSubTab===s.k?"#0a0e1a":MUTED}}>{s.l}</button>
+                ))}
+              </div>
+
+              {scoresSubTab==="pronos" && (
+                isAdmin
+                  ? <><LB filterRole="famille" title="Famille"/><LB filterRole="collegues" title="Collègues"/><LB filterRole="externe" title="Externes"/></>
+                  : <LB filterRole={role} title="Classement"/>
+              )}
+
+              {scoresSubTab==="parmatch" && (
+                (isAdmin || canSeeGroupPronos) ? (
+                  <MatchStatsBlock/>
+                ) : (
+                  <div style={t.empty}>Tu pourras consulter les pronos du groupe par match une fois tes propres pronostics validés. 🔒</div>
+                )
+              )}
+
+              {scoresSubTab==="jeux" && isAdmin && <GamesStatsBlock/>}
             </div>
           );
         })()}
@@ -7664,7 +7678,7 @@ export default function App() {
           if (gamePhase === "menu" || !activeGame) return (
             <div style={t.sec}>
               <div style={{height:8}}/>
-              {/* Switcher sous-onglets */}
+              {/* Switcher Jouer / Classements */}
               <div style={{display:"flex",gap:6,marginBottom:14,background:"rgba(255,255,255,.04)",borderRadius:10,padding:4}}>
                 <button onClick={()=>setJeuxSubTab("jouer")} style={{flex:1,padding:"8px",borderRadius:8,border:"none",cursor:"pointer",fontWeight:700,fontSize:12,fontFamily:"inherit",
                   background:jeuxSubTab==="jouer"?GOLD:"transparent",color:jeuxSubTab==="jouer"?"#0a0e1a":MUTED}}>🎮 Jouer</button>
@@ -7672,42 +7686,42 @@ export default function App() {
                   background:jeuxSubTab==="classements"?GOLD:"transparent",color:jeuxSubTab==="classements"?"#0a0e1a":MUTED}}>🏆 Classements</button>
               </div>
 
-              {jeuxSubTab==="classements" ? (<>
-              <div style={{marginTop:0}}>
-                <div style={{fontSize:12,color:MUTED,marginBottom:10,fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>🏅 Meilleur score — 1 partie</div>
-                {NUMERIC_GAMES.map(g=>{
-                  const gLab={quiz:"🧠 Quiz Coupe du Monde",quisuisje:"👤 Qui suis-je ?",plusmoins:"🔢 Plus ou Moins",toptrumps:"🃏 Qui a le plus ?",penalty:"⚽ Tirs au but"}[g];
-                  const rows=sameGroupUsers.map(u=>({u,score:(gameScores[g]||{})[u]})).filter(r=>typeof r.score==="number").sort((a,b)=>b.score-a.score);
-                  return (
-                    <div key={g} style={{marginBottom:14}}>
-                      <div style={{fontSize:11,color:GOLD,fontWeight:700,marginBottom:6}}>{gLab}</div>
-                      {rows.length===0 ? (
-                        <div style={{fontSize:11,color:MUTED,fontStyle:"italic"}}>Personne n'a encore joué</div>
-                      ) : rows.map((r,i)=>(
-                        <div key={r.u} style={{...t.card,marginBottom:5,display:"flex",alignItems:"center",gap:10,padding:"6px 12px",background:r.u===user?"rgba(245,200,66,.1)":"rgba(255,255,255,.04)"}}>
-                          <div style={{fontSize:13,fontWeight:900,color:i===0?GOLD:i===1?"#94a3b8":i===2?"#cd7f32":MUTED,width:18}}>{i+1}</div>
-                          <div style={{flex:1,fontSize:11,fontWeight:r.u===user?700:400,color:r.u===user?GOLD:TXT}}>{r.u.toUpperCase()}</div>
-                          <div style={{fontSize:12,fontWeight:700,color:GOLD}}>{r.score} pts</div>
-                        </div>
-                      ))}
-                    </div>
-                  );
-                })}
-              </div>
-              <div style={{marginTop:14}}>
-                <div style={{fontSize:12,color:MUTED,marginBottom:8,fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>📈 Score cumulé — total</div>
-                {sameGroupUsers.map(u=>({
-                  u,total:NUMERIC_GAMES.reduce((s,g)=>s+((typeof (gameScoresTotal[g]||{})[u]==="number"?(gameScoresTotal[g]||{})[u]:0)),0)
-                })).sort((a,b)=>b.total-a.total).map((entry,i)=>(
-                  <div key={entry.u} style={{...t.card,marginBottom:6,display:"flex",alignItems:"center",gap:10,padding:"8px 12px",background:entry.u===user?"rgba(96,165,250,.1)":"rgba(255,255,255,.04)"}}>
-                    <div style={{fontSize:14,fontWeight:900,color:i===0?"#60a5fa":i===1?"#94a3b8":i===2?"#cd7f32":MUTED,width:20}}>{i+1}</div>
-                    <div style={{flex:1,fontSize:12,fontWeight:entry.u===user?700:400,color:entry.u===user?"#60a5fa":TXT}}>{entry.u.toUpperCase()}</div>
-                    <div style={{fontSize:13,fontWeight:700,color:"#60a5fa"}}>{entry.total} pts</div>
+              {jeuxSubTab==="classements" ? (
+                <div>
+                  <div style={{fontSize:12,color:MUTED,marginBottom:10,fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>🏅 Meilleur score — 1 partie</div>
+                  {NUMERIC_GAMES.map(g=>{
+                    const rows=sameGroupUsers.map(u=>({u,score:(gameScores[g]||{})[u]})).filter(r=>typeof r.score==="number").sort((a,b)=>b.score-a.score);
+                    return (
+                      <div key={g} style={{marginBottom:14}}>
+                        <div style={{fontSize:11,color:GOLD,fontWeight:700,marginBottom:6}}>{GAME_LABELS[g]}</div>
+                        {rows.length===0
+                          ? <div style={{fontSize:11,color:MUTED,fontStyle:"italic"}}>Personne n'a encore joué</div>
+                          : rows.map((r,i)=>(
+                            <div key={r.u} style={{...t.card,marginBottom:5,display:"flex",alignItems:"center",gap:10,padding:"6px 12px",background:r.u===user?"rgba(245,200,66,.1)":"rgba(255,255,255,.04)"}}>
+                              <div style={{fontSize:13,fontWeight:900,color:i===0?GOLD:i===1?"#94a3b8":i===2?"#cd7f32":MUTED,width:18}}>{i+1}</div>
+                              <div style={{flex:1,fontSize:11,fontWeight:r.u===user?700:400,color:r.u===user?GOLD:TXT}}>{r.u.toUpperCase()}</div>
+                              <div style={{fontSize:12,fontWeight:700,color:GOLD}}>{r.score} pts</div>
+                            </div>
+                          ))
+                        }
+                      </div>
+                    );
+                  })}
+                  <div style={{marginTop:14}}>
+                    <div style={{fontSize:12,color:MUTED,marginBottom:8,fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>📈 Score cumulé — total</div>
+                    {sameGroupUsers.map(u=>({
+                      u,total:NUMERIC_GAMES.reduce((s,g)=>s+((typeof (gameScoresTotal[g]||{})[u]==="number"?(gameScoresTotal[g]||{})[u]:0)),0)
+                    })).sort((a,b)=>b.total-a.total).map((entry,i)=>(
+                      <div key={entry.u} style={{...t.card,marginBottom:6,display:"flex",alignItems:"center",gap:10,padding:"8px 12px",background:entry.u===user?"rgba(96,165,250,.1)":"rgba(255,255,255,.04)"}}>
+                        <div style={{fontSize:14,fontWeight:900,color:i===0?"#60a5fa":i===1?"#94a3b8":i===2?"#cd7f32":MUTED,width:20}}>{i+1}</div>
+                        <div style={{flex:1,fontSize:12,fontWeight:entry.u===user?700:400,color:entry.u===user?"#60a5fa":TXT}}>{entry.u.toUpperCase()}</div>
+                        <div style={{fontSize:13,fontWeight:700,color:"#60a5fa"}}>{entry.total} pts</div>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-              </>) : (<>
-              {/* Défis (quiz/quisuisje/plusmoins/toptrumps) reçus, en attente */}
+                </div>
+              ) : (
+              <>
               {myPendingChallenges.map(([id,ch])=>(
                 <div key={id} style={{...t.card,marginBottom:8,border:`1px solid ${AMB}`,background:"rgba(245,158,11,.08)"}}>
                   <div style={{fontSize:12,color:AMB,marginBottom:6}}>⚔️ <strong>{ch.from.toUpperCase()}</strong> te défie au {({quiz:"Quiz",quisuisje:"Qui suis-je ?",plusmoins:"Plus ou Moins",toptrumps:"Qui a le plus ?"})[ch.game]||ch.game} !</div>
@@ -7825,7 +7839,8 @@ export default function App() {
                   </div>
                 </div>
               ))}
-              </>)}
+              </>
+              )}
             </div>
           );
 
