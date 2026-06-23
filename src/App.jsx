@@ -2142,7 +2142,7 @@ const PLUS_MOINS_QUESTIONS = [
   { q:"Combien de titres de Ligue des Champions Lionel Messi a-t-il remportés ?", answer:4, unit:"titres", hint:"Tous avec le FC Barcelone" },
   { q:"Combien de buts Harry Kane a-t-il inscrits avec l'équipe d'Angleterre (chiffres récents, record national) ?", answer:68, unit:"buts", hint:"Il a dépassé le record de Wayne Rooney" },
   { q:"Combien de Coupes du Monde l'Espagne a-t-elle remportées ?", answer:1, unit:"titre", hint:"En 2010, en Afrique du Sud" },
-  { q:"Combien de Coupes du Monde le Portugal a-t-il remportées ?", answer:0, unit:"titre", hint:"Sa meilleure performance reste la 3e place en 1966" },
+  { q:"Combien de Coupes du Monde le Portugal a-t-il remportées ?", answer:1, unit:"titre", hint:"En 1966, Eusébio les a menés jusqu'à la 3e place — mais jamais au titre. En comptant l'Euro 2016." },
   { q:"Combien de matchs sans défaite l'Espagne a-t-elle enchaîné avant son titre en 2010 (en phase finale) ?", answer:6, unit:"matchs", hint:"Une victoire après une seule défaite initiale contre la Suisse" },
   { q:"Combien de buts ont été inscrits lors de la finale 2014 Allemagne-Argentine ?", answer:1, unit:"but", hint:"Un match très fermé, décidé en prolongation" },
   { q:"Combien de minutes a duré la finale 2022 Argentine-France au total (avec prolongations) ?", answer:120, unit:"min", hint:"Avant la séance de tirs au but" },
@@ -2156,10 +2156,10 @@ const PLUS_MOINS_QUESTIONS = [
   { q:"Combien de buts le Japon a-t-il inscrits pour éliminer l'Allemagne en phase de poules du Mondial 2022 ?", answer:2, unit:"buts", hint:"Le Japon a renversé l'Allemagne 2-1 après avoir été mené" },
   { q:"Combien de fois le Japon s'est-il qualifié pour les 8es de finale d'une Coupe du Monde ?", answer:4, unit:"fois", hint:"2002, 2010, 2018 et 2022" },
   { q:"Combien de buts la Corée du Sud a-t-elle inscrits pour terminer 4e du Mondial 2002 à domicile ?", answer:8, unit:"buts", hint:"Sa meilleure performance historique en Coupe du Monde" },
-  { q:"Combien de Coupes du Monde consécutives Cristiano Ronaldo et Lionel Messi ont-ils disputées face à face en phase de groupes ?", answer:0, unit:"fois", hint:"Les deux légendes ne se sont jamais affrontées directement en phase de groupes de CdM" },
+  { q:"Combien de fois Messi et Ronaldo se sont-ils officiellement affrontés sous leurs drapeaux respectifs en Coupe du Monde ?", answer:1, unit:"fois", hint:"Portugal vs Argentine en 2010, seule confrontation officielle en Mondial entre les deux légendes" },
   { q:"Combien de buts Harry Kane a-t-il marqués lors du Mondial 2018, terminant meilleur buteur ?", answer:6, unit:"buts", hint:"Sa meilleure performance individuelle en Coupe du Monde" },
   { q:"Combien de Ballons d'Or le Brésil a-t-il remportés au total dans son histoire ?", answer:5, unit:"B.O.", hint:"Avec notamment Ronaldo, Ronaldinho, Rivaldo, Kaká et Romário" },
-  { q:"Combien de titres mondiaux la Bulgarie a-t-elle remportés ?", answer:0, unit:"titre", hint:"Sa meilleure performance reste une 4e place en 1994" },
+  { q:"Combien de buts Hristo Stoichkov a-t-il marqués pour mener la Bulgarie en demi-finale du Mondial 1994 ?", answer:6, unit:"buts", hint:"Stoichkov a terminé co-meilleur buteur du tournoi, Ballon d'Or la même année" },
   { q:"Combien de fois le Maroc a-t-il participé à la Coupe du Monde avant 2026 ?", answer:6, unit:"participations", hint:"Dont sa demi-finale historique en 2022" },
   { q:"Combien de fois le Sénégal a-t-il atteint les quarts de finale d'une Coupe du Monde ?", answer:1, unit:"fois", hint:"En 2002, lors de sa toute première participation" },
   { q:"Combien de buts le Cameroun a-t-il inscrits pour atteindre les quarts en 1990, première équipe africaine à le faire ?", answer:6, unit:"buts", hint:"Avec notamment Roger Milla en grande forme" },
@@ -2261,7 +2261,7 @@ const BUTEUR_CARDS = [
   { name:"Endrick",           emoji:"🇧🇷", team:"Brésil",     club:"Real Madrid",    clubGoals:7,  intlGoals:13, age:18 },
   { name:"Hirving Lozano",    emoji:"🇲🇽", team:"Mexique",    club:"PSV",            clubGoals:8,  intlGoals:31, age:29 },
 ];
-const blank = () => ({ users:{}, predictions:{}, results:{}, scores:{}, validatedGroups:{}, finalLock:{}, seenAnim:{}, officialThirds:{}, thirdPicks:{}, seenEgg:{}, presence:{}, chat:{famille:[],collegues:[],externe:[]}, matchComments:{}, chatEnabled:true, appVersion: APP_VERSION, forceLogoutSignal: 0, seenChat:{}, gameScores:{}, gameScoresTotal:{}, challenges:{}, gamePlaysToday:{},
+const blank = () => ({ users:{}, predictions:{}, results:{}, scores:{}, validatedGroups:{}, finalLock:{}, seenAnim:{}, officialThirds:{}, thirdPicks:{}, seenEgg:{}, presence:{}, chat:{famille:[],collegues:[],externe:[]}, matchComments:{}, chatEnabled:true, appVersion: APP_VERSION, forceLogoutSignal: 0, seenChat:{}, gameScores:{}, gameScoresTotal:{}, gameHistory:{}, challenges:{}, gamePlaysToday:{},
   elimUnlocked: [],          // phases déverrouillées par admin: ["seiziemes","huitiemes",...]
   elimRealTeams: {},         // équipes réelles saisies par admin: {"R1":{home:"Maroc",away:"France"}, ...}
 });
@@ -2331,6 +2331,7 @@ async function persistFirebase(ns) {
         elimRealTeams:     ns.elimRealTeams   || {},
         gameScores:        ns.gameScores      || {},
         gameScoresTotal:   ns.gameScoresTotal || {},
+        gameHistory:       ns.gameHistory     || {},
         gamePlaysToday:    ns.gamePlaysToday   || {},
         challenges:        ns.challenges      || {},
         presence:          ns.presence        || {},
@@ -2365,8 +2366,8 @@ async function persistFirebase(ns) {
 // ═══ BARÈME DES POINTS ════════════════════════════════════════════
 // Défini avant calcScores qui en a besoin
 const PHASE_POINTS = {
-  poules: 1, seiziemes: 2, huitiemes: 3,
-  quarts: 4, demis: 5, p3: 6, finale: 10
+  poules: 1, seiziemes: 3, huitiemes: 5,
+  quarts: 8, demis: 12, p3: 8, finale: 20
 };
 
 function calcScores(st) {
@@ -2850,6 +2851,7 @@ function ChatInput({ onSend }) {
         style={{flex:1,background:"rgba(255,255,255,.06)",border:`1px solid ${BRD}`,borderRadius:12,padding:"10px 12px",color:TXT,fontSize:13,fontFamily:"inherit",outline:"none"}}
         placeholder="Ton message..."
         value={localMsg}
+        maxLength={280}
         onChange={e=>setLocalMsg(e.target.value)}
         onKeyDown={e=>{ if(e.key==="Enter"&&localMsg.trim()){ onSend(localMsg); setLocalMsg(""); } }}
         autoComplete="off" autoCorrect="off" spellCheck="false"
@@ -3118,10 +3120,8 @@ export default function App() {
   const [ttChallengeQueue, setTtChallengeQueue]   = useState(null); // paires de cartes restantes en mode défi (Top Trumps)
   const [challengePicker, setChallengePicker]     = useState(null); // game id en cours de sélection d'adversaire
   const [adminChatGroup, setAdminChatGroup] = useState("famille");
-  const [chatMatchId, setChatMatchId] = useState(null);
   const [groupPronoPlayer, setGroupPronoPlayer] = useState(null); // joueur sélectionné dans l'onglet groupe
-  const [groupPronoPhase, setGroupPronoPhase] = useState("A"); // groupe/phase sélectionné
-  const [chatTab, setChatTab] = useState("general"); // "general" ou "byMatch"
+  // chatMatchId, groupPronoPhase, chatTab supprimés — chat par match retiré
   const setShareCopied = useCallback((v) => setAppState(s => ({...s, shareCopied: v})), []);
   const setUname = useCallback((v) => setLogin(l => ({...l, uname: v})), []);
   const setPw = useCallback((v) => setLogin(l => ({...l, pw: v})), []);
@@ -3318,8 +3318,40 @@ export default function App() {
     const already = isFromSide ? ch.fromScore !== null : ch.toScore !== null;
     if (already) return;
     const updated = {...ch, [isFromSide?"fromScore":"toScore"]: qScore};
-    if (updated.fromScore !== null && updated.toScore !== null) updated.status = "done";
-    save({...st, challenges:{...(st.challenges||{}), [activeChallengeId]: updated}});
+    const bothDone = updated.fromScore !== null && updated.toScore !== null;
+    if (bothDone) updated.status = "done";
+
+    // ── Historique : enregistrer la partie de défi ──
+    const gameHistoryAll = st.gameHistory || {};
+    const userHistory = gameHistoryAll[user] || [];
+    const oppName = isFromSide ? ch.to : ch.from;
+    const myScore = qScore;
+    const oppScore = isFromSide ? ch.toScore : ch.fromScore;
+    // won = null si l'adversaire n'a pas encore joué, sinon true/false/draw
+    const won = bothDone
+      ? (isFromSide ? (updated.fromScore > updated.toScore ? "win" : updated.fromScore < updated.toScore ? "loss" : "draw")
+                    : (updated.toScore > updated.fromScore ? "win" : updated.toScore < updated.fromScore ? "loss" : "draw"))
+      : null;
+    const newEntry = { game: ch.game, score: myScore, mode: "defi", opponent: oppName, won, ts: Date.now() };
+    const cappedHistory = [...userHistory, newEntry].slice(-50);
+
+    // ── Si les deux joueurs ont joué, mettre à jour l'entrée won=null de l'adversaire ──
+    let updatedGameHistory = { ...gameHistoryAll, [user]: cappedHistory };
+    if (bothDone) {
+      const oppWon = won==="win"?"loss":won==="loss"?"win":"draw";
+      const oppHistRaw = [...(gameHistoryAll[oppName]||[])];
+      const oppEntryIdx = oppHistRaw.map((h,i)=>({h,i})).reverse()
+        .find(({h})=>h.mode==="defi"&&h.game===ch.game&&h.opponent===user&&h.won===null);
+      if (oppEntryIdx) {
+        oppHistRaw[oppEntryIdx.i] = {...oppEntryIdx.h, won:oppWon};
+        updatedGameHistory = {...updatedGameHistory, [oppName]: oppHistRaw.slice(-50)};
+      }
+    }
+
+    save({...st,
+      challenges:{...(st.challenges||{}), [activeChallengeId]: updated},
+      gameHistory: updatedGameHistory,
+    });
   }, [gamePhase, activeChallengeId, qScore]);
 
   const save = useCallback(ns => { 
@@ -3938,7 +3970,8 @@ export default function App() {
     } else {
       const chatPrev = st.chat || {};
       const groupPrev = Array.isArray(chatPrev) ? [] : (chatPrev[validChatRole] || []);
-      ns = { ...st, chat: { ...(Array.isArray(chatPrev)?{}:chatPrev), [validChatRole]: [...groupPrev, msg] }};
+      const cappedPrev = groupPrev.length > 180 ? groupPrev.slice(-180) : groupPrev; // purge si > 180 pour garder de la marge
+      ns = { ...st, chat: { ...(Array.isArray(chatPrev)?{}:chatPrev), [validChatRole]: [...cappedPrev, msg] }};
     }
     // Mise à jour état local immédiatement (affichage instantané, sans toucher Firebase)
     setSt(ns);
@@ -5093,6 +5126,42 @@ export default function App() {
 
             <div style={t.divider}/>
             <div style={t.stitle}>📊 Classement</div>
+            {isAdmin && (() => {
+              const onlineNow = allNonAdminUsers.filter(u => onlinePlayers.includes(u));
+              const offlineNow = allNonAdminUsers.filter(u => !onlinePlayers.includes(u));
+              if (!allNonAdminUsers.length) return null;
+              return (
+                <div style={{...t.card, marginBottom:14, padding:"12px 14px"}}>
+                  <div style={{fontSize:11,fontWeight:700,color:GOLD,textTransform:"uppercase",letterSpacing:.5,marginBottom:10}}>
+                    🟢 Joueurs en ligne — {onlineNow.length}/{allNonAdminUsers.length}
+                  </div>
+                  {onlineNow.length === 0 && (
+                    <div style={{fontSize:12,color:MUTED,fontStyle:"italic"}}>Aucun joueur connecté actuellement</div>
+                  )}
+                  <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                    {[...onlineNow, ...offlineNow].map(u => {
+                      const isOn = onlinePlayers.includes(u);
+                      const r = (st.users[u]||{}).role;
+                      const roleColor = r==="famille"?"#3b82f6":r==="collegues"?"#8b5cf6":"#5a5a7a";
+                      return (
+                        <div key={u} style={{
+                          display:"flex",alignItems:"center",gap:5,
+                          padding:"5px 10px",borderRadius:20,
+                          background: isOn?"rgba(46,204,113,.1)":"rgba(255,255,255,.04)",
+                          border:`1px solid ${isOn?"rgba(46,204,113,.3)":"rgba(255,255,255,.08)"}`,
+                        }}>
+                          <span style={{fontSize:8,color:isOn?GREEN:MUTED}}>●</span>
+                          <span style={{fontSize:11,fontWeight:isOn?700:400,color:isOn?TXT:MUTED}}>{u.toUpperCase()}</span>
+                          <span style={{fontSize:9,color:roleColor}}>
+                            {r==="famille"?"Fam.":r==="collegues"?"Col.":r==="waiting"?"⏳":"?"}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
             {isAdmin
               ? <><LB filterRole="famille" title="Famille"/><LB filterRole="collegues" title="Collègues"/><LB filterRole="externe" title="Externes"/></>
               : <LB filterRole={role} title="Classement"/>
@@ -5336,54 +5405,11 @@ export default function App() {
                 );
               })()}
 
-              {/* Onglets chat : Générale vs Par Match */}
-              <div style={{...t.tabs, marginBottom:12}}>
-                <button style={{...t.tab,...(chatTab==="general"?t.tabOn:{})}} 
-                  onClick={()=>setChatTab("general")}>💬 Générale</button>
-                <button style={{...t.tab,...(chatTab==="byMatch"?t.tabOn:{})}} 
-                  onClick={()=>setChatTab("byMatch")}>🏟️ Par Match</button>
+              {/* Chat général du groupe uniquement */}
+              <div style={{...t.card,padding:0,overflow:"hidden",marginBottom:12}}>
+                <ChatBox matchId={null} title="💬 Chat du groupe" getChatMsgs={getChatMsgs} addReaction={addReaction} validChatRole={validChatRole} user={user} st={st} save={save} chatEnabled={st.chatEnabled} sendChat={sendChat}/>
               </div>
 
-              {/* TAB 1 : Chat général du groupe */}
-              {chatTab==="general" && (
-                <div style={{...t.card,padding:0,overflow:"hidden",marginBottom:12}}>
-                  <ChatBox matchId={null} title="💬 Chat du groupe" getChatMsgs={getChatMsgs} addReaction={addReaction} validChatRole={validChatRole} user={user} st={st} save={save} chatEnabled={st.chatEnabled} sendChat={sendChat}/>
-                </div>
-              )}
-
-              {/* TAB 2 : Commentaires par match */}
-              {chatTab==="byMatch" && (
-                <>
-                  {MATCHES.filter(m=>(st.results||{})[m.id]).map(m=>{
-                    const rH=resolveTeam(m.home,st.results||{},{},st.officialThirds||{});
-                    const rA=resolveTeam(m.away,st.results||{},{},st.officialThirds||{});
-                    const matchMsgs = getChatMsgs(m.id);
-                    return (
-                      <div key={m.id} style={{...t.card,padding:0,overflow:"hidden",marginBottom:10}}>
-                        <div onClick={()=>setChatMatchId(chatMatchId===m.id?null:m.id)}
-                          style={{padding:"10px 14px",display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer"}}>
-                          <div style={{flex:1,minWidth:0}}>
-                            <span style={{fontSize:13,fontWeight:700}}>{F(rH)} {rH} vs {rA} {F(rA)}</span>
-                            <div style={{fontSize:10,color:MUTED,marginTop:1}}>{m.date} · {m.time}</div>
-                          </div>
-                          <div style={{display:"flex",gap:8,alignItems:"center",flexShrink:0}}>
-                            {matchMsgs.length>0&&(
-                              <span style={{fontSize:11,background:"rgba(255,210,52,.1)",border:"1px solid rgba(255,210,52,.3)",borderRadius:10,padding:"2px 8px",color:GOLD,fontWeight:700}}>
-                                {matchMsgs.length} 💬
-                              </span>
-                            )}
-                            <span style={{fontSize:12,color:MUTED}}>{chatMatchId===m.id?"▲":"▼"}</span>
-                          </div>
-                        </div>
-                        {chatMatchId===m.id&&<ChatBox matchId={m.id} title={`${rH} vs ${rA}`} getChatMsgs={getChatMsgs} addReaction={addReaction} validChatRole={validChatRole} user={user} st={st} save={save} chatEnabled={st.chatEnabled} sendChat={sendChat}/>}
-                      </div>
-                    );
-                  })}
-                  {!MATCHES.some(m=>(st.results||{})[m.id])&&(
-                    <div style={t.empty}>Les commentaires par match apparaîtront dès le premier résultat. ⚽</div>
-                  )}
-                </>
-              )}
             </>)}
           </div>
         )}
@@ -5399,7 +5425,7 @@ export default function App() {
           // ── Sous-onglet "Pronos du groupe par match" ──
           function MatchStatsBlock() {
             const groupUsers = isAdmin ? allNonAdminUsers : sameGroupUsers.concat(sameGroupUsers.includes(user)?[]:[user]);
-            const playedMatches = MATCHES.filter(m => (st.results||{})[m.id]);
+            const playedMatches = [...MATCHES.filter(m => (st.results||{})[m.id])].reverse(); // récent en premier
             if (!playedMatches.length) return <div style={t.empty}>Les stats par match apparaîtront dès le premier résultat officiel. ⚽</div>;
             return (
               <div>
@@ -6753,68 +6779,6 @@ export default function App() {
                     )}
                   </div>
 
-                  {/* ── Par match : bons pronos ── */}
-                  {matchesWithResult.length > 0 && (
-                    <div style={{...t.card, padding:"14px 16px"}}>
-                      <div style={{fontWeight:800, fontSize:13, color:GOLD, marginBottom:10}}>🎯 Bons pronos par match</div>
-                      <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                        {matchesWithResult.map(m => {
-                          const official = (st.results||{})[m.id];
-                          const correct = players.filter(u => (st.predictions[u]||{})[m.id] === official);
-                          const total = players.filter(u => !!(st.predictions[u]||{})[m.id]).length;
-                          const pct = total ? Math.round(correct.length/total*100) : 0;
-                          const mixedR = {...(st.results||{})};
-                          const rH = resolveTeam(m.home, mixedR, st.scores||{}, st.officialThirds||{});
-                          const rA = resolveTeam(m.away, mixedR, st.scores||{}, st.officialThirds||{});
-                          const winnerName = official==="1" ? rH : official==="2" ? rA : "Nul";
-                          const winnerFlag = official==="1" ? (FLAGS[rH]||"") : official==="2" ? (FLAGS[rA]||"") : "🤝";
-                          return (
-                            <div key={m.id} style={{background:"rgba(255,255,255,.03)",border:`1px solid ${BRD}`,borderRadius:10,padding:"10px 12px"}}>
-                              {/* En-tête match */}
-                              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
-                                <div style={{fontSize:11,fontWeight:700,color:TXT,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1}}>
-                                  {FLAGS[rH]||"❓"} {rH} vs {rA} {FLAGS[rA]||"❓"}
-                                </div>
-                                <div style={{fontSize:10,color:MUTED,flexShrink:0,marginLeft:6}}>{m.date}</div>
-                              </div>
-                              {/* Résultat officiel */}
-                              <div style={{fontSize:11,color:GREEN,marginBottom:6,fontWeight:700}}>
-                                {winnerFlag} Résultat : {winnerName === "Nul" ? "Match nul" : winnerName + " gagne"}
-                              </div>
-                              {/* Compteur + barre */}
-                              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-                                <span style={{fontSize:11,color:MUTED}}>{correct.length}/{total} bons pronos</span>
-                                <span style={{fontSize:11,fontWeight:800,color:pct>=75?GREEN:pct>=50?AMB:RED}}>{pct}%</span>
-                              </div>
-                              <div style={{height:5,background:"rgba(255,255,255,.08)",borderRadius:4,overflow:"hidden",marginBottom:6}}>
-                                <div style={{height:"100%",width:`${pct}%`,
-                                  background:pct>=75?`linear-gradient(90deg,${GREEN},#86efac)`:pct>=50?`linear-gradient(90deg,${AMB},#fbbf24)`:`linear-gradient(90deg,${RED},#f87171)`,
-                                  borderRadius:4,transition:"width .3s"}}/>
-                              </div>
-                              {/* Qui avait bon */}
-                              {correct.length > 0 && (
-                                <div style={{display:"flex",flexWrap:"wrap",gap:3}}>
-                                  {correct.map(u => (
-                                    <span key={u} style={{
-                                      fontSize:10,fontWeight:700,padding:"2px 7px",borderRadius:6,
-                                      background:"rgba(34,197,94,.15)",border:"1px solid rgba(34,197,94,.35)",color:GREEN,
-                                    }}>✓ {u}</span>
-                                  ))}
-                                  {players.filter(u=>(st.predictions[u]||{})[m.id]&&(st.predictions[u]||{})[m.id]!==official).map(u=>(
-                                    <span key={u} style={{
-                                      fontSize:10,fontWeight:700,padding:"2px 7px",borderRadius:6,
-                                      background:"rgba(239,68,68,.1)",border:"1px solid rgba(239,68,68,.25)",color:RED,
-                                    }}>✗ {u}</span>
-                                  ))}
-                                </div>
-                              )}
-                              {total === 0 && <div style={{fontSize:10,color:MUTED,fontStyle:"italic"}}>Aucun pronostic soumis pour ce match</div>}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
                   {matchesWithResult.length === 0 && (
                     <div style={{...t.card,textAlign:"center",padding:"24px 16px"}}>
                       <div style={{fontSize:32,marginBottom:8}}>⏳</div>
@@ -7319,7 +7283,7 @@ export default function App() {
           <div style={t.sec}>
             <div style={{height:12}}/>
             {(()=>{
-              const played = MATCHES.filter(m=>(st.results||{})[m.id]);
+              const played = [...MATCHES.filter(m=>(st.results||{})[m.id])].reverse(); // récent en premier
               if (played.length===0) return (
                 <div style={{...t.card,textAlign:"center",padding:"28px 16px"}}>
                   <div style={{fontSize:32,marginBottom:8}}>⏳</div>
@@ -7351,7 +7315,7 @@ export default function App() {
                     </div>
                   </div>
                 )}
-                {Object.entries(byDate).reverse().map(([date,matches])=>(
+                {Object.entries(byDate).map(([date,matches])=>(
                 <div key={date} style={{marginBottom:16}}>
                   <div style={{fontSize:11,fontWeight:700,color:GOLD,textTransform:"uppercase",
                     letterSpacing:1,marginBottom:8,padding:"4px 0",
@@ -7473,21 +7437,26 @@ export default function App() {
             return false;
           };
 
-          const saveGameScore = (game, score) => {
+          const saveGameScore = (game, score, mode = "solo", opponent = null, won = null) => {
             const isNumeric = typeof score === "number";
             if (!isNumeric) {
-              // Cas "buteur" : score = nom du gagnant choisi, pas de comparaison ni de cumul ni de plafond
+              // Cas "buteur" : score = nom du gagnant choisi
               save({ ...st, gameScores: { ...gameScores, [game]: { ...(gameScores[game]||{}), [user]: score } } });
               return;
             }
+
+            // ── Historique : enregistrer la partie ──
+            const gameHistoryAll = st.gameHistory || {};
+            const userHistory = (gameHistoryAll[user] || []);
+            const newEntry = { game, score, mode, opponent, won, ts: Date.now() };
+            const cappedHistory = [...userHistory, newEntry].slice(-50); // max 50 entrées
+
             const currentCount = getDailyCount(game, user);
             const capped = currentCount >= DAILY_PLAY_LIMIT;
             const newPlaysToday = bumpDailyCount(game, user);
 
             if (capped) {
-              // Filet de sécurité : ne devrait normalement plus arriver puisque le lancement
-              // est bloqué en amont par blockIfDailyLimitReached, mais on protège quand même le score.
-              save({ ...st, gamePlaysToday: newPlaysToday });
+              save({ ...st, gamePlaysToday: newPlaysToday, gameHistory: { ...gameHistoryAll, [user]: cappedHistory } });
               showNotif("info", `⏳ Limite quotidienne atteinte (${DAILY_PLAY_LIMIT}/${DAILY_PLAY_LIMIT}) pour ce jeu — cette partie ne compte pas dans ton score.`);
               return;
             }
@@ -7500,6 +7469,7 @@ export default function App() {
               gamePlaysToday:  newPlaysToday,
               gameScores:      { ...gameScores,      [game]: { ...(gameScores[game]||{}),      [user]: newBest } },
               gameScoresTotal: { ...gameScoresTotal, [game]: { ...(gameScoresTotal[game]||{}), [user]: prevTotal + score } },
+              gameHistory:     { ...gameHistoryAll, [user]: cappedHistory },
             });
             if (currentCount + 1 === DAILY_PLAY_LIMIT) {
               showNotif("info", `ℹ️ Dernière partie comptée aujourd'hui pour ce jeu (${DAILY_PLAY_LIMIT}/${DAILY_PLAY_LIMIT})`);
@@ -7580,7 +7550,7 @@ export default function App() {
             (c.status==="accepted" && ((c.from===user&&c.fromScore===null)||(c.to===user&&c.toScore===null))) ||
             (c.status==="pending" && c.from===user && c.fromScore===null)
           ));
-          const myDoneChallenges = Object.entries(challenges).filter(([,c]) => CHALLENGE_GAMES.includes(c.game) && c.status==="done" && (c.from===user||c.to===user)).sort((a,b)=>b[1].ts-a[1].ts).slice(0,5);
+          // myDoneChallenges retiré — remplacé par gameHistory dans l'historique complet
           const myDeclinedChallenges = Object.entries(challenges).filter(([,c]) => CHALLENGE_GAMES.includes(c.game) && c.status==="declined" && c.from===user).sort((a,b)=>b[1].ts-a[1].ts).slice(0,5);
 
           const resetGame = () => {
@@ -7775,23 +7745,72 @@ export default function App() {
                   ))}
                 </div>
               )}
-              {myDoneChallenges.length>0 && (
-                <div style={{marginBottom:14}}>
-                  <div style={{fontSize:11,color:MUTED,marginBottom:6,fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>📜 Défis terminés récents</div>
-                  {myDoneChallenges.map(([id,ch])=>{
-                    const isFromSide2 = ch.from===user;
-                    const my2 = isFromSide2?ch.fromScore:ch.toScore;
-                    const opp2 = isFromSide2?ch.toScore:ch.fromScore;
-                    const oppName2 = isFromSide2?ch.to:ch.from;
-                    return (
-                      <div key={id} style={{...t.card,marginBottom:6,padding:"8px 12px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                        <span style={{fontSize:11,color:MUTED}}>{({quiz:"Quiz",quisuisje:"Qui suis-je ?",plusmoins:"Plus ou Moins",toptrumps:"Qui a le plus ?"})[ch.game]||ch.game} vs {oppName2.toUpperCase()}</span>
-                        <span style={{fontSize:12,fontWeight:800,color:my2>opp2?GREEN:my2<opp2?RED:MUTED}}>{my2} - {opp2} {my2>opp2?"🏆":my2<opp2?"😔":"🤝"}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+              {/* ── Historique des parties ── */}
+              {(()=>{
+                const myHistory = [...(st.gameHistory?.[user] || [])].reverse(); // plus récent en premier
+                // Compléter avec les défis dont l'adversaire n'a pas encore joué (won=null)
+                // et les anciens défis "done" (avant le gameHistory) non encore dans l'historique
+                const oldDoneChallenges = Object.values(challenges)
+                  .filter(c => c.status==="done" && (c.from===user||c.to===user))
+                  .filter(c => !myHistory.some(h => h.mode==="defi" && h.ts===c.ts))
+                  .map(c => {
+                    const isFrom = c.from===user;
+                    const my = isFrom?c.fromScore:c.toScore;
+                    const opp = isFrom?c.toScore:c.fromScore;
+                    return { game:c.game, score:my, mode:"defi", opponent:isFrom?c.to:c.from,
+                      won: my>opp?"win":my<opp?"loss":"draw", ts:c.ts, legacy:true };
+                  });
+                const allHistory = [...myHistory, ...oldDoneChallenges].sort((a,b)=>b.ts-a.ts).slice(0,30);
+                if (!allHistory.length) return null;
+
+                const GAME_ICONS = {quiz:"🧠",quisuisje:"👤",plusmoins:"🔢",toptrumps:"🃏",penalty:"⚽",buteur:"🥅"};
+                const GAME_SHORT = {quiz:"Quiz",quisuisje:"Qui suis-je",plusmoins:"Plus/Moins",toptrumps:"Top Trumps",penalty:"Tirs au but",buteur:"Buteur"};
+
+                return (
+                  <div style={{marginBottom:14}}>
+                    <div style={{fontSize:11,color:MUTED,marginBottom:8,fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>
+                      📜 Historique — {allHistory.length} partie{allHistory.length>1?"s":""}
+                    </div>
+                    {allHistory.map((h,i) => {
+                      const date = new Date(h.ts);
+                      const dateStr = date.toLocaleDateString("fr-FR",{day:"numeric",month:"short"});
+                      const timeStr = date.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
+                      const isDefi = h.mode==="defi";
+                      const wonColor = h.won==="win"?GREEN:h.won==="loss"?RED:h.won==="draw"?AMB:MUTED;
+                      const wonIcon = h.won==="win"?"🏆":h.won==="loss"?"😔":h.won==="draw"?"🤝":"⏳";
+                      const wonLabel = h.won==="win"?"Victoire":h.won==="loss"?"Défaite":h.won==="draw"?"Égalité":"En attente";
+                      return (
+                        <div key={i} style={{...t.card,marginBottom:6,padding:"10px 12px",
+                          borderLeft:`3px solid ${wonColor}`,background:"rgba(255,255,255,.03)"}}>
+                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
+                            <div style={{flex:1,minWidth:0}}>
+                              <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:3}}>
+                                <span style={{fontSize:15}}>{GAME_ICONS[h.game]||"🎮"}</span>
+                                <span style={{fontSize:12,fontWeight:700,color:TXT}}>{GAME_SHORT[h.game]||h.game}</span>
+                                {isDefi && <span style={{fontSize:9,fontWeight:700,padding:"1px 6px",borderRadius:4,background:"rgba(245,158,11,.15)",color:AMB}}>⚔️ DÉFI</span>}
+                              </div>
+                              {isDefi && h.opponent && (
+                                <div style={{fontSize:10,color:MUTED}}>vs <strong style={{color:TXT}}>{h.opponent.toUpperCase()}</strong></div>
+                              )}
+                              <div style={{fontSize:9,color:MUTED,marginTop:2}}>{dateStr} à {timeStr}</div>
+                            </div>
+                            <div style={{textAlign:"right",flexShrink:0}}>
+                              {typeof h.score === "number" && (
+                                <div style={{fontSize:18,fontWeight:900,color:GOLD,lineHeight:1}}>{h.score} pts</div>
+                              )}
+                              {h.won !== null && (
+                                <div style={{fontSize:10,fontWeight:700,color:wonColor,marginTop:2}}>
+                                  {wonIcon} {wonLabel}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
               <div style={{fontSize:12,color:MUTED,marginBottom:8,fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>Choisir un jeu</div>
               {[
                 {id:"quiz",      icon:"🧠",name:"Quiz Coupe du Monde", desc:"Questions vérifiées sur l'histoire du Mondial"},
@@ -8023,7 +8042,7 @@ export default function App() {
               else{setTimeout(()=>{setPmIdx(i=>i+1);setPmInput("");setPmAnswered(false);setPmTotal(ns);},2500);}
             };
             const diff2=pmAnswered?Math.abs(parseInt(pmInput||0)-q.answer):null;
-            const pct2=pmAnswered?diff2/q.answer:null;
+            const pct2=pmAnswered?(q.answer===0 ? (parseInt(pmInput||0)===0?0:1) : diff2/q.answer):null;
             const pts2=pmAnswered?(pct2===0?10:pct2<=0.03?7:pct2<=0.08?4:pct2<=0.15?1:0):null;
             return (
               <div style={t.sec}>
@@ -8306,11 +8325,30 @@ export default function App() {
                 const winDailyCount = getDailyCount("penalty", win);
                 const winCapped = winDailyCount >= DAILY_PLAY_LIMIT;
                 const newPlaysToday2 = bumpDailyCount("penalty", win);
+
+                // ── Historique : enregistrer la partie penalty pour les deux joueurs ──
+                const ghAll = st.gameHistory || {};
+                // Joueur courant
+                const myWon = win===user?"win":"loss";
+                const myHist = (ghAll[user]||[]);
+                const myEntry = {game:"penalty",score:win===user?1:0,mode:"defi",opponent,won:myWon,ts:Date.now()};
+                const myCapped = [...myHist, myEntry].slice(-50);
+                // Adversaire : mettre à jour son entrée won=null en won réel si elle existe, sinon ajouter
+                const oppWon = win===opponent?"win":"loss";
+                const oppHist = [...(ghAll[opponent]||[])];
+                const oppEntryIdx = oppHist.map((h,i)=>({h,i})).reverse()
+                  .find(({h})=>h.mode==="defi"&&h.game==="penalty"&&h.opponent===user&&h.won===null);
+                if (oppEntryIdx) oppHist[oppEntryIdx.i] = {...oppEntryIdx.h, won:oppWon};
+                else oppHist.push({game:"penalty",score:win===opponent?1:0,mode:"defi",opponent:user,won:oppWon,ts:Date.now()-1});
+                const oppCapped = oppHist.slice(-50);
+
                 save({...st,
                   gamePlaysToday: newPlaysToday2,
                   gameScores: winCapped ? gs : {...gs,penalty:{...ps,[win]:(ps[win]||0)+1}},
                   gameScoresTotal: winCapped ? gst : {...gst,penalty:{...pst,[win]:(pst[win]||0)+1}},
-                  challenges:{...challenges,[penChallengeId]:newCh}});
+                  challenges:{...challenges,[penChallengeId]:newCh},
+                  gameHistory: {...ghAll, [user]:myCapped, [opponent]:oppCapped},
+                });
                 if(win===user&&winCapped) showNotif("info",`⏳ Limite quotidienne atteinte (${DAILY_PLAY_LIMIT}/${DAILY_PLAY_LIMIT}) — cette victoire ne compte pas dans ton score.`);
                 if(win===user)soundGoal();else soundSave();
               }else{save({...st,challenges:{...challenges,[penChallengeId]:newCh}});}
