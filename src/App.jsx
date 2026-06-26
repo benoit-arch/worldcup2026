@@ -2225,6 +2225,22 @@ const TOP_TRUMPS_CARDS = [
   { name:"Darwin Núñez",      emoji:"🇺🇾", titres:0, butscdm:21, matchscdm:45, ballondor:0, note:"Attaquant puissant de l'Uruguay et de Liverpool" },
   { name:"Youssef En-Nesyri", emoji:"🇲🇦", titres:0, butscdm:21, matchscdm:65, ballondor:0, note:"Buteur clé du parcours marocain en 2022" },
   { name:"Kai Havertz",       emoji:"🇩🇪", titres:0, butscdm:22, matchscdm:55, ballondor:0, note:"Polyvalent offensif d'Arsenal et de l'Allemagne" },
+  // ── Légendes ──
+  { name:"Pelé",               emoji:"🇧🇷", titres:3, butscdm:77, matchscdm:92,  ballondor:0, note:"Triple champion du monde (1958, 1962, 1970), légende absolue" },
+  { name:"Diego Maradona",     emoji:"🇦🇷", titres:1, butscdm:34, matchscdm:91,  ballondor:0, note:"Champion du monde 1986, auteur du but du siècle" },
+  { name:"Zinédine Zidane",    emoji:"🇫🇷", titres:1, butscdm:31, matchscdm:108, ballondor:1, note:"Champion du monde 1998, double buteur en finale" },
+  { name:"Ronaldo Nazário",    emoji:"🇧🇷", titres:2, butscdm:62, matchscdm:98,  ballondor:2, note:"Double champion du monde, recordman des buts en Coupe du Monde" },
+  { name:"Ronaldinho",         emoji:"🇧🇷", titres:1, butscdm:33, matchscdm:97,  ballondor:0, note:"Champion du monde 2002, magicien du Brésil" },
+  { name:"Thierry Henry",      emoji:"🇫🇷", titres:1, butscdm:51, matchscdm:123, ballondor:0, note:"Champion du monde 1998, meilleur buteur historique des Bleus" },
+  { name:"Roberto Baggio",     emoji:"🇮🇹", titres:0, butscdm:27, matchscdm:56,  ballondor:1, note:"Finaliste malheureux 1994, l'un des plus grands n°10 italiens" },
+  { name:"Franz Beckenbauer",  emoji:"🇩🇪", titres:1, butscdm:14, matchscdm:103, ballondor:2, note:"Champion du monde 1974, inventeur du poste de libéro" },
+  { name:"Johan Cruyff",       emoji:"🇳🇱", titres:0, butscdm:33, matchscdm:48,  ballondor:3, note:"Finaliste 1974, génie du football total néerlandais" },
+  { name:"George Best",        emoji:"🇬🇧", titres:0, butscdm:9,  matchscdm:37,  ballondor:1, note:"Légende nord-irlandaise, jamais qualifié en Coupe du Monde" },
+  { name:"Michel Platini",     emoji:"🇫🇷", titres:0, butscdm:41, matchscdm:72,  ballondor:3, note:"Triple Ballon d'Or consécutif, capitaine des Bleus" },
+  { name:"Paolo Maldini",      emoji:"🇮🇹", titres:0, butscdm:7,  matchscdm:126, ballondor:0, note:"Record de longévité, finaliste de la Coupe du Monde 1994" },
+  { name:"David Beckham",      emoji:"🏴󠁧󠁢󠁥󠁮󠁧󠁿", titres:0, butscdm:17, matchscdm:115, ballondor:0, note:"Icône anglaise, maître des coups francs" },
+  { name:"Zico",               emoji:"🇧🇷", titres:0, butscdm:48, matchscdm:72,  ballondor:0, note:"Légende de Flamengo, jamais sacré champion du monde" },
+  { name:"Romário",            emoji:"🇧🇷", titres:1, butscdm:55, matchscdm:70,  ballondor:0, note:"Champion du monde 1994, buteur d'instinct redoutable" },
 ];
 
 const TOP_TRUMPS_CATEGORIES = [
@@ -2260,7 +2276,127 @@ const BUTEUR_CARDS = [
   { name:"Phil Foden",        emoji:"🏴󠁧󠁢󠁥󠁮󠁧󠁿", team:"Angleterre",  club:"Man City",       clubGoals:19, intlGoals:13, age:24 },
   { name:"Endrick",           emoji:"🇧🇷", team:"Brésil",     club:"Real Madrid",    clubGoals:7,  intlGoals:13, age:18 },
   { name:"Hirving Lozano",    emoji:"🇲🇽", team:"Mexique",    club:"PSV",            clubGoals:8,  intlGoals:31, age:29 },
+  // ── Légendes ──
+  { name:"Pelé",               emoji:"🇧🇷", team:"Brésil",    club:"Santos",         clubGoals:643, intlGoals:77, age:29 },
+  { name:"Diego Maradona",     emoji:"🇦🇷", team:"Argentine", club:"Napoli",         clubGoals:115, intlGoals:34, age:25 },
+  { name:"Zinédine Zidane",    emoji:"🇫🇷", team:"France",    club:"Real Madrid",    clubGoals:49,  intlGoals:31, age:26 },
+  { name:"Ronaldo Nazário",    emoji:"🇧🇷", team:"Brésil",    club:"Real Madrid",    clubGoals:104, intlGoals:62, age:25 },
+  { name:"Ronaldinho",         emoji:"🇧🇷", team:"Brésil",    club:"FC Barcelone",   clubGoals:94,  intlGoals:33, age:25 },
+  { name:"Thierry Henry",      emoji:"🇫🇷", team:"France",    club:"Arsenal",        clubGoals:228, intlGoals:51, age:26 },
+  { name:"Roberto Baggio",     emoji:"🇮🇹", team:"Italie",    club:"Juventus",       clubGoals:115, intlGoals:27, age:27 },
+  { name:"Franz Beckenbauer",  emoji:"🇩🇪", team:"Allemagne", club:"Bayern Munich",  clubGoals:60,  intlGoals:14, age:28 },
+  { name:"Johan Cruyff",       emoji:"🇳🇱", team:"Pays-Bas",  club:"Ajax",           clubGoals:190, intlGoals:33, age:27 },
+  { name:"George Best",        emoji:"🇬🇧", team:"Irlande du Nord", club:"Manchester United", clubGoals:179, intlGoals:9, age:22 },
+  { name:"Michel Platini",     emoji:"🇫🇷", team:"France",    club:"Juventus",       clubGoals:68,  intlGoals:41, age:29 },
+  { name:"Paolo Maldini",      emoji:"🇮🇹", team:"Italie",    club:"AC Milan",       clubGoals:29,  intlGoals:7,  age:30 },
+  { name:"David Beckham",      emoji:"🏴󠁧󠁢󠁥󠁮󠁧󠁿", team:"Angleterre", club:"Manchester United", clubGoals:85, intlGoals:17, age:27 },
+  { name:"Zico",               emoji:"🇧🇷", team:"Brésil",    club:"Flamengo",       clubGoals:508, intlGoals:48, age:29 },
+  { name:"Romário",            emoji:"🇧🇷", team:"Brésil",    club:"PSV Eindhoven",  clubGoals:145, intlGoals:55, age:28 },
 ];
+
+// ═══ FOOTBALLEUR MYSTÈRE — banque de ~30 joueurs (légendes + actuels) ═══
+// `wiki` = titre exact de l'article Wikipédia anglais, `wikiFr` = repli sur le
+// wiki français si besoin (cas ambigus). Photo récupérée via l'API Wikipedia
+// au lancement de la partie (voir fetchMysteryPhoto). On ne stocke pas d'URL
+// d'image en dur : Wikipedia renomme/déplace parfois ses fichiers, alors que
+// le titre de la page, lui, ne change presque jamais.
+// `hints` = 10 indices texte, du plus vague au plus évident — un nouveau
+// indice est révélé à chaque tour, en plus de la case de la grille.
+// ── Titres Wikipedia pour les cartes des jeux Buteur / Top Trumps ──────────
+// Pour la grande majorité des joueurs, le nom affiché correspond exactement
+// au titre de l'article Wikipedia. Cette table ne couvre que les exceptions
+// (abréviations, homonymes nécessitant une désambiguïsation).
+const PLAYER_WIKI_OVERRIDES = {
+  "Vinicius Jr.": "Vinícius Júnior",
+  "Bruno Fernandes": "Bruno Fernandes (footballer, born 1994)",
+  "Endrick": "Endrick (footballer, born 2006)",
+  "Ronaldo Nazário": "Ronaldo (Brazilian footballer)",
+  "Zico": "Zico (footballer)",
+  "Zinédine Zidane": "Zinedine Zidane",
+};
+function wikiTitleFor(name) { return PLAYER_WIKI_OVERRIDES[name] || name; }
+
+const FOOTBALL_PLAYERS_BANK = [
+  // ── Légendes ──
+  { id:"pele",        name:"Pelé",               wiki:"Pelé",                           aliases:["edson arantes","o rei"],
+    hints:["Né au Brésil dans les années 1940.","Surnommé « O Rei » (le Roi) dans son pays.","A débuté en pro à seulement 15 ans.","Évoluait au poste d'attaquant.","A toujours joué pour un seul grand club brésilien.","A remporté la Coupe du Monde à 17 ans, en 1958.","Le seul joueur à avoir gagné 3 Coupes du Monde.","A terminé sa carrière aux États-Unis, au New York Cosmos.","Son vrai prénom est Edson.","Considéré par beaucoup comme le meilleur joueur de tous les temps."] },
+  { id:"maradona",    name:"Diego Maradona",     wiki:"Diego Maradona",                 aliases:["maradona","el pibe de oro"],
+    hints:["Né en Argentine dans les années 1960.","Surnommé « El Pibe de Oro » (le Gamin d'Or).","Très petit de taille mais redoutable techniquement.","Évoluait au poste de meneur de jeu.","A porté le maillot du Napoli en Italie.","A inscrit le « but du siècle » contre l'Angleterre en 1986.","A aussi marqué le tristement célèbre « but de la main de Dieu ».","A porté le numéro 10 de l'Argentine.","Champion du monde 1986, capitaine emblématique.","Une légende argentine adulée comme un dieu vivant."] },
+  { id:"zidane",      name:"Zinédine Zidane",    wiki:"Zinedine Zidane",                aliases:["zidane","zizou"],
+    hints:["Né en France dans les années 1970, d'origine algérienne.","Surnommé « Zizou ».","Évoluait au poste de milieu offensif.","A débuté à Cannes avant de briller à Bordeaux.","A porté les couleurs de la Juventus en Italie.","A inscrit un but exceptionnel en finale de Ligue des Champions 2002.","Champion du monde 1998 avec la France, double buteur en finale.","A reçu un carton rouge en finale de Coupe du Monde 2006.","A ensuite porté le maillot du Real Madrid.","Devenu entraîneur, il a aussi gagné 3 Ligues des Champions sur ce banc."] },
+  { id:"ronaldoR9",   name:"Ronaldo Nazário",    wiki:"Ronaldo (Brazilian footballer)", wikiFr:"Ronaldo (footballeur)", aliases:["ronaldo","fenomeno","r9"],
+    hints:["Né au Brésil dans les années 1970.","Surnommé « le Phénomène » (Fenômeno).","Évoluait au poste d'attaquant pur.","A explosé très jeune au PSV Eindhoven.","A porté le maillot du FC Barcelone puis de l'Inter Milan.","Sa carrière a été marquée par de graves blessures au genou.","Double Ballon d'Or dans les années 1990.","Décisif lors de la finale de la Coupe du Monde 2002.","A aussi joué pour le Real Madrid et l'AC Milan.","Souvent cité comme le meilleur attaquant pur de l'histoire."] },
+  { id:"ronaldinho",  name:"Ronaldinho",         wiki:"Ronaldinho",                     aliases:["ronaldinho gaucho"],
+    hints:["Né au Brésil dans les années 1980.","Connu pour sa technique et ses dribbles spectaculaires.","Évoluait au poste de meneur de jeu / ailier.","A débuté au Grêmio avant de partir en Europe.","A porté le maillot du PSG avant de rejoindre la Catalogne.","Élu meilleur joueur du monde au milieu des années 2000.","Champion du monde 2002 avec le Brésil.","Réputé pour son sourire et son numéro 10 emblématique.","A brillé au FC Barcelone aux côtés d'un jeune Messi.","Une des stars les plus charismatiques de l'histoire du football."] },
+  { id:"henry",       name:"Thierry Henry",      wiki:"Thierry Henry",                  aliases:["henry"],
+    hints:["Né en France dans les années 1970, en région parisienne.","Évoluait au poste d'attaquant.","A débuté à Monaco avant de partir en Italie puis en Angleterre.","Devenu une légende dans un grand club londonien.","Longtemps meilleur buteur de l'histoire de ce club anglais.","Champion du monde 1998 et champion d'Europe 2000 avec la France.","Réputé pour sa vitesse et sa finition.","A rejoint le FC Barcelone avant de terminer sa carrière aux États-Unis.","Devenu consultant télé très populaire après sa carrière.","Une icône d'Arsenal, où une statue lui est dédiée."] },
+  { id:"baggio",      name:"Roberto Baggio",     wiki:"Roberto Baggio",                 aliases:["baggio"],
+    hints:["Né en Italie dans les années 1960.","Surnommé « il Divin Codino » (le divin queue de cheval).","Évoluait au poste d'attaquant / meneur de jeu.","Connu pour sa fameuse coiffure en queue de cheval.","A porté le maillot de la Juventus puis de l'AC Milan.","Ballon d'Or au début des années 1990.","Héros malheureux de la finale de Coupe du Monde 1994.","A manqué le tir au but décisif de cette finale.","Une des figures les plus aimées du football italien.","Considéré comme l'un des plus grands numéros 10 de l'histoire."] },
+  { id:"beckenbauer", name:"Franz Beckenbauer",  wiki:"Franz Beckenbauer",              aliases:["beckenbauer","der kaiser"],
+    hints:["Né en Allemagne dans les années 1940.","Surnommé « der Kaiser » (l'Empereur).","A révolutionné le poste de défenseur central / libéro.","A passé l'essentiel de sa carrière au Bayern Munich.","Champion du monde en tant que capitaine en 1974.","Double Ballon d'Or dans les années 1970.","A terminé sa carrière aux États-Unis, au New York Cosmos.","A aussi été champion du monde comme sélectionneur en 1990.","L'un des seuls à avoir gagné la Coupe du Monde comme joueur et entraîneur.","Une légende absolue du football allemand."] },
+  { id:"cruyff",      name:"Johan Cruyff",       wiki:"Johan Cruyff",                   aliases:["cruyff"],
+    hints:["Né aux Pays-Bas dans les années 1940.","Évoluait au poste d'attaquant / meneur de jeu.","A porté le numéro 14, devenu culte.","Star de l'Ajax Amsterdam dans les années 1970.","Inventeur d'un dribble devenu célèbre, qui porte son nom.","Triple Ballon d'Or dans les années 1970.","Finaliste de la Coupe du Monde 1974 avec les Pays-Bas.","A ensuite brillé au FC Barcelone, comme joueur puis entraîneur.","Père du « football total » qui a influencé tout le jeu moderne.","Considéré comme l'un des plus grands génies du football européen."] },
+  { id:"best",        name:"George Best",        wiki:"George Best",                    aliases:["best"],
+    hints:["Né en Irlande du Nord dans les années 1940.","Évoluait au poste d'ailier.","Réputé pour son dribble et son style de vie extravagant.","A passé l'essentiel de sa carrière dans un grand club anglais.","Star de Manchester United dans les années 1960.","Ballon d'Or à la fin des années 1960.","Champion d'Europe des clubs avec son équipe en 1968.","Surnommé le « cinquième Beatle » pour sa popularité.","Sa carrière a été freinée par des soucis extra-sportifs.","Une légende culte du football britannique."] },
+  { id:"platini",     name:"Michel Platini",     wiki:"Michel Platini",                 aliases:["platini"],
+    hints:["Né en France dans les années 1950.","Évoluait au poste de milieu offensif.","A débuté à Nancy avant de briller à Saint-Étienne.","A porté le maillot de la Juventus en Italie.","Triple Ballon d'Or consécutif dans les années 1980.","Capitaine emblématique de l'équipe de France des années 1980.","Champion d'Europe des nations en 1984, meilleur buteur du tournoi.","Réputé pour ses coups francs et sa vision de jeu.","Devenu plus tard président de l'UEFA.","Considéré comme le meilleur joueur français avant l'ère Zidane."] },
+  { id:"maldini",     name:"Paolo Maldini",      wiki:"Paolo Maldini",                  aliases:["maldini"],
+    hints:["Né en Italie dans les années 1960.","Évoluait au poste de défenseur.","A joué toute sa carrière dans un seul club milanais.","Réputé pour son élégance et sa longévité au plus haut niveau.","A soulevé plusieurs fois la Ligue des Champions avec son club.","Longtemps capitaine de l'AC Milan.","A disputé une finale de Ligue des Champions à 40 ans passés.","Fils d'un autre footballeur professionnel italien.","Son fils est aussi devenu footballeur professionnel.","Considéré comme l'un des plus grands défenseurs de l'histoire."] },
+  { id:"beckham",     name:"David Beckham",      wiki:"David Beckham",                  aliases:["beckham","becks"],
+    hints:["Né en Angleterre dans les années 1970.","Évoluait au poste de milieu de terrain.","Réputé pour ses coups francs et ses passes longues.","Star de Manchester United dans les années 1990-2000.","A ensuite porté le maillot du Real Madrid.","Très populaire grâce à son image autant que son jeu.","A aussi joué au Milan AC et au PSG en fin de carrière.","A terminé sa carrière aux États-Unis, dans un club qu'il a aidé à fonder.","Marié à une ancienne Spice Girl.","Une véritable icône pop autant que sportive des années 2000."] },
+  { id:"zico",        name:"Zico",               wiki:"Zico (footballer)",              wikiFr:"Zico (footballeur)", aliases:["arthur antunes coimbra"],
+    hints:["Né au Brésil dans les années 1950.","Surnommé le « Pelé blanc » par certains observateurs.","Évoluait au poste de meneur de jeu / numéro 10.","Star historique d'un grand club de Rio de Janeiro.","Réputé pour sa technique sur coups francs.","Vice-champion du monde malheureux dans les années 1980.","N'a jamais remporté la Coupe du Monde malgré son immense talent.","A aussi joué au Japon en fin de carrière.","Considéré comme l'un des meilleurs joueurs n'ayant jamais été champion du monde.","Une légende absolue de Flamengo."] },
+  { id:"romario",     name:"Romário",            wiki:"Romário",                        aliases:["romario","baixinho"],
+    hints:["Né au Brésil dans les années 1960.","Surnommé « Baixinho » (le petit) pour sa taille.","Évoluait au poste d'attaquant, redoutable buteur dans la surface.","A porté le maillot du PSV Eindhoven puis du FC Barcelone.","Champion du monde avec le Brésil en 1994.","Décisif et buteur clé lors de cette Coupe du Monde.","Réputé pour son sens du but plus que pour son investissement défensif.","Revendique plus de 700 buts marqués en carrière.","A terminé sa carrière en jouant encore au Brésil à 40 ans passés.","Considéré comme l'un des plus grands buteurs brésiliens de l'histoire."] },
+  // ── Actuels ──
+  { id:"messi",       name:"Lionel Messi",       wiki:"Lionel Messi",                   aliases:["messi","leo messi","la pulga"],
+    hints:["Né en Argentine dans les années 1980.","Surnommé « la Pulga » (la Puce) pour sa petite taille.","Évoluait au poste d'attaquant / ailier.","A quitté l'Argentine très jeune pour rejoindre l'Europe.","A passé l'essentiel de sa carrière dans un club catalan.","Détient le record du plus grand nombre de Ballons d'Or.","A longtemps formé un duo de rivalité avec un autre champion portugais.","Champion du monde avec l'Argentine en 2022.","A porté le brassard de capitaine lors de ce sacre mondial.","A aussi joué au PSG avant de partir terminer sa carrière aux États-Unis."] },
+  { id:"cr7",         name:"Cristiano Ronaldo",  wiki:"Cristiano Ronaldo",               aliases:["cristiano","cr7","ronaldo"],
+    hints:["Né au Portugal dans les années 1980, sur l'île de Madère.","Connu sous le surnom « CR7 ».","Évoluait au poste d'attaquant.","A débuté à Sporting Lisbonne avant de partir en Angleterre.","A porté le maillot de Manchester United puis du Real Madrid.","Quintuple Ballon d'Or au cours de sa carrière.","Meilleur buteur de l'histoire de la Ligue des Champions.","Champion d'Europe des nations avec le Portugal en 2016.","A aussi joué en Italie, à la Juventus.","A ensuite rejoint un club saoudien pour la suite de sa carrière."] },
+  { id:"mbappe",      name:"Kylian Mbappé",      wiki:"Kylian Mbappé",                  aliases:["mbappe","kylian"],
+    hints:["Né en France dans les années 1990, en région parisienne.","Évoluait au poste d'attaquant, réputé pour sa vitesse.","A explosé très jeune à l'AS Monaco.","Champion du monde avec la France en 2018, encore adolescent.","A inscrit un triplé en finale de Coupe du Monde 2022.","A longtemps porté le maillot du Paris Saint-Germain.","A ensuite rejoint un grand club espagnol.","Réputé pour sa pointe de vitesse exceptionnelle.","Souvent comparé à Thierry Henry à ses débuts.","Une des plus grandes stars françaises du football moderne."] },
+  { id:"haaland",     name:"Erling Haaland",     wiki:"Erling Haaland",                  aliases:["haaland","erling"],
+    hints:["Né en Norvège dans les années 1990.","Évoluait au poste d'attaquant pur, très grand de taille.","A explosé en Autriche avant de rejoindre l'Allemagne.","A marqué l'histoire avec un nombre record de buts en Bundesliga.","A rejoint un club anglais où il a continué à battre des records.","Réputé pour sa puissance physique et son sens du but.","Fils d'un ancien footballeur professionnel norvégien.","A pulvérisé le record de buts en une saison de Premier League.","Surnommé parfois « la Machine » pour sa régularité devant le but.","Une des plus grandes stars scandinaves du football moderne."] },
+  { id:"debruyne",    name:"Kevin De Bruyne",    wiki:"Kevin De Bruyne",                 aliases:["de bruyne","kdb"],
+    hints:["Né en Belgique dans les années 1990.","Évoluait au poste de milieu offensif, passeur hors normes.","A connu un passage difficile à Chelsea avant de rebondir.","A explosé en Allemagne, au Wolfsburg.","A ensuite brillé pendant de nombreuses années en Angleterre.","Réputé pour ses passes décisives et ses frappes lointaines.","Pilier majeur de la « génération dorée » belge.","A remporté de nombreux titres de champion d'Angleterre.","Considéré comme l'un des meilleurs milieux de sa génération.","Une référence mondiale au poste de passeur depuis le milieu de terrain."] },
+  { id:"vinicius",    name:"Vinícius Júnior",    wiki:"Vinícius Júnior",                 aliases:["vinicius","vinicius jr","vini jr"],
+    hints:["Né au Brésil dans les années 2000.","Évoluait au poste d'ailier, réputé pour son dribble.","A explosé très jeune à Flamengo avant de partir en Europe.","A rejoint un grand club espagnol dès l'adolescence.","A mis du temps à trouver son efficacité devant le but en Europe.","Devenu une pièce essentielle de son club madrilène.","Buteur décisif en finale de Ligue des Champions.","Souvent dans les débats pour le Ballon d'Or ces dernières années.","Réputé pour son style de jeu joyeux et expressif.","Une des grandes stars brésiliennes de la génération actuelle."] },
+  { id:"bellingham",  name:"Jude Bellingham",    wiki:"Jude Bellingham",                 aliases:["bellingham","jude"],
+    hints:["Né en Angleterre dans les années 2000.","Évoluait au poste de milieu de terrain.","A débuté très jeune à Birmingham City.","A explosé en Allemagne, au Borussia Dortmund.","A rejoint un grand club espagnol à l'été 2023.","Réputé pour sa puissance physique et son sens du but pour un milieu.","Devenu rapidement titulaire indiscutable en sélection anglaise.","Une des plus grandes promesses du football anglais récent.","Très décisif dès sa première saison dans son nouveau club espagnol.","Considéré comme un futur candidat sérieux au Ballon d'Or."] },
+  { id:"neymar",      name:"Neymar",             wiki:"Neymar",                          aliases:["neymar jr","ney"],
+    hints:["Né au Brésil dans les années 1990.","Évoluait au poste d'attaquant / ailier, dribbleur spectaculaire.","A explosé très jeune à Santos, le club historique de Pelé.","A rejoint le FC Barcelone aux côtés de Messi et Suárez.","A signé un transfert record vers Paris.","Réputé pour ses dribbles et ses gestes techniques.","Souvent critiqué pour ses simulations en match.","Capitaine emblématique de la sélection brésilienne.","Sa carrière a souvent été freinée par les blessures.","Une des plus grandes stars brésiliennes des années 2010-2020."] },
+  { id:"lewandowski", name:"Robert Lewandowski", wiki:"Robert Lewandowski",              aliases:["lewandowski","lewy"],
+    hints:["Né en Pologne dans les années 1980.","Évoluait au poste d'attaquant pur.","A explosé en Allemagne, au Borussia Dortmund.","A ensuite rejoint le grand rival de son ancien club.","Réputé pour son sens du but exceptionnel et sa régularité.","A inscrit cinq buts en moins de dix minutes lors d'un match resté célèbre.","Longtemps meilleur buteur de la Bundesliga.","A ensuite rejoint le FC Barcelone en fin de carrière européenne.","Capitaine et meilleur buteur historique de la sélection polonaise.","Considéré comme l'un des plus grands attaquants de sa génération."] },
+  { id:"salah",       name:"Mohamed Salah",      wiki:"Mohamed Salah",                   aliases:["salah","mo salah"],
+    hints:["Né en Égypte dans les années 1990.","Évoluait au poste d'ailier / attaquant.","A débuté en Europe en Suisse, au FC Bâle.","A connu un passage discret à Chelsea, suivi d'un prêt en Italie.","A explosé véritablement quelques années plus tard, sur les bords de la Mersey.","Réputé pour son efficacité et sa frappe du pied gauche.","Très populaire en Égypte, où il est une véritable icône nationale.","A souvent terminé parmi les meilleurs buteurs de Premier League.","Une véritable idole dans tout le monde arabe.","Une des plus grandes stars africaines du football moderne."] },
+  { id:"kane",        name:"Harry Kane",         wiki:"Harry Kane",                      aliases:["kane"],
+    hints:["Né en Angleterre dans les années 1990.","Évoluait au poste d'attaquant pur.","A connu plusieurs prêts en début de carrière avant de percer.","Devenu la référence offensive d'un grand club londonien pendant une décennie.","Longtemps meilleur buteur de l'histoire de ce club londonien.","Réputé pour sa finition et sa vision de jeu pour un attaquant.","Capitaine emblématique de la sélection anglaise.","A longtemps été critiqué pour n'avoir jamais soulevé de trophée majeur.","A finalement rejoint un grand club allemand pour relancer sa quête de titres.","Une des références offensives du football anglais de sa génération."] },
+  { id:"modric",      name:"Luka Modrić",        wiki:"Luka Modrić",                     aliases:["modric"],
+    hints:["Né en Croatie dans les années 1980.","Évoluait au poste de milieu de terrain, très technique.","A débuté au Dinamo Zagreb avant de partir à l'étranger.","A explosé à Tottenham avant de rejoindre l'Espagne.","Pilier du Real Madrid pendant de nombreuses saisons.","Réputé pour sa vision de jeu malgré son petit gabarit.","Finaliste de la Coupe du Monde 2018 avec la Croatie.","Ballon d'Or, mettant fin à une longue domination de deux rivaux.","Capitaine historique de la sélection croate.","Considéré comme l'un des plus grands milieux européens de sa génération."] },
+  { id:"benzema",     name:"Karim Benzema",      wiki:"Karim Benzema",                   aliases:["benzema"],
+    hints:["Né en France dans les années 1980, près de Lyon.","Évoluait au poste d'attaquant.","A explosé à l'Olympique Lyonnais avant de partir en Espagne.","A passé l'essentiel de sa carrière dans un grand club madrilène.","Réputé pour son jeu de remise et son intelligence tactique.","A longtemps évolué dans l'ombre d'un autre grand attaquant portugais.","Devenu la référence offensive de son club après le départ de ce dernier.","Ballon d'Or après une saison exceptionnelle en Ligue des Champions.","A ensuite rejoint un club saoudien.","L'un des meilleurs attaquants français de sa génération."] },
+  { id:"saka",        name:"Bukayo Saka",        wiki:"Bukayo Saka",                     aliases:["saka"],
+    hints:["Né en Angleterre dans les années 2000.","Évoluait au poste d'ailier.","Formé dans le centre de formation d'un grand club londonien.","Devenu rapidement titulaire indiscutable dans ce club.","Réputé pour son sens du dribble et sa polyvalence.","A manqué un tir au but lors de la finale de l'Euro 2020 avec l'Angleterre.","A rebondi pour devenir l'un des meilleurs jeunes joueurs d'Europe.","Affectueusement surnommé par les supporters de son club.","Une des grandes promesses du football anglais de sa génération.","Capable de jouer ailier droit comme arrière selon les besoins de son équipe."] },
+  { id:"griezmann",   name:"Antoine Griezmann",  wiki:"Antoine Griezmann",               aliases:["griezmann","grizou"],
+    hints:["Né en France dans les années 1990.","Évoluait au poste d'attaquant / meneur de jeu.","A quitté la France très jeune pour rejoindre l'Espagne.","A explosé à la Real Sociedad avant de rejoindre un grand club madrilène.","Réputé pour sa polyvalence et sa technique.","Finaliste malheureux de l'Euro 2016 avec la France.","Champion du monde avec la France en 2018.","Désigné meilleur joueur du tournoi lors de ce Mondial 2018.","Réputé pour son célèbre « geste Fortnite » pour célébrer ses buts.","Une des figures majeures du football français du XXIe siècle."] },
+];
+
+// ── Repli JSONP pour l'API Wikipedia : si fetch() échoue (CORS, CSP
+// connect-src, etc.), on tente via une balise <script>, qui n'est pas
+// soumise aux mêmes restrictions qu'un fetch() cross-origin classique.
+function jsonpRequest(baseUrl) {
+  return new Promise((resolve, reject) => {
+    const cbName = `_wikiJsonpCb${Date.now()}${Math.floor(Math.random()*1e6)}`;
+    const script = document.createElement("script");
+    const cleanup = () => { try { delete window[cbName]; } catch(e) {} script.remove(); };
+    const timer = setTimeout(() => { cleanup(); reject(new Error("jsonp timeout")); }, 6000);
+    window[cbName] = (data) => { clearTimeout(timer); cleanup(); resolve(data); };
+    script.onerror = () => { clearTimeout(timer); cleanup(); reject(new Error("jsonp script error")); };
+    script.src = `${baseUrl}&callback=${cbName}`;
+    document.body.appendChild(script);
+  });
+}
+
 const blank = () => ({ users:{}, predictions:{}, results:{}, scores:{}, validatedGroups:{}, finalLock:{}, seenAnim:{}, officialThirds:{}, thirdPicks:{}, seenEgg:{}, presence:{}, chat:{famille:[],collegues:[],externe:[]}, matchComments:{}, chatEnabled:true, appVersion: APP_VERSION, forceLogoutSignal: 0, seenChat:{}, gameScores:{}, gameScoresTotal:{}, gameHistory:{}, challenges:{}, gamePlaysToday:{},
   elimUnlocked: [],          // phases déverrouillées par admin: ["seiziemes","huitiemes",...]
   elimRealTeams: {},         // équipes réelles saisies par admin: {"R1":{home:"Maroc",away:"France"}, ...}
@@ -3083,8 +3219,9 @@ export default function App() {
   // ── États jeux (top-level obligatoire pour respecter les règles des Hooks) ──
   const [activeGame, setActiveGame]       = useState(null);
   const [gamePhase, setGamePhase]         = useState("menu");
-  const [jeuxSubTab, setJeuxSubTab]       = useState("jouer"); // "jouer" | "classements"
-  const [scoresSubTab, setScoresSubTab]   = useState("pronos"); // "pronos" | "jeux"
+  const [jeuxSubTab, setJeuxSubTab]       = useState("jouer"); // "jouer" | "classements" | "historique"
+  const [gameMode, setGameMode]           = useState(null);   // null | "solo" | "defi"
+  const [scoresSubTab, setScoresSubTab]   = useState("pronos"); // "pronos" | "parmatch" | "jeux"
   const [statsMatchPlayer, setStatsMatchPlayer] = useState(null); // joueur sélectionné pour stats détaillées (admin)
   const [qIdx, setQIdx]                   = useState(0);
   const [qScore, setQScore]               = useState(0);
@@ -3119,6 +3256,15 @@ export default function App() {
   const [activeChallengeId, setActiveChallengeId] = useState(null); // défi en cours (quiz/quisuisje/plusmoins/toptrumps)
   const [ttChallengeQueue, setTtChallengeQueue]   = useState(null); // paires de cartes restantes en mode défi (Top Trumps)
   const [challengePicker, setChallengePicker]     = useState(null); // game id en cours de sélection d'adversaire
+  const [mysteryPlayer, setMysteryPlayer]         = useState(null); // joueur à deviner {id,name,wiki,aliases}
+  const [mysteryRevealOrder, setMysteryRevealOrder] = useState([]); // permutation des 25 cases de la grille
+  const [mysteryTurn, setMysteryTurn]             = useState(0);    // nombre de cases révélées (1 à 10)
+  const [mysteryPhotoUrl, setMysteryPhotoUrl]     = useState(null); // null=chargement, false=indisponible, string=URL
+  const [mysteryPhotoError, setMysteryPhotoError] = useState(null); // raison technique si indisponible (affichée dans l'UI)
+  const [mysteryLastGuess, setMysteryLastGuess]   = useState("");   // dernière réponse proposée (pour comparaison en mode défi)
+  const [cardPhotos, setCardPhotos] = useState({}); // { nomJoueur: url|false } — photos des cartes Buteur / Top Trumps
+  const cardPhotoInFlightRef = useRef(new Set());   // évite de relancer 2x le même fetch en parallèle
+  const photoCacheRef = useRef({}); // cache mémoire { playerId: {url,error} } pour éviter de re-fetcher Wikipedia
   const [adminChatGroup, setAdminChatGroup] = useState("famille");
   const [groupPronoPlayer, setGroupPronoPlayer] = useState(null); // joueur sélectionné dans l'onglet groupe
   // chatMatchId, groupPronoPhase, chatTab supprimés — chat par match retiré
@@ -3317,7 +3463,7 @@ export default function App() {
     const isFromSide = ch.from === user;
     const already = isFromSide ? ch.fromScore !== null : ch.toScore !== null;
     if (already) return;
-    const updated = {...ch, [isFromSide?"fromScore":"toScore"]: qScore};
+    const updated = {...ch, [isFromSide?"fromScore":"toScore"]: qScore, ...(ch.game==="mystere" ? {[isFromSide?"fromGuess":"toGuess"]: mysteryLastGuess} : {})};
     const bothDone = updated.fromScore !== null && updated.toScore !== null;
     if (bothDone) updated.status = "done";
 
@@ -3359,6 +3505,94 @@ export default function App() {
     persistFirebase(ns);
   }, []);
 
+  // ── Nettoyage des défis "penalty" mal formés (séquelles d'un bug désormais
+  // corrigé : le bouton générique "Défier quelqu'un" pouvait créer un défi
+  // penalty sans roleFrom/roleTo, qui plantait l'écran à l'affichage). On ne
+  // supprime que les entrées clairement corrompues (penalty + pas terminé +
+  // sans roleFrom), via une écriture Firebase atomique scopée par clé.
+  useEffect(() => {
+    if (!FB_ENABLED || !_fbReady) return;
+    const all = st.challenges || {};
+    const badIds = Object.entries(all)
+      .filter(([,c]) => c.game==="penalty" && c.status!=="done" && !c.roleFrom)
+      .map(([id]) => id);
+    if (!badIds.length) return;
+    const updates = {};
+    badIds.forEach(id => { updates[`challenges/${id}`] = null; });
+    _fbUpdate("/", updates).catch(e => console.warn("Nettoyage défis penalty corrompus — erreur:", e));
+  }, [st.challenges]);
+
+  // ── FOOTBALLEUR MYSTÈRE : récupère la VRAIE photo du joueur, en direct,
+  // via l'API publique officielle de Wikipedia — ce sont de vraies photos de
+  // presse/portrait hébergées sur Wikipedia, pas des images générées.
+  // Deux méthodes essayées dans l'ordre :
+  //  1) fetch() + origin=* (méthode standard documentée par MediaWiki pour le CORS)
+  //  2) repli JSONP via <script> (contourne CORS/CSP connect-src entièrement)
+  // On essaie le wiki anglais puis, en repli, le wiki français.
+  // Retourne { url, error } — error est une étiquette courte affichée dans
+  // l'UI (sans console) si la photo ne charge pas, pour pouvoir diagnostiquer
+  // depuis un mobile : "fetch-blocked" (réseau/CORS/CSP), "jsonp-blocked"
+  // (même le repli a échoué), "no-image" (Wikipedia n'a pas de photo pour ce
+  // titre), "http-xxx" (erreur HTTP).
+  const fetchMysteryPhoto = useCallback(async (player) => {
+    const cached = photoCacheRef.current[player.id];
+    if (cached !== undefined) return cached;
+    let lastError = null;
+    const tryLang = async (lang, title) => {
+      const base = `https://${lang}.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(title)}&prop=pageimages&format=json&pithumbsize=500&redirects=1`;
+      try {
+        const res = await fetch(`${base}&origin=*`);
+        if (res.ok) {
+          const data = await res.json();
+          const page = Object.values(data?.query?.pages || {})[0];
+          if (page?.thumbnail?.source) return page.thumbnail.source;
+          lastError = "no-image";
+          return null;
+        }
+        lastError = `http-${res.status}`;
+      } catch(e) {
+        lastError = "fetch-blocked";
+      }
+      try {
+        const data = await jsonpRequest(base);
+        const page = Object.values(data?.query?.pages || {})[0];
+        if (page?.thumbnail?.source) return page.thumbnail.source;
+        lastError = lastError || "no-image";
+      } catch(e) {
+        lastError = lastError || "jsonp-blocked";
+      }
+      return null;
+    };
+    let url = await tryLang("en", player.wiki);
+    if (!url && player.wikiFr) url = await tryLang("fr", player.wikiFr);
+    if (!url) url = await tryLang("fr", player.name); // dernier repli : nom tel quel sur le wiki FR
+    const result = { url: url || null, error: url ? null : (lastError || "unknown") };
+    photoCacheRef.current[player.id] = result;
+    return result;
+  }, []);
+
+  // ── Photos des cartes Buteur / Top Trumps : réutilise fetchMysteryPhoto
+  // (même cache, même repli EN→FR→JSONP) à partir du simple nom affiché sur
+  // la carte. Résultat stocké dans cardPhotos, partagé entre les 2 jeux.
+  const ensureCardPhoto = useCallback((name) => {
+    if (cardPhotos[name] !== undefined || cardPhotoInFlightRef.current.has(name)) return;
+    cardPhotoInFlightRef.current.add(name);
+    fetchMysteryPhoto({ id:name, wiki:wikiTitleFor(name), name }).then(({url}) => {
+      cardPhotoInFlightRef.current.delete(name);
+      setCardPhotos(prev => ({...prev, [name]: url || false}));
+    });
+  }, [cardPhotos, fetchMysteryPhoto]);
+
+  useEffect(() => {
+    if (ttCard1) ensureCardPhoto(ttCard1.name);
+    if (ttCard2) ensureCardPhoto(ttCard2.name);
+  }, [ttCard1, ttCard2, ensureCardPhoto]);
+
+  useEffect(() => {
+    if (buteurWinner) ensureCardPhoto(buteurWinner.name);
+    if (buteurDeck[0]) ensureCardPhoto(buteurDeck[0].name);
+  }, [buteurWinner, buteurDeck, ensureCardPhoto]);
+
   // ── Marque les messages comme lus EN CONTINU tant qu'on est sur l'onglet Chat ──
   // (avant, le "vu" n'était mis à jour qu'au clic sur l'onglet : si de nouveaux
   // messages arrivaient en temps réel pendant qu'on lisait déjà le chat, le
@@ -3379,7 +3613,19 @@ export default function App() {
       if (updated[g] !== len) { updated[g] = len; changed = true; }
     });
     if (changed) {
-      save({...st, seenChat:{...(st.seenChat||{}),[user]:updated}});
+      const ns = {...st, seenChat:{...(st.seenChat||{}),[user]:updated}};
+      // 🛡️ Mise à jour locale immédiate (pour faire disparaître le badge "non lu")
+      setSt(ns);
+      persist(ns);
+      // 🛡️ Écriture Firebase ATOMIQUE : on ne touche QUE seenChat/<user>, jamais le
+      // reste de l'état (scores, results, etc.). Avant ce fix, ceci passait par
+      // save() qui réécrivait TOUT st — si un autre changement (ex: l'admin qui
+      // vient de saisir un score) n'avait pas encore atteint ce client au moment
+      // où un message de chat arrivait, ce save() ré-écrivait un st.scores périmé
+      // et effaçait silencieusement le score tout juste saisi par l'admin.
+      if (FB_ENABLED && _fbReady) {
+        _fbUpdate("/", { [`seenChat/${user}`]: updated }).catch(e => console.warn("seenChat Firebase write error:", e));
+      }
     }
   }, [tab, st.chat, user]);
 
@@ -3658,7 +3904,7 @@ export default function App() {
     // ── Reset complet des états jeux — sinon ils "fuitent" vers la session
     // du joueur suivant qui se connecte sur le même appareil (ex : écran de
     // sélection d'adversaire qui réapparaît tout seul) ──
-    setActiveGame(null); setGamePhase("menu"); setJeuxSubTab("jouer");
+    setActiveGame(null); setGamePhase("menu"); setJeuxSubTab("jouer"); setGameMode(null);
     setScoresSubTab("pronos"); setGroupPronoPlayer(null); setStatsMatchPlayer(null);
     setTab("home");
     setChallengePicker(null); setChallengeTarget(null);
@@ -3880,9 +4126,19 @@ export default function App() {
     toAnimate.forEach(({ key }) => { newSeen[key] = true; });
     // Mise à jour silencieuse (sans re-render inutile)
     const ns = { ...st, seenAnim: newSeen };
-    // On écrit directement sans passer par save() pour éviter une boucle
-    persistFirebase(ns);
     persist(ns); // fallback local si Firebase offline
+    // 🛡️ Écriture Firebase ATOMIQUE : on ne touche QUE les clés seenAnim/<clé>
+    // concernées, jamais le reste de l'état. AVANT ce fix, persistFirebase(ns)
+    // réécrivait l'intégralité de st (scores, results, etc.) à partir de l'état
+    // local de CE client — déclenché chez TOUS les joueurs connectés à chaque
+    // nouveau score saisi par l'admin. Si le score d'un match suivant arrivait
+    // côté admin avant que ce client n'ait reçu ce résultat-ci, cette écriture
+    // "fantôme" pouvait effacer le score suivant tout juste saisi par l'admin.
+    if (FB_ENABLED && _fbReady) {
+      const seenAnimUpdates = {};
+      toAnimate.forEach(({ key }) => { seenAnimUpdates[`seenAnim/${key}`] = true; });
+      _fbUpdate("/", seenAnimUpdates).catch(e => console.warn("seenAnim Firebase write error:", e));
+    }
 
     // Déclencher les animations avec stagger si plusieurs nouveaux résultats
     // (max 3 animations pour ne pas spammer, priorité finale > demis > etc.)
@@ -4654,14 +4910,14 @@ export default function App() {
        {k:"jeux",l:"🎮",lbl:"Jeux"},{k:"chat",l:"💬",lbl:"Chat"},{k:"histo",l:"📋",lbl:"Résultats"}];
 
   // ── Constantes partagées entre l'onglet Stats (sous-onglet Jeux) et l'onglet Jeux lui-même ──
-  const NUMERIC_GAMES = ["quiz","quisuisje","plusmoins","toptrumps","penalty"]; // exclut "buteur" (score = nom, pas un nombre)
-  const ALL_GAMES_LIST = ["quiz","quisuisje","plusmoins","toptrumps","penalty","buteur"];
+  const NUMERIC_GAMES = ["quiz","quisuisje","plusmoins","toptrumps","penalty","mystere"]; // exclut "buteur" (score = nom, pas un nombre)
+  const ALL_GAMES_LIST = ["quiz","quisuisje","plusmoins","toptrumps","penalty","mystere","buteur"];
   const sameGroupUsers = Object.keys(st.users).filter(u => u !== "admin" && (isAdmin || (st.users[u]||{}).role===role));
   const allNonAdminUsers = Object.keys(st.users).filter(u => u !== "admin");
   const gameScores = st.gameScores || {};
   const gameScoresTotal = st.gameScoresTotal || {};
   const gamePlaysToday = st.gamePlaysToday || {};
-  const GAME_LABELS = {quiz:"🧠 Quiz Coupe du Monde",quisuisje:"👤 Qui suis-je ?",plusmoins:"🔢 Plus ou Moins",toptrumps:"🃏 Qui a le plus ?",penalty:"⚽ Tirs au but",buteur:"🥅 Buteur"};
+  const GAME_LABELS = {quiz:"🧠 Quiz Coupe du Monde",quisuisje:"👤 Qui suis-je ?",plusmoins:"🔢 Plus ou Moins",toptrumps:"🃏 Qui a le plus ?",penalty:"⚽ Tirs au but",mystere:"🧩 Footballeur Mystère",buteur:"🥅 Buteur"};
 
   const elimPhases=[{k:"seiziemes",l:"1/16"},{k:"huitiemes",l:"1/8"},{k:"quarts",l:"Quarts"},{k:"demis",l:"Demis"},{k:"p3",l:"3e pl."},{k:"finale",l:"Finale"}];
   const todayMatches = MATCHES.filter(m=>m.dk===today);
@@ -5123,6 +5379,59 @@ export default function App() {
                 </div>
               );
             })}
+
+            {/* ── CARTE DÉFIS EN ATTENTE ── */}
+            {(()=>{
+              const GAME_SHORT_HOME = {quiz:"Quiz",quisuisje:"Qui suis-je",plusmoins:"Plus/Moins",toptrumps:"Top Trumps",penalty:"Penalty",mystere:"Footballeur Mystère",buteur:"Buteur"};
+              const allCh = st.challenges || {};
+              const pendingReceived = Object.entries(allCh).filter(([,c])=>
+                c.to===user && c.status==="pending"
+              );
+              const myTurn = Object.entries(allCh).filter(([,c])=>
+                c.status==="active" && ((c.from===user&&c.fromScore===null)||(c.to===user&&c.toScore===null))
+                || (c.status==="accepted"&&((c.from===user&&c.fromScore===null)||(c.to===user&&c.toScore===null)))
+                || (c.game==="penalty"&&c.status==="active"&&((c.from===user&&!c.shotFrom)||(c.to===user&&!c.shotTo)))
+              );
+              const total = pendingReceived.length + myTurn.length;
+              if (!total) return null;
+              return (
+                <div style={{marginBottom:14}}>
+                  <div style={{fontSize:12,fontWeight:700,color:AMB,marginBottom:8,textTransform:"uppercase",letterSpacing:.5}}>⚔️ Défis en attente — {total}</div>
+                  {pendingReceived.map(([id,ch])=>(
+                    <div key={id} style={{...t.card,marginBottom:8,border:`1px solid ${AMB}`,background:"rgba(245,158,11,.08)",padding:"12px 14px"}}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                        <div>
+                          <span style={{fontSize:13,fontWeight:800,color:TXT}}>{ch.from.toUpperCase()}</span>
+                          <span style={{fontSize:11,color:MUTED}}> te défie au </span>
+                          <span style={{fontSize:12,fontWeight:700,color:AMB}}>{GAME_SHORT_HOME[ch.game]||ch.game}</span>
+                        </div>
+                        <span style={{fontSize:18}}>⚔️</span>
+                      </div>
+                      <div style={{display:"flex",gap:8}}>
+                        <button onClick={()=>{setTab("jeux"); setJeuxSubTab("jouer");}} style={{flex:2,padding:"9px",borderRadius:8,border:"none",background:AMB,color:"#000",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>✅ Répondre →</button>
+                      </div>
+                    </div>
+                  ))}
+                  {myTurn.map(([id,ch])=>{
+                    const opp = ch.from===user?ch.to:ch.from;
+                    return (
+                      <div key={id} style={{...t.card,marginBottom:8,border:`1px solid ${GOLD}`,background:"rgba(245,200,66,.06)",padding:"12px 14px"}}>
+                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                          <div>
+                            <span style={{fontSize:11,color:MUTED}}>C'est ton tour vs </span>
+                            <span style={{fontSize:13,fontWeight:800,color:TXT}}>{opp.toUpperCase()}</span>
+                            <span style={{fontSize:11,color:MUTED}}> — </span>
+                            <span style={{fontSize:12,fontWeight:700,color:GOLD}}>{GAME_SHORT_HOME[ch.game]||ch.game}</span>
+                          </div>
+                          <span style={{fontSize:18}}>🎯</span>
+                        </div>
+                        <button onClick={()=>{setTab("jeux"); setJeuxSubTab("jouer");}} style={{width:"100%",padding:"9px",borderRadius:8,border:"none",background:GOLD,color:"#0a0e1a",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>▶️ Jouer mon tour</button>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
 
             <div style={t.divider}/>
             <div style={t.stitle}>📊 Classement</div>
@@ -5616,13 +5925,13 @@ export default function App() {
                   : <LB filterRole={role} title="Classement"/>
               )}
 
-              {scoresSubTab==="parmatch" && (
-                (isAdmin || canSeeGroupPronos) ? (
-                  <MatchStatsBlock/>
-                ) : (
-                  <div style={t.empty}>Tu pourras consulter les pronos du groupe par match une fois tes propres pronostics validés. 🔒</div>
-                )
-              )}
+              {scoresSubTab==="parmatch" && (()=>{
+                const hasResults = Object.keys(st.results||{}).length > 0;
+                if (!hasResults) return (
+                  <div style={t.empty}>Les stats par match apparaîtront dès le premier résultat officiel. ⚽</div>
+                );
+                return <MatchStatsBlock/>;
+              })()}
 
               {scoresSubTab==="jeux" && isAdmin && <GamesStatsBlock/>}
             </div>
@@ -6917,7 +7226,7 @@ export default function App() {
                   {/* ── Stats des défis : qui envoie/gagne/refuse le plus ── */}
                   {(() => {
                     const allChallenges = Object.values(st.challenges||{});
-                    const cgLabels = {quiz:"Quiz",quisuisje:"Qui suis-je ?",plusmoins:"Plus ou Moins",toptrumps:"Qui a le plus ?",penalty:"Tirs au but"};
+                    const cgLabels = {quiz:"Quiz",quisuisje:"Qui suis-je ?",plusmoins:"Plus ou Moins",toptrumps:"Qui a le plus ?",penalty:"Tirs au but",mystere:"Footballeur Mystère"};
 
                     const sentByUser = {};
                     allChallenges.forEach(c => {
@@ -7292,10 +7601,11 @@ export default function App() {
               );
               // Vérifier si le joueur a des pronostics sur les matchs joués
               const hasAnyPred = played.some(m => preds[m.id]);
-              // Grouper par date
+              // Grouper par date en préservant l'ordre inversé (récent en haut)
               const byDate = {};
+              const dateOrder = []; // ordre des dates d'après played (déjà inversé)
               played.forEach(m=>{
-                if(!byDate[m.date]) byDate[m.date]=[];
+                if(!byDate[m.date]) { byDate[m.date]=[]; dateOrder.push(m.date); }
                 byDate[m.date].push(m);
               });
               return (<>
@@ -7315,7 +7625,9 @@ export default function App() {
                     </div>
                   </div>
                 )}
-                {Object.entries(byDate).map(([date,matches])=>(
+                {dateOrder.map(date=>{
+                const matches = byDate[date];
+                return (
                 <div key={date} style={{marginBottom:16}}>
                   <div style={{fontSize:11,fontWeight:700,color:GOLD,textTransform:"uppercase",
                     letterSpacing:1,marginBottom:8,padding:"4px 0",
@@ -7374,7 +7686,8 @@ export default function App() {
                     );
                   })}
                 </div>
-              ))}
+                );
+                })}
               </>);
             })()}
             <div style={{height:16}}/>
@@ -7389,7 +7702,7 @@ export default function App() {
           const gameScores = st.gameScores || {};
           const gameScoresTotal = st.gameScoresTotal || {};
           const challenges = st.challenges || {};
-          const NUMERIC_GAMES = ["quiz","quisuisje","plusmoins","toptrumps","penalty"]; // exclut "buteur" (score = nom, pas un nombre)
+          const NUMERIC_GAMES = ["quiz","quisuisje","plusmoins","toptrumps","penalty","mystere"]; // exclut "buteur" (score = nom, pas un nombre)
           // Joueurs du même groupe que l'utilisateur (admin voit tout le monde)
           const sameGroupUsers = Object.keys(st.users).filter(u => u !== "admin" && (isAdmin || (st.users[u]||{}).role===role));
 
@@ -7479,7 +7792,8 @@ export default function App() {
           // ── DÉFIS GÉNÉRALISÉS (quiz / quisuisje / plusmoins / toptrumps) ──
           // Principe : le défi est envoyé AVANT de jouer, avec un set de questions
           // FIGÉ et IDENTIQUE pour les deux joueurs, afin de pouvoir comparer équitablement.
-          const CHALLENGE_GAMES = ["quiz","quisuisje","plusmoins","toptrumps"];
+          const CHALLENGE_GAMES = ["quiz","quisuisje","plusmoins","toptrumps","mystere"];
+          const MYSTERY_MAX_TURNS = 10; // nombre max de cases révélées avant fin de partie
           const buildQuestionSet = (game) => {
             if (game==="quiz")      return [...QUIZ_QUESTIONS].sort(()=>Math.random()-.5).slice(0,10);
             if (game==="quisuisje") return [...QUI_SUIS_JE].sort(()=>Math.random()-.5).slice(0,6);
@@ -7488,6 +7802,11 @@ export default function App() {
               const sh=[...TOP_TRUMPS_CARDS].sort(()=>Math.random()-.5);
               const pairs=[]; for(let i=0;i<8;i++) pairs.push([sh[i*2%sh.length],sh[(i*2+1)%sh.length]]);
               return pairs;
+            }
+            if (game==="mystere") {
+              const p = FOOTBALL_PLAYERS_BANK[Math.floor(Math.random()*FOOTBALL_PLAYERS_BANK.length)];
+              const revealOrder = [...Array(25).keys()].sort(()=>Math.random()-.5);
+              return { player:p, revealOrder };
             }
             return [];
           };
@@ -7504,8 +7823,17 @@ export default function App() {
               setTtChallengeQueue(ch.questionSet.slice(1));
               setTtCard1(ch.questionSet[0][0]); setTtCard2(ch.questionSet[0][1]);
             }
+            if (ch.game==="mystere") {
+              setMysteryPlayer(ch.questionSet.player);
+              setMysteryRevealOrder(ch.questionSet.revealOrder);
+              setMysteryTurn(1);
+              setMysteryPhotoUrl(null);
+              setMysteryPhotoError(null);
+              fetchMysteryPhoto(ch.questionSet.player).then(({url,error})=>{ setMysteryPhotoUrl(url || false); setMysteryPhotoError(error); });
+            }
           };
           const sendGameChallenge = (toUser, game) => {
+            if (!CHALLENGE_GAMES.includes(game)) { setChallengePicker(null); return; } // ce jeu a son propre système de défi
             if (blockIfSendLimitReached(game)) { setChallengePicker(null); return; }
             if (blockIfDailyLimitReached(game, user)) { setChallengePicker(null); return; }
             if (blockIfDailyLimitReached(game, toUser)) { setChallengePicker(null); return; }
@@ -7561,7 +7889,8 @@ export default function App() {
             setPmInput(""); setPmAnswered(false); setPmTotal(0); setPmIdx(0);
             setButeurWinner(null); setButeurDeck([]); setButeurPick(null); setButeurDone(false);
             setPenChallengeId(null); setPenZonePick(null); setPenRevealStage("none"); penAnimRef.current=null;
-            setActiveChallengeId(null); setTtChallengeQueue(null);
+            setActiveChallengeId(null); setTtChallengeQueue(null); setGameMode(null);
+            setMysteryPlayer(null); setMysteryRevealOrder([]); setMysteryTurn(0); setMysteryPhotoUrl(null); setMysteryPhotoError(null); setMysteryLastGuess("");
           };
 
           const startGame = (game, length) => {
@@ -7583,6 +7912,12 @@ export default function App() {
               const shuffled=[...QUIZ_QUESTIONS].sort(()=>Math.random()-.5);
               setQuizSet(length ? shuffled.slice(0,length) : shuffled);
             }
+            if (game==="mystere") {
+              const p = FOOTBALL_PLAYERS_BANK[Math.floor(Math.random()*FOOTBALL_PLAYERS_BANK.length)];
+              const revealOrder = [...Array(25).keys()].sort(()=>Math.random()-.5);
+              setMysteryPlayer(p); setMysteryRevealOrder(revealOrder); setMysteryTurn(1); setMysteryPhotoUrl(null); setMysteryPhotoError(null);
+              fetchMysteryPhoto(p).then(({url,error})=>{ setMysteryPhotoUrl(url || false); setMysteryPhotoError(error); });
+            }
             if (game==="buteur") {
               // Tournoi : mélanger les cartes, poser la 1ère comme champion, le reste comme deck
               const shuffled = [...BUTEUR_CARDS].sort(()=>Math.random()-.5);
@@ -7598,36 +7933,17 @@ export default function App() {
             plusmoins: [{n:8, l:"⚡ Rapide"},{n:14,l:"🎯 Normal"}],
           };
 
-          // ── CHOIX DE LA LONGUEUR (quiz / plus ou moins) ──────────
-          if (gamePhase === "length" && activeGame) {
-            const gName = activeGame==="quiz" ? "Quiz Coupe du Monde" : "Plus ou Moins";
-            return (
-              <div style={t.sec}>
-                <div style={{height:8}}/>
-                <button onClick={()=>{setGamePhase("menu");setActiveGame(null);}} style={{padding:"4px 10px",borderRadius:6,border:"none",background:"rgba(255,255,255,.08)",color:MUTED,fontSize:11,cursor:"pointer",marginBottom:14}}>← Retour</button>
-                <div style={{...t.card,textAlign:"center",marginBottom:14}}>
-                  <div style={{fontSize:14,fontWeight:800,color:GOLD,marginBottom:4}}>{gName}</div>
-                  <div style={{fontSize:12,color:MUTED}}>Choisis la durée de ta partie</div>
-                </div>
-                {lengthOptions[activeGame].map(opt=>(
-                  <button key={opt.l} onClick={()=>startGame(activeGame,opt.n)}
-                    style={{display:"block",width:"100%",marginBottom:8,padding:"14px",borderRadius:10,border:`1px solid ${BRD}`,background:"rgba(255,255,255,.05)",color:TXT,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit",textAlign:"center"}}>
-                    {opt.l}{opt.n?` — ${opt.n} questions`:" — toutes les questions"}
-                  </button>
-                ))}
-              </div>
-            );
-          }
-
-          // ── MENU ──────────────────────────────────────────────
-          // ══ MENU ══════════════════════════════════════════════
           // ── CHOIX DE L'ADVERSAIRE POUR UN DÉFI ────────────────
+          // (ce bloc DOIT être vérifié avant l'écran "mode" : cliquer sur
+          // "Défier quelqu'un" ne change pas gamePhase, qui reste "mode" —
+          // si on testait gamePhase==="mode" en premier, on retombait
+          // toujours sur l'écran mode au lieu du choix de l'adversaire)
           if (challengePicker) {
-            const gName2 = {quiz:"Quiz Coupe du Monde",quisuisje:"Qui suis-je ?",plusmoins:"Plus ou Moins",toptrumps:"Qui a le plus ?"}[challengePicker]||challengePicker;
+            const gName2 = {quiz:"Quiz Coupe du Monde",quisuisje:"Qui suis-je ?",plusmoins:"Plus ou Moins",toptrumps:"Qui a le plus ?",mystere:"Footballeur Mystère"}[challengePicker]||challengePicker;
             return (
               <div style={t.sec}>
                 <div style={{height:8}}/>
-                <button onClick={()=>setChallengePicker(null)} style={{padding:"4px 10px",borderRadius:6,border:"none",background:"rgba(255,255,255,.08)",color:MUTED,fontSize:11,cursor:"pointer",marginBottom:14}}>← Retour</button>
+                <button onClick={()=>{setChallengePicker(null); setGamePhase("mode");}} style={{padding:"4px 10px",borderRadius:6,border:"none",background:"rgba(255,255,255,.08)",color:MUTED,fontSize:11,cursor:"pointer",marginBottom:14}}>← Retour</button>
                 <div style={{...t.card,textAlign:"center",marginBottom:14,background:"rgba(245,158,11,.06)"}}>
                   <div style={{fontSize:13,fontWeight:700,color:AMB,marginBottom:4}}>⚔️ Défier — {gName2}</div>
                   <div style={{fontSize:10,color:MUTED}}>Même set de questions pour vous deux, afin de comparer équitablement</div>
@@ -7645,18 +7961,113 @@ export default function App() {
             );
           }
 
+          // ── CHOIX DU MODE : SOLO ou DÉFI ─────────────────────
+          if (gamePhase === "mode" && activeGame) {
+            const gInfo = {
+              quiz:      {icon:"🧠", name:"Quiz Coupe du Monde",   canDefi:true,  needLength:true},
+              quisuisje: {icon:"👤", name:"Qui suis-je ?",         canDefi:true,  needLength:false},
+              plusmoins: {icon:"🔢", name:"Plus ou Moins",         canDefi:true,  needLength:true},
+              toptrumps: {icon:"🃏", name:"Qui a le plus ?",       canDefi:true,  needLength:false},
+              buteur:    {icon:"🥅", name:"Meilleur Buteur",       canDefi:false, needLength:false},
+              penalty:   {icon:"⚽", name:"Tirs au but",           canDefi:false, needLength:false}, // défi géré par son propre écran, pas le flux générique
+              mystere:   {icon:"🧩", name:"Footballeur Mystère",   canDefi:true,  needLength:false},
+            }[activeGame] || {icon:"🎮", name:activeGame, canDefi:false, needLength:false};
+            return (
+              <div style={t.sec}>
+                <div style={{height:8}}/>
+                <button onClick={()=>{setGamePhase("menu");setActiveGame(null);setGameMode(null);}} style={{padding:"4px 10px",borderRadius:6,border:"none",background:"rgba(255,255,255,.08)",color:MUTED,fontSize:11,cursor:"pointer",marginBottom:14}}>← Retour</button>
+                <div style={{textAlign:"center",marginBottom:24}}>
+                  <div style={{fontSize:40,marginBottom:6}}>{gInfo.icon}</div>
+                  <div style={{fontSize:18,fontWeight:900,color:TXT,marginBottom:4}}>{gInfo.name}</div>
+                  <div style={{fontSize:11,color:MUTED}}>Comment veux-tu jouer ?</div>
+                </div>
+                {/* Solo */}
+                <button onClick={()=>{
+                  setGameMode("solo");
+                  if (blockIfDailyLimitReached(activeGame, user)) { setGamePhase("menu"); setActiveGame(null); return; }
+                  gInfo.needLength ? setGamePhase("length") : startGame(activeGame);
+                }} style={{
+                  display:"block",width:"100%",marginBottom:12,padding:"18px 14px",
+                  borderRadius:14,border:`2px solid ${GOLD}`,background:"rgba(245,200,66,.06)",
+                  cursor:"pointer",fontFamily:"inherit",textAlign:"left",
+                }}>
+                  <div style={{display:"flex",alignItems:"center",gap:12}}>
+                    <span style={{fontSize:28}}>🎯</span>
+                    <div>
+                      <div style={{fontSize:15,fontWeight:800,color:GOLD}}>Jouer seul</div>
+                      <div style={{fontSize:11,color:MUTED,marginTop:2}}>Bats ton propre record, à ton rythme</div>
+                    </div>
+                  </div>
+                </button>
+                {/* Défi */}
+                {gInfo.canDefi && players.length > 0 && (
+                  <button onClick={()=>{
+                    setGameMode("defi");
+                    if (blockIfDailyLimitReached(activeGame, user)) { setGamePhase("menu"); setActiveGame(null); return; }
+                    setChallengePicker(activeGame);
+                  }} style={{
+                    display:"block",width:"100%",marginBottom:12,padding:"18px 14px",
+                    borderRadius:14,border:`2px solid ${AMB}`,background:"rgba(245,158,11,.06)",
+                    cursor:"pointer",fontFamily:"inherit",textAlign:"left",
+                  }}>
+                    <div style={{display:"flex",alignItems:"center",gap:12}}>
+                      <span style={{fontSize:28}}>⚔️</span>
+                      <div>
+                        <div style={{fontSize:15,fontWeight:800,color:AMB}}>Défier quelqu'un</div>
+                        <div style={{fontSize:11,color:MUTED,marginTop:2}}>Même questions, chacun joue de son côté — qui gagne ?</div>
+                      </div>
+                    </div>
+                  </button>
+                )}
+                {gInfo.canDefi && players.length === 0 && (
+                  <div style={{...t.card,textAlign:"center",padding:"16px",opacity:.5}}>
+                    <div style={{fontSize:11,color:MUTED}}>⚔️ Aucun autre joueur disponible pour un défi</div>
+                  </div>
+                )}
+                {!gInfo.canDefi && (
+                  <div style={{...t.card,textAlign:"center",padding:"14px",background:"rgba(255,255,255,.03)"}}>
+                    <div style={{fontSize:11,color:MUTED}}>Ce jeu est en mode solo uniquement</div>
+                  </div>
+                )}
+              </div>
+            );
+          }
+
+          // ── CHOIX DE LA LONGUEUR (quiz / plus ou moins) ──────────
+          if (gamePhase === "length" && activeGame) {
+            const gName = activeGame==="quiz" ? "Quiz Coupe du Monde" : "Plus ou Moins";
+            return (
+              <div style={t.sec}>
+                <div style={{height:8}}/>
+                <button onClick={()=>setGamePhase("mode")} style={{padding:"4px 10px",borderRadius:6,border:"none",background:"rgba(255,255,255,.08)",color:MUTED,fontSize:11,cursor:"pointer",marginBottom:14}}>← Retour</button>
+                <div style={{...t.card,textAlign:"center",marginBottom:14}}>
+                  <div style={{fontSize:14,fontWeight:800,color:GOLD,marginBottom:4}}>{gName}</div>
+                  <div style={{fontSize:12,color:MUTED}}>Choisis la durée de ta partie</div>
+                </div>
+                {lengthOptions[activeGame].map(opt=>(
+                  <button key={opt.l} onClick={()=>startGame(activeGame,opt.n)}
+                    style={{display:"block",width:"100%",marginBottom:8,padding:"14px",borderRadius:10,border:`1px solid ${BRD}`,background:"rgba(255,255,255,.05)",color:TXT,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit",textAlign:"center"}}>
+                    {opt.l}{opt.n?` — ${opt.n} questions`:" — toutes les questions"}
+                  </button>
+                ))}
+              </div>
+            );
+          }
+
+          // ── MENU ──────────────────────────────────────────────
+          // ══ MENU ══════════════════════════════════════════════
           if (gamePhase === "menu" || !activeGame) return (
             <div style={t.sec}>
               <div style={{height:8}}/>
-              {/* Switcher Jouer / Classements */}
-              <div style={{display:"flex",gap:6,marginBottom:14,background:"rgba(255,255,255,.04)",borderRadius:10,padding:4}}>
-                <button onClick={()=>setJeuxSubTab("jouer")} style={{flex:1,padding:"8px",borderRadius:8,border:"none",cursor:"pointer",fontWeight:700,fontSize:12,fontFamily:"inherit",
-                  background:jeuxSubTab==="jouer"?GOLD:"transparent",color:jeuxSubTab==="jouer"?"#0a0e1a":MUTED}}>🎮 Jouer</button>
-                <button onClick={()=>setJeuxSubTab("classements")} style={{flex:1,padding:"8px",borderRadius:8,border:"none",cursor:"pointer",fontWeight:700,fontSize:12,fontFamily:"inherit",
-                  background:jeuxSubTab==="classements"?GOLD:"transparent",color:jeuxSubTab==="classements"?"#0a0e1a":MUTED}}>🏆 Classements</button>
+              {/* Switcher Jouer / Classements / Historique */}
+              <div style={{display:"flex",gap:4,marginBottom:14,background:"rgba(255,255,255,.04)",borderRadius:10,padding:4}}>
+                {[{k:"jouer",l:"🎮 Jouer"},{k:"classements",l:"🏆 Scores"},{k:"historique",l:"📜 Historique"}].map(s=>(
+                  <button key={s.k} onClick={()=>setJeuxSubTab(s.k)} style={{flex:1,padding:"8px 4px",borderRadius:8,border:"none",cursor:"pointer",fontWeight:700,fontSize:11,fontFamily:"inherit",
+                    background:jeuxSubTab===s.k?GOLD:"transparent",color:jeuxSubTab===s.k?"#0a0e1a":MUTED}}>{s.l}</button>
+                ))}
               </div>
 
-              {jeuxSubTab==="classements" ? (
+              {jeuxSubTab==="classements" && (
                 <div>
                   <div style={{fontSize:12,color:MUTED,marginBottom:10,fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>🏅 Meilleur score — 1 partie</div>
                   {NUMERIC_GAMES.map(g=>{
@@ -7690,11 +8101,11 @@ export default function App() {
                     ))}
                   </div>
                 </div>
-              ) : (
-              <>
+              )}
+              {jeuxSubTab==="jouer" && <>
               {myPendingChallenges.map(([id,ch])=>(
                 <div key={id} style={{...t.card,marginBottom:8,border:`1px solid ${AMB}`,background:"rgba(245,158,11,.08)"}}>
-                  <div style={{fontSize:12,color:AMB,marginBottom:6}}>⚔️ <strong>{ch.from.toUpperCase()}</strong> te défie au {({quiz:"Quiz",quisuisje:"Qui suis-je ?",plusmoins:"Plus ou Moins",toptrumps:"Qui a le plus ?"})[ch.game]||ch.game} !</div>
+                  <div style={{fontSize:12,color:AMB,marginBottom:6}}>⚔️ <strong>{ch.from.toUpperCase()}</strong> te défie au {({quiz:"Quiz",quisuisje:"Qui suis-je ?",plusmoins:"Plus ou Moins",toptrumps:"Qui a le plus ?",mystere:"Footballeur Mystère"})[ch.game]||ch.game} !</div>
                   <div style={{display:"flex",gap:8}}>
                     <button onClick={()=>acceptChallenge(id)} style={{flex:2,padding:"8px",borderRadius:8,border:"none",background:AMB,color:"#000",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>✅ Accepter →</button>
                     <button onClick={()=>declineChallenge(id)} style={{flex:1,padding:"8px",borderRadius:8,border:"1px solid rgba(239,68,68,.4)",background:"rgba(239,68,68,.1)",color:RED,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>✗ Refuser</button>
@@ -7706,7 +8117,7 @@ export default function App() {
                 const opp = ch.from===user?ch.to:ch.from;
                 return (
                   <div key={id} style={{...t.card,marginBottom:8,border:`1px solid ${GOLD}`,background:"rgba(245,200,66,.08)"}}>
-                    <div style={{fontSize:12,color:GOLD,marginBottom:6}}>🎯 C'est ton tour contre <strong>{opp.toUpperCase()}</strong> ({({quiz:"Quiz",quisuisje:"Qui suis-je ?",plusmoins:"Plus ou Moins",toptrumps:"Qui a le plus ?"})[ch.game]||ch.game})</div>
+                    <div style={{fontSize:12,color:GOLD,marginBottom:6}}>🎯 C'est ton tour contre <strong>{opp.toUpperCase()}</strong> ({({quiz:"Quiz",quisuisje:"Qui suis-je ?",plusmoins:"Plus ou Moins",toptrumps:"Qui a le plus ?",mystere:"Footballeur Mystère"})[ch.game]||ch.game})</div>
                     <button onClick={()=>playMyTurn(id)} style={{width:"100%",padding:"8px",borderRadius:8,border:"none",background:GOLD,color:"#0a0e1a",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>▶️ Jouer mon tour</button>
                   </div>
                 );
@@ -7739,17 +8150,15 @@ export default function App() {
                   <div style={{fontSize:11,color:RED,marginBottom:6,fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>😔 Défis refusés</div>
                   {myDeclinedChallenges.map(([id,ch])=>(
                     <div key={id} style={{...t.card,marginBottom:6,padding:"8px 12px",display:"flex",justifyContent:"space-between",alignItems:"center",background:"rgba(239,68,68,.06)",border:"1px solid rgba(239,68,68,.25)"}}>
-                      <span style={{fontSize:11,color:TXT}}>{({quiz:"Quiz",quisuisje:"Qui suis-je ?",plusmoins:"Plus ou Moins",toptrumps:"Qui a le plus ?"})[ch.game]||ch.game} vs {ch.to.toUpperCase()} — refusé</span>
+                      <span style={{fontSize:11,color:TXT}}>{({quiz:"Quiz",quisuisje:"Qui suis-je ?",plusmoins:"Plus ou Moins",toptrumps:"Qui a le plus ?",mystere:"Footballeur Mystère"})[ch.game]||ch.game} vs {ch.to.toUpperCase()} — refusé</span>
                       <button onClick={()=>{const ns={...challenges}; delete ns[id]; save({...st,challenges:ns});}} style={{background:"none",border:"none",color:MUTED,fontSize:14,cursor:"pointer",padding:"0 4px"}}>✕</button>
                     </div>
                   ))}
                 </div>
               )}
-              {/* ── Historique des parties ── */}
-              {(()=>{
-                const myHistory = [...(st.gameHistory?.[user] || [])].reverse(); // plus récent en premier
-                // Compléter avec les défis dont l'adversaire n'a pas encore joué (won=null)
-                // et les anciens défis "done" (avant le gameHistory) non encore dans l'historique
+              {/* ── SOUS-ONGLET HISTORIQUE ── */}
+              {jeuxSubTab==="historique" && (()=>{
+                const myHistory = [...(st.gameHistory?.[user] || [])].reverse();
                 const oldDoneChallenges = Object.values(challenges)
                   .filter(c => c.status==="done" && (c.from===user||c.to===user))
                   .filter(c => !myHistory.some(h => h.mode==="defi" && h.ts===c.ts))
@@ -7758,18 +8167,16 @@ export default function App() {
                     const my = isFrom?c.fromScore:c.toScore;
                     const opp = isFrom?c.toScore:c.fromScore;
                     return { game:c.game, score:my, mode:"defi", opponent:isFrom?c.to:c.from,
-                      won: my>opp?"win":my<opp?"loss":"draw", ts:c.ts, legacy:true };
+                      won: my>opp?"win":my<opp?"loss":"draw", ts:c.ts };
                   });
-                const allHistory = [...myHistory, ...oldDoneChallenges].sort((a,b)=>b.ts-a.ts).slice(0,30);
-                if (!allHistory.length) return null;
-
-                const GAME_ICONS = {quiz:"🧠",quisuisje:"👤",plusmoins:"🔢",toptrumps:"🃏",penalty:"⚽",buteur:"🥅"};
-                const GAME_SHORT = {quiz:"Quiz",quisuisje:"Qui suis-je",plusmoins:"Plus/Moins",toptrumps:"Top Trumps",penalty:"Tirs au but",buteur:"Buteur"};
-
+                const allHistory = [...myHistory, ...oldDoneChallenges].sort((a,b)=>b.ts-a.ts).slice(0,50);
+                const GAME_ICONS = {quiz:"🧠",quisuisje:"👤",plusmoins:"🔢",toptrumps:"🃏",penalty:"⚽",mystere:"🧩",buteur:"🥅"};
+                const GAME_SHORT = {quiz:"Quiz",quisuisje:"Qui suis-je",plusmoins:"Plus/Moins",toptrumps:"Top Trumps",penalty:"Tirs au but",mystere:"Footballeur Mystère",buteur:"Buteur"};
+                if (!allHistory.length) return <div style={t.empty}>Aucune partie jouée pour l'instant. Lance ton premier jeu ! 🎮</div>;
                 return (
-                  <div style={{marginBottom:14}}>
-                    <div style={{fontSize:11,color:MUTED,marginBottom:8,fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>
-                      📜 Historique — {allHistory.length} partie{allHistory.length>1?"s":""}
+                  <div>
+                    <div style={{fontSize:11,color:MUTED,marginBottom:10,fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>
+                      {allHistory.length} partie{allHistory.length>1?"s":" jouée"}
                     </div>
                     {allHistory.map((h,i) => {
                       const date = new Date(h.ts);
@@ -7817,6 +8224,7 @@ export default function App() {
                 {id:"quisuisje", icon:"👤",name:"Qui suis-je ?",  desc:"Indices progressifs sur des légendes du foot"},
                 {id:"plusmoins", icon:"🔢",name:"Plus ou Moins",  desc:"Stats foot — scoring strict par paliers"},
                 {id:"toptrumps", icon:"🃏",name:"Qui a le plus ?", desc:"Duel de fiches — stats cachées jusqu'à la réponse"},
+                {id:"mystere",   icon:"🧩",name:"Footballeur Mystère", desc:"Une grille de 25 cases cache sa photo — devine-le avant la 10e case"},
                 {id:"buteur",    icon:"🥅",name:"Meilleur Buteur",desc:"Tournoi : choisis ton buteur favori jusqu'au bout !"},
                 {id:"penalty",   icon:"⚽",name:"Tirs au but",     desc:"Défie un joueur : tireur vs gardien en secret"},
               ].map(g=>(
@@ -7846,26 +8254,21 @@ export default function App() {
                   </div>
                   <div style={{display:"flex",flexDirection:"column",gap:6}}>
                     <button onClick={()=>{
-                      if (blockIfDailyLimitReached(g.id, user)) return;
-                      (g.id==="quiz"||g.id==="plusmoins")?askLength(g.id):startGame(g.id);
-                    }} style={{padding:"8px 14px",borderRadius:8,border:"none",background:GOLD,color:"#0a0e1a",fontWeight:700,fontSize:12,cursor:"pointer"}}>Jouer</button>
-                    {CHALLENGE_GAMES.includes(g.id) && players.length>0 && (
-                      <button onClick={()=>{
-                        if (blockIfDailyLimitReached(g.id, user)) return;
-                        setChallengePicker(g.id);
-                      }} style={{padding:"6px 14px",borderRadius:8,border:`1px solid ${AMB}`,background:"rgba(245,158,11,.1)",color:AMB,fontWeight:700,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>⚔️ Défier</button>
-                    )}
+                      setActiveGame(g.id);
+                      setGameMode(null);
+                      setGamePhase("mode");
+                    }} style={{padding:"10px 18px",borderRadius:10,border:"none",background:GOLD,color:"#0a0e1a",fontWeight:800,fontSize:13,cursor:"pointer"}}>Jouer</button>
                   </div>
                 </div>
               ))}
               </>
-              )}
+              }
             </div>
           );
 
           // ══ RÉSULTAT ═══════════════════════════════════════════
           if (gamePhase === "result") {
-            const gLabel={quiz:"Quiz Coupe du Monde",quisuisje:"Qui suis-je",plusmoins:"Plus ou Moins",toptrumps:"Qui a le plus ?",buteur:"Meilleur Buteur",penalty:"Tirs au but"}[activeGame]||activeGame;
+            const gLabel={quiz:"Quiz Coupe du Monde",quisuisje:"Qui suis-je",plusmoins:"Plus ou Moins",toptrumps:"Qui a le plus ?",buteur:"Meilleur Buteur",penalty:"Tirs au but",mystere:"Footballeur Mystère"}[activeGame]||activeGame;
             const ch = activeChallengeId ? challenges[activeChallengeId] : null;
             const isFromSide = ch && ch.from===user;
             const myChScore = ch ? (isFromSide?ch.fromScore:ch.toScore) : null;
@@ -7894,6 +8297,12 @@ export default function App() {
                         <div style={{fontSize:13,fontWeight:800,color:myChScore>oppChScore?GREEN:myChScore<oppChScore?RED:MUTED}}>
                           {myChScore>oppChScore?"🏆 Tu gagnes le défi !":myChScore<oppChScore?"😔 Tu perds le défi":"🤝 Égalité parfaite !"}
                         </div>
+                        {activeGame==="mystere" && (ch.fromGuess || ch.toGuess) && (
+                          <div style={{marginTop:8,paddingTop:8,borderTop:`1px solid ${BRD}`,textAlign:"left"}}>
+                            <div style={{fontSize:10,color:MUTED}}>💬 Toi : <strong style={{color:TXT}}>{(isFromSide ? ch.fromGuess : ch.toGuess) || "—"}</strong></div>
+                            <div style={{fontSize:10,color:MUTED,marginTop:2}}>💬 {oppName.toUpperCase()} : <strong style={{color:TXT}}>{(isFromSide ? ch.toGuess : ch.fromGuess) || "—"}</strong></div>
+                          </div>
+                        )}
                       </>) : (
                         <div style={{fontSize:11,color:MUTED}}>⏳ En attente du score de {oppName.toUpperCase()}...</div>
                       )}
@@ -8028,6 +8437,95 @@ export default function App() {
             );
           }
 
+          // ══ FOOTBALLEUR MYSTÈRE ════════════════════════════════
+          if (activeGame==="mystere") {
+            if (!mysteryPlayer) return null;
+            const revealedCount = Math.min(mysteryTurn, MYSTERY_MAX_TURNS);
+            const ptsAvail = Math.max(11 - revealedCount, 0);
+            const concluding = guessResult===true || (guessResult===false && revealedCount>=MYSTERY_MAX_TURNS);
+            const revealedCells = concluding
+              ? new Set(Array.from({length:25},(_,i)=>i))
+              : new Set(mysteryRevealOrder.slice(0, revealedCount));
+            const normalize=s=>s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]/g," ").trim();
+            const lev=(a,b)=>{const m=a.length,n=b.length,dp=Array.from({length:m+1},(_,i)=>Array.from({length:n+1},(_,j)=>i===0?j:j===0?i:0));for(let i=1;i<=m;i++)for(let j=1;j<=n;j++)dp[i][j]=a[i-1]===b[j-1]?dp[i-1][j-1]:1+Math.min(dp[i-1][j],dp[i][j-1],dp[i-1][j-1]);return dp[m][n];};
+            const isCorrect=(inp)=>{const i=normalize(inp);if(i.length<2)return false;const answers=[normalize(mysteryPlayer.name),...(mysteryPlayer.aliases||[]).map(normalize),...normalize(mysteryPlayer.name).split(" ")].filter(a=>a.length>=3);return answers.some(a=>i===a||i.includes(a)||a.includes(i)||lev(i,a)<=2);};
+            const handleGuess=()=>{
+              if(!guessInput.trim())return;
+              const guessText=guessInput.trim();
+              const correct=isCorrect(guessText);
+              setGuessResult(correct);
+              if(correct){
+                soundCorrectGame();
+                const pts=ptsAvail;
+                setMysteryLastGuess(guessText);
+                setTimeout(()=>{saveGameScore("mystere",pts);setQScore(pts);setGamePhase("result");stopGameMusic();},1800);
+              } else {
+                soundWrongGame();
+                if(revealedCount>=MYSTERY_MAX_TURNS){
+                  setMysteryLastGuess(guessText);
+                  setTimeout(()=>{saveGameScore("mystere",0);setQScore(0);setGamePhase("result");stopGameMusic();},1800);
+                } else {
+                  setTimeout(()=>{setMysteryTurn(t=>t+1);setGuessInput("");setGuessResult(null);},1400);
+                }
+              }
+            };
+            return (
+              <div style={t.sec}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10,marginTop:8}}>
+                  <button onClick={()=>{setGamePhase("menu");setActiveGame(null);stopGameMusic();}} style={{padding:"4px 10px",borderRadius:6,border:"none",background:"rgba(255,255,255,.08)",color:MUTED,fontSize:11,cursor:"pointer"}}>← Quitter</button>
+                  <div style={{fontSize:11,color:MUTED}}>Case {revealedCount}/{MYSTERY_MAX_TURNS}</div>
+                  <div style={{fontSize:12,fontWeight:700,color:GOLD}}>🧩 Mystère</div>
+                </div>
+                <div style={{...t.card,marginBottom:10,textAlign:"center"}}>
+                  <div style={{fontSize:11,color:AMB,fontWeight:700}}>💡 Trouver maintenant = {ptsAvail} pt{ptsAvail>1?"s":""}</div>
+                </div>
+                <div style={{position:"relative",width:"100%",maxWidth:260,margin:"0 auto 14px",aspectRatio:"1/1",borderRadius:14,overflow:"hidden",border:`1px solid ${BRD}`}}>
+                  {mysteryPhotoUrl ? (
+                    <img src={mysteryPhotoUrl} alt="" style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}}/>
+                  ) : mysteryPhotoUrl===false ? (
+                    <div style={{width:"100%",height:"100%",background:SURF2,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:6,padding:8,textAlign:"center"}}>
+                      <span style={{fontSize:32}}>⚽</span>
+                      {mysteryPhotoError && <span style={{fontSize:9,color:MUTED,fontFamily:"monospace"}}>({mysteryPhotoError})</span>}
+                    </div>
+                  ) : (
+                    <div style={{width:"100%",height:"100%",background:SURF2,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,color:MUTED}}>⏳</div>
+                  )}
+                  <div style={{position:"absolute",inset:0,display:"grid",gridTemplateColumns:"repeat(5,1fr)",gridTemplateRows:"repeat(5,1fr)"}}>
+                    {Array.from({length:25}).map((_,i)=>(
+                      <div key={i} style={{background:revealedCells.has(i)?"transparent":"#000",border:"1px solid rgba(255,255,255,.05)",transition:"background .5s"}}/>
+                    ))}
+                  </div>
+                </div>
+                {mysteryPlayer.hints && (
+                  <div style={{marginBottom:10}}>
+                    {mysteryPlayer.hints.slice(0, revealedCount).map((h,i)=>(
+                      <div key={i} style={{...t.card,marginBottom:6,padding:"8px 12px",background:i===revealedCount-1?"rgba(245,200,66,.08)":"rgba(255,255,255,.03)"}}>
+                        <span style={{fontSize:11,color:i===revealedCount-1?AMB:MUTED,fontStyle:i<revealedCount-1?"italic":"normal"}}>💬 {h}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {guessResult===null?(
+                  <div>
+                    <input value={guessInput} onChange={e=>setGuessInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&guessInput.trim()&&handleGuess()}
+                      placeholder="Nom du joueur..." style={{width:"100%",padding:"10px 12px",borderRadius:8,border:`1px solid ${BRD}`,background:SURF2,color:TXT,fontSize:13,fontFamily:"inherit",boxSizing:"border-box",marginBottom:8}}/>
+                    <button onClick={()=>guessInput.trim()&&handleGuess()} disabled={!guessInput.trim()} style={{width:"100%",padding:"10px",borderRadius:8,border:"none",background:guessInput.trim()?GOLD:"rgba(255,255,255,.06)",color:guessInput.trim()?"#0a0e1a":MUTED,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit",marginBottom:gameMode==="solo"&&revealedCount<MYSTERY_MAX_TURNS?8:0}}>Valider →</button>
+                    {gameMode==="solo" && revealedCount<MYSTERY_MAX_TURNS && (
+                      <button onClick={()=>{soundClick();setMysteryTurn(tn=>Math.min(tn+1,MYSTERY_MAX_TURNS));}} style={{width:"100%",padding:"9px",borderRadius:8,border:`1px solid ${BRD}`,background:"transparent",color:MUTED,fontWeight:700,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>💡 Demander un indice (−1 case, −1 pt)</button>
+                    )}
+                  </div>
+                ):(
+                  <div style={{...t.card,textAlign:"center",background:guessResult?"rgba(34,197,94,.15)":"rgba(239,68,68,.15)",border:`1px solid ${guessResult?GREEN:RED}`}}>
+                    <div style={{fontSize:20,marginBottom:4}}>{guessResult?"✅":"❌"}</div>
+                    <div style={{fontSize:13,fontWeight:700,color:guessResult?GREEN:RED}}>
+                      {guessResult ? `+${ptsAvail} pts !` : (revealedCount>=MYSTERY_MAX_TURNS ? `0 pt — c'était ${mysteryPlayer.name}` : "Pas trouvé, encore une case...")}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          }
+
           // ══ PLUS OU MOINS ══════════════════════════════════════
           if (activeGame==="plusmoins") {
             if(!pmQ.length)return null;
@@ -8120,7 +8618,9 @@ export default function App() {
                 <div style={{display:"flex",gap:8,marginBottom:10}}>
                   {[ttCard1,ttCard2].map((card,ci)=>(
                     <div key={ci} style={{...t.card,flex:1,textAlign:"center",background:ci===0?"rgba(245,200,66,.08)":"rgba(239,68,68,.08)",border:`1px solid ${ci===0?"rgba(245,200,66,.3)":"rgba(239,68,68,.3)"}`}}>
-                      <div style={{fontSize:26,marginBottom:4}}>{card.emoji}</div>
+                      <div style={{width:50,height:50,borderRadius:"50%",overflow:"hidden",margin:"0 auto 4px",background:"rgba(255,255,255,.04)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24}}>
+                        {cardPhotos[card.name] ? <img src={cardPhotos[card.name]} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/> : card.emoji}
+                      </div>
                       <div style={{fontSize:12,fontWeight:700,color:ci===0?GOLD:RED}}>{card.name}</div>
                       {ttReveal&&TOP_TRUMPS_CATEGORIES.map(cat=>(
                         <div key={cat.key} style={{display:"flex",justifyContent:"space-between",fontSize:10,color:MUTED,marginTop:3,padding:"0 4px"}}>
@@ -8158,7 +8658,9 @@ export default function App() {
                   <div style={{...t.card,textAlign:"center",padding:"24px 16px",marginTop:12}}>
                     <div style={{fontSize:48,marginBottom:8}}>🏆</div>
                     <div style={{fontSize:12,color:MUTED,marginBottom:4}}>Ton meilleur buteur du Mondial 2026</div>
-                    <div style={{fontSize:32,marginBottom:4}}>{buteurWinner.emoji}</div>
+                    <div style={{width:84,height:84,borderRadius:"50%",overflow:"hidden",margin:"0 auto 4px",background:"rgba(255,255,255,.04)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:40}}>
+                      {cardPhotos[buteurWinner.name] ? <img src={cardPhotos[buteurWinner.name]} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/> : buteurWinner.emoji}
+                    </div>
                     <div style={{fontSize:20,fontWeight:900,color:GOLD,marginBottom:2}}>{buteurWinner.name}</div>
                     <div style={{fontSize:11,color:MUTED,marginBottom:16}}>{buteurWinner.team} · {buteurWinner.intlGoals} buts sél.</div>
                     <div style={{textAlign:"left",marginBottom:16}}>
@@ -8213,7 +8715,9 @@ export default function App() {
                         background:buteurPick===side?"rgba(245,200,66,.2)":col,
                         cursor:buteurPick?"default":"pointer",textAlign:"center",transition:"all .2s"}}>
                       <div style={{fontSize:10,color:tc,fontWeight:700,marginBottom:4}}>{label}</div>
-                      <div style={{fontSize:26,marginBottom:6}}>{card.emoji}</div>
+                      <div style={{width:50,height:50,borderRadius:"50%",overflow:"hidden",margin:"0 auto 6px",background:"rgba(255,255,255,.04)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24}}>
+                        {cardPhotos[card.name] ? <img src={cardPhotos[card.name]} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/> : card.emoji}
+                      </div>
                       <div style={{fontSize:12,fontWeight:800,color:TXT}}>{card.name}</div>
                       <div style={{fontSize:10,color:MUTED,marginTop:2}}>{card.team}</div>
                       <div style={{fontSize:10,color:MUTED}}>{card.club}</div>
@@ -8310,6 +8814,17 @@ export default function App() {
             const opponent=isFrom?currentChallenge.to:currentChallenge.from;
             const myShot=isFrom?currentChallenge.shotFrom:currentChallenge.shotTo;
             const oppShot=isFrom?currentChallenge.shotTo:currentChallenge.shotFrom;
+            if (!myRole) {
+              // Défi corrompu (ne devrait plus se produire) — on évite le plantage et on permet de revenir en arrière
+              return (
+                <div style={t.sec}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10,marginTop:8}}>
+                    <button onClick={()=>setPenChallengeId(null)} style={{padding:"4px 10px",borderRadius:6,border:"none",background:"rgba(255,255,255,.08)",color:MUTED,fontSize:11,cursor:"pointer"}}>← Retour</button>
+                  </div>
+                  <div style={t.empty}>Ce défi est invalide et a été nettoyé. Relance-en un nouveau !</div>
+                </div>
+              );
+            }
             const submitShot=(zone)=>{
               if(myShot)return; setPenZonePick(zone);
               const newCh=isFrom?{...currentChallenge,shotFrom:zone}:{...currentChallenge,shotTo:zone};
