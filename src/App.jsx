@@ -5640,7 +5640,7 @@ export default function App() {
                           {canEdit && (
                             <div style={{display:"flex",gap:6}}>
                               {["1","2"].map(v=>(
-                                <button key={v} onClick={()=>{const np={...preds,[m.id]:v};save({...st,predictions:{...st.predictions,[user]:np}});}}
+                                <button key={v} onClick={()=>pick(m.id,v)}
                                   style={{flex:1,padding:"8px",borderRadius:8,border:"none",cursor:"pointer",fontFamily:"inherit",fontWeight:700,fontSize:11,transition:"all .15s",
                                     background:myPred===v?"rgba(245,200,66,.25)":"rgba(255,255,255,.06)",
                                     color:myPred===v?GOLD:MUTED,
@@ -7473,7 +7473,7 @@ export default function App() {
                             <div style={{display:"flex",gap:6}}>
                               <button onClick={()=>setEditPhase(editPhase===phase?null:phase)}
                                 style={{padding:"5px 8px",borderRadius:6,border:"none",background:"rgba(245,200,66,.15)",color:GOLD,fontSize:10,fontWeight:700,cursor:"pointer"}}>
-                                ✏️ Affiches
+                                ✏️ Affiches & Scores
                               </button>
                               <button onClick={()=>toggleUnlock(phase)}
                                 style={{padding:"5px 8px",borderRadius:6,border:"none",background:unlocked?"rgba(34,197,94,.2)":"rgba(255,255,255,.08)",color:unlocked?GREEN:MUTED,fontSize:10,fontWeight:700,cursor:"pointer"}}>
@@ -7530,6 +7530,45 @@ export default function App() {
                                 style={{width:"100%",padding:"8px",borderRadius:8,border:"none",background:GOLD,color:"#0a0e1a",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
                                 💾 Enregistrer les affiches
                               </button>
+                              {/* ── Saisie des scores, directement ici (même panneau) ── */}
+                              <div style={{marginTop:14,paddingTop:12,borderTop:`1px solid ${BRD}`}}>
+                                <div style={{fontSize:11,color:GOLD,fontWeight:700,marginBottom:8}}>⚽ Scores — {phaseLabels[phase]}</div>
+                                {matchList
+                                  .sort((a,b)=>a.dk.localeCompare(b.dk)||a.time.localeCompare(b.time))
+                                  .map(m=>{
+                                    const hasThirdHome = m.home.startsWith("3e ");
+                                    const hasThirdAway = m.away.startsWith("3e ");
+                                    const offThirds = st.officialThirds || {};
+                                    let takenGroupsM = undefined;
+                                    if (m.phase === "seiziemes" && (hasThirdHome || hasThirdAway)) {
+                                      takenGroupsM = new Set();
+                                      MATCHES.filter(other => other.phase === "seiziemes" && other.id !== m.id).forEach(other => {
+                                        [["home", other.home], ["away", other.away]].forEach(([side, slot]) => {
+                                          if (slot.startsWith("3e ")) {
+                                            const g = offThirds[other.id + "_" + side];
+                                            if (g) takenGroupsM.add(g);
+                                          }
+                                        });
+                                      });
+                                    }
+                                    return (
+                                      <MatchCard key={m.id} m={m} official={(st.results||{})[m.id]}
+                                        score={(st.scores||{})[m.id]}
+                                        isAdmin onScore={setScore} onClear={clearScore} results={st.results||{}} officialThirds={st.officialThirds||{}} predictions={{}} userThirds={{}}
+                                        realTeams={(st.elimRealTeams||{})[m.id]}
+                                        thirdPick={(hasThirdHome||hasThirdAway) ? {
+                                          home: hasThirdHome ? (offThirds[m.id+"_home"] || null) : null,
+                                          away: hasThirdAway ? (offThirds[m.id+"_away"] || null) : null,
+                                        } : null}
+                                        onThirdPick={(hasThirdHome||hasThirdAway)
+                                          ? (side, g) => setOfficialThird(m.id, side, g)
+                                          : null}
+                                        takenGroups={takenGroupsM}
+                                      />
+                                    );
+                                  })
+                                }
+                              </div>
                             </div>
                           )}
                         </div>
@@ -8980,7 +9019,19 @@ export default function App() {
                 const seenObj = typeof seenForUser==="object" && seenForUser ? seenForUser : {};
                 const updated = {...seenObj};
                 myChatGroups.forEach(g => { updated[g] = ((st.chat||{})[g]||[]).length; });
-                save({...st, seenChat:{...(st.seenChat||{}),[user]:updated}});
+                const ns = {...st, seenChat:{...(st.seenChat||{}),[user]:updated}};
+                // 🛡️ Mise à jour locale immédiate (fait disparaître le badge non-lu)
+                setSt(ns);
+                persist(ns);
+                // 🛡️ Écriture Firebase ATOMIQUE : ne touche QUE seenChat/<user>, jamais
+                // le reste de l'état. Avant ce fix, ceci passait par save() qui réécrivait
+                // TOUT st à partir de l'état local — vu la fréquence de ce clic (barre de
+                // nav, utilisée par tout le monde en permanence), c'était une source majeure
+                // d'écrasement silencieux d'actions toutes fraîches (pronostics, scores...)
+                // faites juste avant par n'importe quel utilisateur sur n'importe quel onglet.
+                if (FB_ENABLED && _fbReady) {
+                  _fbUpdate("/", { [`seenChat/${user}`]: updated }).catch(e => console.warn("seenChat (nav) Firebase write error:", e));
+                }
               }
             }}>
               <div style={{position:"relative",display:"inline-block"}}>
