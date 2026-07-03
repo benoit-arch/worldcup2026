@@ -3615,6 +3615,7 @@ export default function App() {
   const [activeGame, setActiveGame]       = useState(null);
   const [gamePhase, setGamePhase]         = useState("menu");
   const [jeuxSubTab, setJeuxSubTab]       = useState("jouer"); // "jouer" | "classements" | "historique"
+  const trumpetFiredRef = useRef(false); // évite que la fanfare rejoue à chaque visite de l'onglet
   const [elimCollapsed, setElimCollapsed] = useState(new Set()); // phases repliées dans l'onglet élim
   const [gameMode, setGameMode]           = useState(null);   // null | "solo" | "defi" | "ordi"
   // ── Penalty vs Ordi ──
@@ -4289,8 +4290,6 @@ export default function App() {
 
   // ── Tick chaque seconde pour les countdowns (login + accueil)
   useEffect(() => {
-    const start = new Date("2026-06-11T21:00:00");
-    if (new Date() >= start) return;
     if (scr !== "login" && !(scr === "app" && tab === "home")) return;
     const interval = setInterval(() => setTick(t=>t+1), 1000);
     return () => clearInterval(interval);
@@ -6305,7 +6304,7 @@ export default function App() {
                             const hasButeurs = (finOfficial.buteurs||[]).length > 0;
                             return (
                               <div style={{marginTop:12,borderRadius:12,overflow:"hidden",border:`2px solid ${finPts>0?"rgba(34,197,94,.4)":"rgba(239,68,68,.3)"}`}}
-                                ref={el=>{if(el&&!el._sounded&&finPts>0){el._sounded=true;soundTrumpetVictory();}}}>
+                                ref={el=>{if(el&&!trumpetFiredRef.current&&finPts>0){trumpetFiredRef.current=true;soundTrumpetVictory();}}}>
 
                                 {/* En-tête total points */}
                                 <div style={{padding:"10px 14px",textAlign:"center",
@@ -6511,13 +6510,18 @@ export default function App() {
           const peers = Object.keys(st.users).filter(u=>st.users[u].role===role&&u!=="admin");
           const isLeading = peers.length>1 && myScore>0 && peers.every(u=>u===user||(scores[u]||0)<=myScore);
           const challenges = st.challenges || {};
-          const DAILY_PLAY_LIMIT = 3; // doit rester synchronisé avec la valeur utilisée dans l'onglet Jeux
+          const DAILY_PLAY_LIMIT = 999; // pas de limite quotidienne // doit rester synchronisé avec la valeur utilisée dans l'onglet Jeux
 
           // ── Sous-onglet "Pronos du groupe par match" ──
           function MatchStatsBlock() {
             const groupUsers = isAdmin ? allNonAdminUsers : sameGroupUsers.concat(sameGroupUsers.includes(user)?[]:[user]);
             const resultTs = st.resultTs || {};
-            const playedMatches = [...MATCHES.filter(m => (st.results||{})[m.id])].sort((a,b) => (resultTs[b.id]||0) - (resultTs[a.id]||0)); // plus récemment saisi en premier
+            const playedMatches = [...MATCHES.filter(m => (st.results||{})[m.id])].sort((a,b) => {
+              const tsA = resultTs[a.id] || 0;
+              const tsB = resultTs[b.id] || 0;
+              if (tsA !== tsB) return tsB - tsA; // plus récemment saisi en premier
+              return MATCHES.indexOf(b) - MATCHES.indexOf(a); // fallback : ordre calendrier inversé
+            });
             if (!playedMatches.length) return <div style={t.empty}>Les stats par match apparaîtront dès le premier résultat officiel. ⚽</div>;
             return (
               <div>
@@ -6529,7 +6533,11 @@ export default function App() {
                   return (
                     <div key={m.id} style={{...t.card,marginBottom:8,padding:"10px 12px"}}>
                       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
-                        <span style={{fontSize:12,fontWeight:700}}>{F(m.home)} {m.home.split(" ")[0]} - {m.away.split(" ")[0]} {F(m.away)}</span>
+                        {(()=>{
+                          const rH = (st.elimRealTeams||{})[m.id]?.home || m.home;
+                          const rA = (st.elimRealTeams||{})[m.id]?.away || m.away;
+                          return <span style={{fontSize:12,fontWeight:700}}>{F(rH)} {rH} - {rA} {F(rA)}</span>;
+                        })()}
                         <span style={{fontSize:11,fontWeight:800,color:pct>=50?GREEN:pct>0?AMB:MUTED}}>{correct.length}/{voters.length} ({pct}%)</span>
                       </div>
                       <div style={{background:"rgba(255,255,255,.06)",borderRadius:6,height:5,overflow:"hidden",marginBottom:6}}>
@@ -6804,14 +6812,14 @@ export default function App() {
                       const official = st.results?.[m.id];
                       const correct = official && p===official;
                       const wrong = official && p!==official;
-                      const label = p==="1"?m.home:p==="2"?m.away:"Nul";
+                      const label = p==="1" ? m.home : p==="2" ? m.away : "Match nul";
                       return (
                         <div key={m.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",
                           padding:"6px 10px",borderRadius:8,marginBottom:4,fontSize:12,
                           background:correct?"rgba(46,204,113,.1)":wrong?"rgba(231,76,60,.08)":"rgba(255,255,255,.04)"}}>
-                          <span>{F(m.home)} {m.home.split(" ")[0]} - {m.away.split(" ")[0]} {F(m.away)}</span>
+                          <span>{F(m.home)} {m.home} - {m.away} {F(m.away)}</span>
                           <span style={{fontWeight:700,color:correct?GREEN:wrong?"#e74c3c":TXT}}>
-                            {label}{correct?" ✓":wrong?" ✗":""}
+                            {p==="N"?"🤝 Nul":`${F(label)} ${label}`}{correct?" ✓":wrong?" ✗":""}
                           </span>
                         </div>
                       );
@@ -6835,14 +6843,14 @@ export default function App() {
                       const official = st.results?.[m.id];
                       const correct = official && p===official;
                       const wrong = official && p!==official;
-                      const label = p==="1"?homeR:awayR;
+                      const label = p==="1" ? homeR : p==="2" ? awayR : "Match nul";
                       return (
                         <div key={m.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",
                           padding:"6px 10px",borderRadius:8,marginBottom:4,fontSize:12,
                           background:correct?"rgba(46,204,113,.1)":wrong?"rgba(231,76,60,.08)":"rgba(255,255,255,.04)"}}>
-                          <span>{F(homeR)} {homeR.split(" ")[0]} - {awayR.split(" ")[0]} {F(awayR)}</span>
+                          <span>{F(homeR)} {homeR} - {awayR} {F(awayR)}</span>
                           <span style={{fontWeight:700,color:correct?GREEN:wrong?"#e74c3c":TXT}}>
-                            {label.split(" ")[0]}{correct?" ✓":wrong?" ✗":""}
+                            {p==="N"?"🤝 Nul":`${F(label)} ${label}`}{correct?" ✓":wrong?" ✗":""}
                           </span>
                         </div>
                       );
@@ -8403,7 +8411,12 @@ export default function App() {
             <div style={{height:12}}/>
             {(()=>{
               const _resultTs = st.resultTs || {};
-              const played = [...MATCHES.filter(m=>(st.results||{})[m.id])].sort((a,b) => (_resultTs[b.id]||0) - (_resultTs[a.id]||0)); // plus récemment saisi en premier
+              const played = [...MATCHES.filter(m=>(st.results||{})[m.id])].sort((a,b) => {
+                const tsA = _resultTs[a.id] || 0;
+                const tsB = _resultTs[b.id] || 0;
+                if (tsA !== tsB) return tsB - tsA;
+                return MATCHES.indexOf(b) - MATCHES.indexOf(a); // fallback ordre calendrier inversé
+              });
               if (played.length===0) return (
                 <div style={{...t.card,textAlign:"center",padding:"28px 16px"}}>
                   <div style={{fontSize:32,marginBottom:8}}>⏳</div>
@@ -8509,7 +8522,15 @@ export default function App() {
             🎮 ONGLET JEUX
             ══════════════════════════════════════════════════ */}
         {tab==="jeux" && (()=>{
-          const players = Object.keys(st.users).filter(u => u !== "admin" && u !== user && (isAdmin || (st.users[u]||{}).role===role));
+          // players : tous les joueurs du même groupe, ou tous si admin
+          // Note : on vérifie que role est défini pour éviter les exclusions inattendues
+          const players = Object.keys(st.users).filter(u => {
+            if (u === "admin" || u === user) return false;
+            const uRole = (st.users[u]||{}).role;
+            if (isAdmin) return true;
+            if (!role || !uRole) return true; // si rôle non défini, on inclut
+            return uRole === role;
+          });
           const gameScores = st.gameScores || {};
           const gameScoresTotal = st.gameScoresTotal || {};
           const challenges = st.challenges || {};
@@ -8974,8 +8995,12 @@ export default function App() {
                   </div>
                 );
               })}
-              {/* Défis penalty en attente d'acceptation */}
-              {Object.entries(challenges).filter(([,c])=>c.game==="penalty"&&c.to===user&&c.status==="pending").map(([id,ch])=>(
+              {/* Défis penalty en attente d'acceptation (même groupe uniquement) */}
+              {Object.entries(challenges).filter(([,c])=>{
+                if (c.game!=="penalty"||c.to!==user||c.status!=="pending") return false;
+                const fromRole=(st.users[c.from]||{}).role;
+                return isAdmin||fromRole===role;
+              }).map(([id,ch])=>(
                 <div key={id} style={{...t.card,marginBottom:8,border:`1px solid ${AMB}`,background:"rgba(245,158,11,.08)"}}>
                   <div style={{fontSize:12,color:AMB,marginBottom:6}}>⚔️ <strong>{ch.from?.toUpperCase?.()}</strong> te défie aux Tirs au but !</div>
                   <div style={{display:"flex",gap:8}}>
@@ -8991,16 +9016,23 @@ export default function App() {
                 </div>
               ))}
               {/* Mes défis penalty envoyés, en attente d'acceptation */}
-              {Object.entries(challenges).filter(([,c])=>c.game==="penalty"&&c.from===user&&c.status==="pending").map(([id,ch])=>(
+              {Object.entries(challenges).filter(([,c])=>{
+                if (c.game!=="penalty"||c.from!==user||c.status!=="pending") return false;
+                const toRole=(st.users[c.to]||{}).role;
+                return isAdmin||toRole===role;
+              }).map(([id,ch])=>(
                 <div key={id} style={{...t.card,marginBottom:8,border:`1px solid ${BRD}`,opacity:.8}}>
                   <div style={{fontSize:11,color:MUTED}}>⏳ Défi envoyé à <strong>{ch.to?.toUpperCase?.()}</strong> — en attente d'acceptation</div>
                 </div>
               ))}
-              {/* Défis penalty actifs (multi-rounds) — à mon tour de jouer */}
-              {Object.entries(challenges).filter(([,ch])=>
-                ch.game==="penalty"&&ch.tireur!=null&&ch.status==="active"&&
-                (ch.from===user||ch.to===user)&&!(ch.pick||{})[user]
-              ).map(([id,ch])=>{
+              {/* Défis penalty actifs (multi-rounds) — à mon tour de jouer, même groupe */}
+              {Object.entries(challenges).filter(([,ch])=>{
+                if (ch.game!=="penalty"||ch.tireur==null||ch.status!=="active") return false;
+                if (!(ch.from===user||ch.to===user)||(ch.pick||{})[user]) return false;
+                const opp=ch.from===user?ch.to:ch.from;
+                const oppRole=(st.users[opp]||{}).role;
+                return isAdmin||oppRole===role;
+              }).map(([id,ch])=>{
                 const opp=ch.from===user?ch.to:ch.from;
                 const iAmTireur=ch.tireur===user;
                 const kickNum=(ch.kicks||[]).length+1;
@@ -9889,9 +9921,14 @@ export default function App() {
 
             // Écran de sélection d'un adversaire
             if(!penChallengeId||!currentChallenge){
-              const activeOnes=Object.entries(challenges).filter(([,c])=>
-                c.game==="penalty"&&c.status!=="done"&&
-                ((c.from===user)||(c.to===user&&c.status==="active")));
+              const activeOnes=Object.entries(challenges).filter(([,c])=>{
+                if (c.game!=="penalty" || c.status==="done") return false;
+                if (!((c.from===user)||(c.to===user&&c.status==="active"))) return false;
+                // Exclure les défis inter-groupes (l'adversaire doit être dans le même groupe)
+                const opp = c.from===user ? c.to : c.from;
+                const oppRole = (st.users[opp]||{}).role;
+                return isAdmin || oppRole===role;
+              });
               return (
                 <div style={t.sec}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,marginTop:8}}>
@@ -9962,12 +9999,23 @@ export default function App() {
             // ── Vue d'un défi actif ──────────────────────────────
             const ch=currentChallenge;
 
-            // Ancien format (shotFrom/shotTo) : affichage minimal
+            // Ancien format (shotFrom/shotTo) : proposer de supprimer pour repartir
             if (ch.shotFrom !== undefined) {
               return (
                 <div style={t.sec}>
                   <button onClick={()=>setPenChallengeId(null)} style={{margin:"12px 0",padding:"4px 10px",borderRadius:6,border:"none",background:"rgba(255,255,255,.08)",color:MUTED,fontSize:11,cursor:"pointer"}}>← Retour</button>
-                  <div style={{...t.card,textAlign:"center",color:MUTED,fontSize:12}}>Ce défi est dans l'ancien format — il ne peut plus être joué.<br/>Lance un nouveau défi !</div>
+                  <div style={{...t.card,textAlign:"center",padding:20}}>
+                    <div style={{fontSize:28,marginBottom:8}}>🗑️</div>
+                    <div style={{fontSize:13,color:TXT,fontWeight:700,marginBottom:6}}>Défi dans l'ancien format</div>
+                    <div style={{fontSize:11,color:MUTED,marginBottom:16}}>Ce défi ne peut plus être joué. Supprime-le pour en lancer un nouveau avec {ch.from===user?ch.to:ch.from}.</div>
+                    <button onClick={()=>{
+                      const ns={...challenges}; delete ns[penChallengeId];
+                      save({...st,challenges:ns}); setPenChallengeId(null);
+                      showNotif("info","Ancien défi supprimé — tu peux maintenant en lancer un nouveau !");
+                    }} style={{padding:"10px 20px",borderRadius:10,border:"none",background:RED,color:"#fff",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
+                      🗑️ Supprimer ce défi
+                    </button>
+                  </div>
                 </div>
               );
             }
