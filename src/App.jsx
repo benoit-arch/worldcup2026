@@ -849,7 +849,50 @@ function soundGoal() { // But marqué — clochette douce + petite foule
   } catch(e) {}
 }
 
-function soundSave() { // Arrêt penalty — petit "boop" descendant doux, pas de sifflet
+function soundTrumpetVictory() { // 🎺 Fanfare arène romaine — bon pronostic finale
+  if (_isMuted) return;
+  try {
+    const ctx = _sfx(); const now = ctx.currentTime;
+    // Mélodie de fanfare : Do-Sol-Do-Mi-Sol (quinte, octave, tierce, quinte)
+    const notes = [
+      {f:523, t:0,    d:0.18}, // Do4
+      {f:784, t:0.20, d:0.18}, // Sol4
+      {f:523, t:0.40, d:0.10}, // Do4 court
+      {f:659, t:0.52, d:0.10}, // Mi4 court
+      {f:784, t:0.64, d:0.22}, // Sol4
+      {f:1047,t:0.90, d:0.55}, // Do5 long — note finale
+    ];
+    notes.forEach(({f, t, d}) => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      // Timbre "cuivre" : mélange de sawtooth + triangle
+      const o2 = ctx.createOscillator(), g2 = ctx.createGain();
+      o.type = "sawtooth"; o.frequency.value = f;
+      o2.type = "triangle"; o2.frequency.value = f;
+      const master = ctx.createGain();
+      o.connect(master); o2.connect(g2); g2.connect(master);
+      master.connect(ctx.destination);
+      g2.gain.value = 0.4; // triangle plus doux mélangé
+      const vol = 0.18;
+      master.gain.setValueAtTime(0, now+t);
+      master.gain.linearRampToValueAtTime(vol, now+t+0.04);
+      master.gain.setValueAtTime(vol, now+t+d*0.7);
+      master.gain.exponentialRampToValueAtTime(0.001, now+t+d);
+      o.start(now+t); o.stop(now+t+d+0.05);
+      o2.start(now+t); o2.stop(now+t+d+0.05);
+    });
+    // Percussion grave (caisse) sur les temps forts
+    [0, 0.40, 0.90].forEach(t => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination); o.type = "sine";
+      o.frequency.setValueAtTime(120, now+t); o.frequency.exponentialRampToValueAtTime(40, now+t+0.18);
+      g.gain.setValueAtTime(0, now+t); g.gain.linearRampToValueAtTime(0.22, now+t+0.02);
+      g.gain.exponentialRampToValueAtTime(0.001, now+t+0.2);
+      o.start(now+t); o.stop(now+t+0.22);
+    });
+  } catch(e) {}
+}
+
+function soundSave() { // Arrêt penalty
   if (_isMuted) return;
   try {
     const ctx = _sfx(); const now = ctx.currentTime;
@@ -1161,7 +1204,7 @@ function Trophy3D({ onClose }) {
         position:"absolute",bottom:60,
         display:"flex",flexDirection:"column",alignItems:"center",gap:12
       }}>
-        <div style={{fontSize:13,color:"rgba(245,200,66,.6)",letterSpacing:1}}>+3 pts</div>
+        <div style={{fontSize:13,color:"rgba(245,200,66,.6)",letterSpacing:1}}></div>
         <button onClick={onClose} style={{
           background:"rgba(245,200,66,.15)",
           border:"1px solid rgba(245,200,66,.4)",
@@ -2170,84 +2213,85 @@ const PLUS_MOINS_QUESTIONS = [
 ];
 
 const TOP_TRUMPS_CARDS = [
-  { name:"Kylian Mbappé",     emoji:"🇫🇷", titres:1, butscdm:12, matchscdm:38, ballondor:0, note:"Meilleur buteur du Mondial 2022, capitaine des Bleus" },
-  { name:"Lionel Messi",      emoji:"🇦🇷", titres:1, butscdm:13, matchscdm:26, ballondor:8, note:"Champion du monde 2022, 8 Ballons d'Or — record absolu" },
-  { name:"Cristiano Ronaldo", emoji:"🇵🇹", titres:0, butscdm:14, matchscdm:22, ballondor:5, note:"Recordman absolu de buts en sélection nationale" },
-  { name:"Erling Haaland",    emoji:"🇳🇴", titres:0, butscdm:0,  matchscdm:32, ballondor:0, note:"Machine à buts en club, jamais qualifié en CdM" },
-  { name:"Harry Kane",        emoji:"🏴󠁧󠁢󠁥󠁮󠁧󠁿", titres:0, butscdm:6,  matchscdm:22, ballondor:0, note:"Meilleur buteur du Mondial 2018 avec l'Angleterre" },
-  { name:"Vinicius Jr.",      emoji:"🇧🇷", titres:0, butscdm:3,  matchscdm:13, ballondor:0, note:"Star montante du Real Madrid et du Brésil" },
-  { name:"Julián Álvarez",    emoji:"🇦🇷", titres:1, butscdm:4,  matchscdm:14, ballondor:0, note:"Champion du monde 2022 avec l'Argentine" },
-  { name:"Bukayo Saka",       emoji:"🏴󠁧󠁢󠁥󠁮󠁧󠁿", titres:0, butscdm:5,  matchscdm:18, ballondor:0, note:"Titulaire indiscutable d'Arsenal et de l'Angleterre" },
-  { name:"Jude Bellingham",   emoji:"🏴󠁧󠁢󠁥󠁮󠁧󠁿", titres:0, butscdm:4,  matchscdm:20, ballondor:0, note:"Milieu phénomène du Real Madrid, révélation Mondial 2022" },
-  { name:"Lamine Yamal",      emoji:"🇪🇸", titres:1, butscdm:5,  matchscdm:15, ballondor:0, note:"Champion d'Europe 2024, plus jeune star espagnole" },
-  { name:"Pedri",             emoji:"🇪🇸", titres:1, butscdm:2,  matchscdm:25, ballondor:0, note:"Milieu de classe mondiale du FC Barcelone" },
-  { name:"Cody Gakpo",        emoji:"🇳🇱", titres:0, butscdm:16, matchscdm:35, ballondor:0, note:"Meilleur buteur des Pays-Bas au Mondial 2022" },
-  { name:"Sadio Mané",        emoji:"🇸🇳", titres:0, butscdm:41, matchscdm:100,ballondor:0, note:"Champion d'Afrique 2022 avec le Sénégal" },
-  { name:"Son Heung-min",     emoji:"🇰🇷", titres:0, butscdm:35, matchscdm:120,ballondor:0, note:"Capitaine et légende du football sud-coréen" },
-  { name:"Christian Pulisic", emoji:"🇺🇸", titres:0, butscdm:29, matchscdm:70, ballondor:0, note:"Visage du football américain, pays co-hôte 2026" },
-  { name:"Romelu Lukaku",     emoji:"🇧🇪", titres:0, butscdm:85, matchscdm:117,ballondor:0, note:"Meilleur buteur de l'histoire de la Belgique" },
-  { name:"Kevin De Bruyne",   emoji:"🇧🇪", titres:0, butscdm:33, matchscdm:106,ballondor:0, note:"Meilleur passeur du football belge moderne" },
-  { name:"Federico Valverde", emoji:"🇺🇾", titres:1, butscdm:6,  matchscdm:45, ballondor:0, note:"Milieu box-to-box du Real Madrid, pilier uruguayen" },
-  { name:"Rodri",             emoji:"🇪🇸", titres:1, butscdm:9,  matchscdm:50, ballondor:1, note:"Ballon d'Or 2024, champion d'Europe avec l'Espagne" },
-  { name:"Achraf Hakimi",     emoji:"🇲🇦", titres:0, butscdm:11, matchscdm:75, ballondor:0, note:"Demi-finaliste Mondial 2022 avec le Maroc" },
-  { name:"Hakim Ziyech",      emoji:"🇲🇦", titres:0, butscdm:18, matchscdm:60, ballondor:0, note:"Artificier du parcours marocain historique en 2022" },
-  { name:"Victor Osimhen",    emoji:"🇳🇬", titres:0, butscdm:23, matchscdm:35, ballondor:0, note:"Attaquant star du Nigeria, champion d'Italie avec Naples" },
-  { name:"Mohamed Salah",     emoji:"🇪🇬", titres:0, butscdm:56, matchscdm:100,ballondor:0, note:"Meilleur buteur de l'histoire de l'Égypte" },
-  { name:"Bruno Fernandes",   emoji:"🇵🇹", titres:0, butscdm:30, matchscdm:80, ballondor:0, note:"Capitaine du Portugal, milieu créateur prolifique" },
-  { name:"João Félix",        emoji:"🇵🇹", titres:0, butscdm:12, matchscdm:45, ballondor:0, note:"Talent polyvalent de l'attaque portugaise" },
-  { name:"Antoine Griezmann", emoji:"🇫🇷", titres:1, butscdm:44, matchscdm:140,ballondor:0, note:"Champion du monde 2018, pilier indéboulonnable des Bleus" },
-  { name:"Ousmane Dembélé",   emoji:"🇫🇷", titres:1, butscdm:8,  matchscdm:45, ballondor:0, note:"Champion du monde 2018, ailier rapide du PSG" },
-  { name:"Aurélien Tchouaméni",emoji:"🇫🇷",titres:0, butscdm:3,  matchscdm:30, ballondor:0, note:"Milieu défensif du Real Madrid, pilier des Bleus" },
-  { name:"William Saliba",    emoji:"🇫🇷", titres:0, butscdm:0,  matchscdm:25, ballondor:0, note:"Défenseur central d'Arsenal, finaliste Mondial 2022" },
-  { name:"Florian Wirtz",     emoji:"🇩🇪", titres:0, butscdm:9,  matchscdm:25, ballondor:0, note:"Jeune prodige du milieu offensif allemand" },
-  { name:"Jamal Musiala",     emoji:"🇩🇪", titres:0, butscdm:14, matchscdm:35, ballondor:0, note:"Étoile montante du Bayern Munich et de la Mannschaft" },
-  { name:"İlkay Gündoğan",    emoji:"🇩🇪", titres:0, butscdm:19, matchscdm:80, ballondor:0, note:"Capitaine expérimenté de l'Allemagne" },
-  { name:"Lautaro Martínez",  emoji:"🇦🇷", titres:1, butscdm:32, matchscdm:75, ballondor:0, note:"Champion du monde 2022, buteur prolifique de l'Inter" },
-  { name:"Enzo Fernández",    emoji:"🇦🇷", titres:1, butscdm:8,  matchscdm:40, ballondor:0, note:"Meilleur jeune joueur du Mondial 2022" },
-  { name:"Rodrigo De Paul",   emoji:"🇦🇷", titres:1, butscdm:7,  matchscdm:75, ballondor:0, note:"Milieu infatigable, champion du monde 2022" },
-  { name:"Marquinhos",        emoji:"🇧🇷", titres:0, butscdm:5,  matchscdm:55, ballondor:0, note:"Défenseur capitaine du Brésil et du PSG" },
-  { name:"Rodrygo",           emoji:"🇧🇷", titres:0, butscdm:8,  matchscdm:30, ballondor:0, note:"Attaquant polyvalent du Real Madrid" },
-  { name:"Casemiro",          emoji:"🇧🇷", titres:0, butscdm:7,  matchscdm:75, ballondor:0, note:"Sentinelle du milieu brésilien, 5 Ligues des Champions" },
-  { name:"Alisson Becker",    emoji:"🇧🇷", titres:0, butscdm:0,  matchscdm:65, ballondor:0, note:"Gardien titulaire du Brésil, pilier de Liverpool" },
-  { name:"Thibaut Courtois",  emoji:"🇧🇪", titres:0, butscdm:0,  matchscdm:105,ballondor:0, note:"Considéré parmi les meilleurs gardiens au monde" },
-  { name:"Virgil van Dijk",   emoji:"🇳🇱", titres:0, butscdm:9,  matchscdm:90, ballondor:0, note:"Capitaine et roc défensif des Pays-Bas" },
-  { name:"Memphis Depay",     emoji:"🇳🇱", titres:0, butscdm:46, matchscdm:96, ballondor:0, note:"Meilleur buteur de l'histoire des Pays-Bas" },
-  { name:"Frenkie de Jong",   emoji:"🇳🇱", titres:0, butscdm:6,  matchscdm:55, ballondor:0, note:"Milieu technique du FC Barcelone" },
-  { name:"Joshua Kimmich",    emoji:"🇩🇪", titres:0, butscdm:9,  matchscdm:100,ballondor:0, note:"Polyvalent et précieux pour la Mannschaft" },
-  { name:"Declan Rice",       emoji:"🏴󠁧󠁢󠁥󠁮󠁧󠁿", titres:0, butscdm:4,  matchscdm:60, ballondor:0, note:"Milieu défensif clé d'Arsenal et de l'Angleterre" },
-  { name:"Phil Foden",        emoji:"🏴󠁧󠁢󠁥󠁮󠁧󠁿", titres:0, butscdm:13, matchscdm:38, ballondor:0, note:"Jeune star formée à Manchester City" },
-  { name:"Pedro Neto",        emoji:"🇵🇹", titres:0, butscdm:5,  matchscdm:30, ballondor:0, note:"Ailier rapide et technique du Portugal" },
-  { name:"Marcus Rashford",   emoji:"🏴󠁧󠁢󠁥󠁮󠁧󠁿", titres:0, butscdm:17, matchscdm:65, ballondor:0, note:"Attaquant offensif emblématique de Manchester United" },
-  { name:"Endrick",           emoji:"🇧🇷", titres:0, butscdm:13, matchscdm:18, ballondor:0, note:"Plus jeune espoir brésilien évoluant au Real Madrid" },
-  { name:"Hirving Lozano",    emoji:"🇲🇽", titres:0, butscdm:31, matchscdm:90, ballondor:0, note:"Buteur emblématique du Mexique, pays hôte 2026" },
-  { name:"Raphinha",          emoji:"🇧🇷", titres:0, butscdm:24, matchscdm:40, ballondor:0, note:"Ailier offensif du FC Barcelone et du Brésil" },
-  { name:"Luis Díaz",         emoji:"🇨🇴", titres:0, butscdm:26, matchscdm:65, ballondor:0, note:"Star colombienne offensive de Liverpool" },
-  { name:"Darwin Núñez",      emoji:"🇺🇾", titres:0, butscdm:21, matchscdm:45, ballondor:0, note:"Attaquant puissant de l'Uruguay et de Liverpool" },
-  { name:"Youssef En-Nesyri", emoji:"🇲🇦", titres:0, butscdm:21, matchscdm:65, ballondor:0, note:"Buteur clé du parcours marocain en 2022" },
-  { name:"Kai Havertz",       emoji:"🇩🇪", titres:0, butscdm:22, matchscdm:55, ballondor:0, note:"Polyvalent offensif d'Arsenal et de l'Allemagne" },
+  { name:"Kylian Mbappé",     emoji:"🇫🇷", titres:1, euroTitres:0, butscdm:12, matchscdm:38, ballondor:0, note:"Champion du monde 2018, meilleur buteur du Mondial 2022" },
+  { name:"Lionel Messi",      emoji:"🇦🇷", titres:1, euroTitres:0, butscdm:13, matchscdm:26, ballondor:8, note:"Champion du monde 2022, 8 Ballons d'Or — record absolu" },
+  { name:"Cristiano Ronaldo", emoji:"🇵🇹", titres:0, euroTitres:0, butscdm:14, matchscdm:22, ballondor:5, note:"Recordman absolu de buts en sélection nationale" },
+  { name:"Erling Haaland",    emoji:"🇳🇴", titres:0, euroTitres:0, butscdm:0,  matchscdm:32, ballondor:0, note:"Machine à buts en club, jamais qualifié en CdM" },
+  { name:"Harry Kane",        emoji:"🏴󠁧󠁢󠁥󠁮󠁧󠁿", titres:0, euroTitres:0, butscdm:6,  matchscdm:22, ballondor:0, note:"Meilleur buteur du Mondial 2018 avec l'Angleterre" },
+  { name:"Vinicius Jr.",      emoji:"🇧🇷", titres:0, euroTitres:0, butscdm:3,  matchscdm:13, ballondor:0, note:"Star montante du Real Madrid et du Brésil" },
+  { name:"Julián Álvarez",    emoji:"🇦🇷", titres:1, euroTitres:0, butscdm:4,  matchscdm:14, ballondor:0, note:"Champion du monde 2022 et Copa América avec l'Argentine" },
+  { name:"Bukayo Saka",       emoji:"🏴󠁧󠁢󠁥󠁮󠁧󠁿", titres:0, euroTitres:0, butscdm:5,  matchscdm:18, ballondor:0, note:"Titulaire indiscutable d'Arsenal et de l'Angleterre" },
+  { name:"Jude Bellingham",   emoji:"🏴󠁧󠁢󠁥󠁮󠁧󠁿", titres:0, euroTitres:0, butscdm:4,  matchscdm:20, ballondor:0, note:"Milieu phénomène du Real Madrid, révélation Mondial 2022" },
+  { name:"Lamine Yamal",      emoji:"🇪🇸", titres:0, euroTitres:1, butscdm:5,  matchscdm:15, ballondor:0, note:"Champion d'Europe 2024, plus jeune star espagnole" },
+  { name:"Pedri",             emoji:"🇪🇸", titres:0, euroTitres:1, butscdm:2,  matchscdm:25, ballondor:0, note:"Milieu de classe mondiale du FC Barcelone" },
+  { name:"Cody Gakpo",        emoji:"🇳🇱", titres:0, euroTitres:0, butscdm:16, matchscdm:35, ballondor:0, note:"Meilleur buteur des Pays-Bas au Mondial 2022" },
+  { name:"Sadio Mané",        emoji:"🇸🇳", titres:0, euroTitres:0, butscdm:41, matchscdm:100,ballondor:0, note:"Champion d'Afrique 2022 avec le Sénégal" },
+  { name:"Son Heung-min",     emoji:"🇰🇷", titres:0, euroTitres:0, butscdm:35, matchscdm:120,ballondor:0, note:"Capitaine et légende du football sud-coréen" },
+  { name:"Christian Pulisic", emoji:"🇺🇸", titres:0, euroTitres:0, butscdm:29, matchscdm:70, ballondor:0, note:"Visage du football américain, pays co-hôte 2026" },
+  { name:"Romelu Lukaku",     emoji:"🇧🇪", titres:0, euroTitres:0, butscdm:85, matchscdm:117,ballondor:0, note:"Meilleur buteur de l'histoire de la Belgique" },
+  { name:"Kevin De Bruyne",   emoji:"🇧🇪", titres:0, euroTitres:0, butscdm:33, matchscdm:106,ballondor:0, note:"Meilleur passeur du football belge moderne" },
+  { name:"Federico Valverde", emoji:"🇺🇾", titres:0, euroTitres:0, butscdm:6,  matchscdm:45, ballondor:0, note:"Milieu box-to-box du Real Madrid, pilier uruguayen" },
+  { name:"Rodri",             emoji:"🇪🇸", titres:0, euroTitres:2, butscdm:9,  matchscdm:50, ballondor:1, note:"Ballon d'Or 2024, double champion d'Europe avec l'Espagne" },
+  { name:"Achraf Hakimi",     emoji:"🇲🇦", titres:0, euroTitres:0, butscdm:11, matchscdm:75, ballondor:0, note:"Demi-finaliste Mondial 2022 avec le Maroc" },
+  { name:"Hakim Ziyech",      emoji:"🇲🇦", titres:0, euroTitres:0, butscdm:18, matchscdm:60, ballondor:0, note:"Artificier du parcours marocain historique en 2022" },
+  { name:"Victor Osimhen",    emoji:"🇳🇬", titres:0, euroTitres:0, butscdm:23, matchscdm:35, ballondor:0, note:"Attaquant star du Nigeria, champion d'Italie avec Naples" },
+  { name:"Mohamed Salah",     emoji:"🇪🇬", titres:0, euroTitres:0, butscdm:56, matchscdm:100,ballondor:0, note:"Meilleur buteur de l'histoire de l'Égypte" },
+  { name:"Bruno Fernandes",   emoji:"🇵🇹", titres:0, euroTitres:0, butscdm:30, matchscdm:80, ballondor:0, note:"Capitaine du Portugal, milieu créateur prolifique" },
+  { name:"João Félix",        emoji:"🇵🇹", titres:0, euroTitres:0, butscdm:12, matchscdm:45, ballondor:0, note:"Talent polyvalent de l'attaque portugaise" },
+  { name:"Antoine Griezmann", emoji:"🇫🇷", titres:1, euroTitres:1, butscdm:44, matchscdm:140,ballondor:0, note:"Champion du monde 2018 et d'Europe 2016, pilier des Bleus" },
+  { name:"Ousmane Dembélé",   emoji:"🇫🇷", titres:1, euroTitres:0, butscdm:8,  matchscdm:45, ballondor:0, note:"Champion du monde 2018, ailier rapide du PSG" },
+  { name:"Aurélien Tchouaméni",emoji:"🇫🇷",titres:0, euroTitres:0, butscdm:3,  matchscdm:30, ballondor:0, note:"Milieu défensif du Real Madrid, pilier des Bleus" },
+  { name:"William Saliba",    emoji:"🇫🇷", titres:0, euroTitres:0, butscdm:0,  matchscdm:25, ballondor:0, note:"Défenseur central d'Arsenal, finaliste Mondial 2022" },
+  { name:"Florian Wirtz",     emoji:"🇩🇪", titres:0, euroTitres:0, butscdm:9,  matchscdm:25, ballondor:0, note:"Jeune prodige du milieu offensif allemand" },
+  { name:"Jamal Musiala",     emoji:"🇩🇪", titres:0, euroTitres:0, butscdm:14, matchscdm:35, ballondor:0, note:"Étoile montante du Bayern Munich et de la Mannschaft" },
+  { name:"İlkay Gündoğan",    emoji:"🇩🇪", titres:0, euroTitres:0, butscdm:19, matchscdm:80, ballondor:0, note:"Capitaine expérimenté de l'Allemagne" },
+  { name:"Lautaro Martínez",  emoji:"🇦🇷", titres:1, euroTitres:0, butscdm:32, matchscdm:75, ballondor:0, note:"Champion du monde 2022 et Copa América, buteur de l'Inter" },
+  { name:"Enzo Fernández",    emoji:"🇦🇷", titres:1, euroTitres:0, butscdm:8,  matchscdm:40, ballondor:0, note:"Meilleur jeune joueur du Mondial 2022, champion avec l'Argentine" },
+  { name:"Rodrigo De Paul",   emoji:"🇦🇷", titres:1, euroTitres:0, butscdm:7,  matchscdm:75, ballondor:0, note:"Milieu infatigable, champion du monde 2022" },
+  { name:"Marquinhos",        emoji:"🇧🇷", titres:0, euroTitres:0, butscdm:5,  matchscdm:55, ballondor:0, note:"Défenseur capitaine du Brésil et du PSG" },
+  { name:"Rodrygo",           emoji:"🇧🇷", titres:0, euroTitres:0, butscdm:8,  matchscdm:30, ballondor:0, note:"Attaquant polyvalent du Real Madrid" },
+  { name:"Casemiro",          emoji:"🇧🇷", titres:0, euroTitres:0, butscdm:7,  matchscdm:75, ballondor:0, note:"Sentinelle du milieu brésilien, 5 Ligues des Champions" },
+  { name:"Alisson Becker",    emoji:"🇧🇷", titres:0, euroTitres:0, butscdm:0,  matchscdm:65, ballondor:0, note:"Gardien titulaire du Brésil, pilier de Liverpool" },
+  { name:"Thibaut Courtois",  emoji:"🇧🇪", titres:0, euroTitres:0, butscdm:0,  matchscdm:105,ballondor:0, note:"Considéré parmi les meilleurs gardiens au monde" },
+  { name:"Virgil van Dijk",   emoji:"🇳🇱", titres:0, euroTitres:0, butscdm:9,  matchscdm:90, ballondor:0, note:"Capitaine et roc défensif des Pays-Bas" },
+  { name:"Memphis Depay",     emoji:"🇳🇱", titres:0, euroTitres:0, butscdm:46, matchscdm:96, ballondor:0, note:"Meilleur buteur de l'histoire des Pays-Bas" },
+  { name:"Frenkie de Jong",   emoji:"🇳🇱", titres:0, euroTitres:0, butscdm:6,  matchscdm:55, ballondor:0, note:"Milieu technique du FC Barcelone" },
+  { name:"Joshua Kimmich",    emoji:"🇩🇪", titres:0, euroTitres:0, butscdm:9,  matchscdm:100,ballondor:0, note:"Polyvalent et précieux pour la Mannschaft" },
+  { name:"Declan Rice",       emoji:"🏴󠁧󠁢󠁥󠁮󠁧󠁿", titres:0, euroTitres:0, butscdm:4,  matchscdm:60, ballondor:0, note:"Milieu défensif clé d'Arsenal et de l'Angleterre" },
+  { name:"Phil Foden",        emoji:"🏴󠁧󠁢󠁥󠁮󠁧󠁿", titres:0, euroTitres:0, butscdm:13, matchscdm:38, ballondor:0, note:"Jeune star formée à Manchester City" },
+  { name:"Pedro Neto",        emoji:"🇵🇹", titres:0, euroTitres:0, butscdm:5,  matchscdm:30, ballondor:0, note:"Ailier rapide et technique du Portugal" },
+  { name:"Marcus Rashford",   emoji:"🏴󠁧󠁢󠁥󠁮󠁧󠁿", titres:0, euroTitres:0, butscdm:17, matchscdm:65, ballondor:0, note:"Attaquant offensif emblématique de Manchester United" },
+  { name:"Endrick",           emoji:"🇧🇷", titres:0, euroTitres:0, butscdm:13, matchscdm:18, ballondor:0, note:"Plus jeune espoir brésilien évoluant au Real Madrid" },
+  { name:"Hirving Lozano",    emoji:"🇲🇽", titres:0, euroTitres:0, butscdm:31, matchscdm:90, ballondor:0, note:"Buteur emblématique du Mexique, pays hôte 2026" },
+  { name:"Raphinha",          emoji:"🇧🇷", titres:0, euroTitres:0, butscdm:24, matchscdm:40, ballondor:0, note:"Ailier offensif du FC Barcelone et du Brésil" },
+  { name:"Luis Díaz",         emoji:"🇨🇴", titres:0, euroTitres:0, butscdm:26, matchscdm:65, ballondor:0, note:"Star colombienne offensive de Liverpool" },
+  { name:"Darwin Núñez",      emoji:"🇺🇾", titres:0, euroTitres:0, butscdm:21, matchscdm:45, ballondor:0, note:"Attaquant puissant de l'Uruguay et de Liverpool" },
+  { name:"Youssef En-Nesyri", emoji:"🇲🇦", titres:0, euroTitres:0, butscdm:21, matchscdm:65, ballondor:0, note:"Buteur clé du parcours marocain en 2022" },
+  { name:"Kai Havertz",       emoji:"🇩🇪", titres:0, euroTitres:0, butscdm:22, matchscdm:55, ballondor:0, note:"Polyvalent offensif d'Arsenal et de l'Allemagne" },
   // ── Légendes ──
-  { name:"Pelé",               emoji:"🇧🇷", titres:3, butscdm:77, matchscdm:92,  ballondor:0, note:"Triple champion du monde (1958, 1962, 1970), légende absolue" },
-  { name:"Diego Maradona",     emoji:"🇦🇷", titres:1, butscdm:34, matchscdm:91,  ballondor:0, note:"Champion du monde 1986, auteur du but du siècle" },
-  { name:"Zinédine Zidane",    emoji:"🇫🇷", titres:1, butscdm:31, matchscdm:108, ballondor:1, note:"Champion du monde 1998, double buteur en finale" },
-  { name:"Ronaldo Nazário",    emoji:"🇧🇷", titres:2, butscdm:62, matchscdm:98,  ballondor:2, note:"Double champion du monde, recordman des buts en Coupe du Monde" },
-  { name:"Ronaldinho",         emoji:"🇧🇷", titres:1, butscdm:33, matchscdm:97,  ballondor:0, note:"Champion du monde 2002, magicien du Brésil" },
-  { name:"Thierry Henry",      emoji:"🇫🇷", titres:1, butscdm:51, matchscdm:123, ballondor:0, note:"Champion du monde 1998, meilleur buteur historique des Bleus" },
-  { name:"Roberto Baggio",     emoji:"🇮🇹", titres:0, butscdm:27, matchscdm:56,  ballondor:1, note:"Finaliste malheureux 1994, l'un des plus grands n°10 italiens" },
-  { name:"Franz Beckenbauer",  emoji:"🇩🇪", titres:1, butscdm:14, matchscdm:103, ballondor:2, note:"Champion du monde 1974, inventeur du poste de libéro" },
-  { name:"Johan Cruyff",       emoji:"🇳🇱", titres:0, butscdm:33, matchscdm:48,  ballondor:3, note:"Finaliste 1974, génie du football total néerlandais" },
-  { name:"George Best",        emoji:"🇬🇧", titres:0, butscdm:9,  matchscdm:37,  ballondor:1, note:"Légende nord-irlandaise, jamais qualifié en Coupe du Monde" },
-  { name:"Michel Platini",     emoji:"🇫🇷", titres:0, butscdm:41, matchscdm:72,  ballondor:3, note:"Triple Ballon d'Or consécutif, capitaine des Bleus" },
-  { name:"Paolo Maldini",      emoji:"🇮🇹", titres:0, butscdm:7,  matchscdm:126, ballondor:0, note:"Record de longévité, finaliste de la Coupe du Monde 1994" },
-  { name:"David Beckham",      emoji:"🏴󠁧󠁢󠁥󠁮󠁧󠁿", titres:0, butscdm:17, matchscdm:115, ballondor:0, note:"Icône anglaise, maître des coups francs" },
-  { name:"Zico",               emoji:"🇧🇷", titres:0, butscdm:48, matchscdm:72,  ballondor:0, note:"Légende de Flamengo, jamais sacré champion du monde" },
-  { name:"Romário",            emoji:"🇧🇷", titres:1, butscdm:55, matchscdm:70,  ballondor:0, note:"Champion du monde 1994, buteur d'instinct redoutable" },
+  { name:"Pelé",               emoji:"🇧🇷", titres:3, euroTitres:0, butscdm:77, matchscdm:92,  ballondor:0, note:"Triple champion du monde (1958, 1962, 1970), légende absolue" },
+  { name:"Diego Maradona",     emoji:"🇦🇷", titres:1, euroTitres:0, butscdm:34, matchscdm:91,  ballondor:0, note:"Champion du monde 1986, auteur du but du siècle" },
+  { name:"Zinédine Zidane",    emoji:"🇫🇷", titres:1, euroTitres:0, butscdm:31, matchscdm:108, ballondor:1, note:"Champion du monde 1998, double buteur en finale" },
+  { name:"Ronaldo Nazário",    emoji:"🇧🇷", titres:2, euroTitres:0, butscdm:62, matchscdm:98,  ballondor:2, note:"Double champion du monde, recordman des buts en Coupe du Monde" },
+  { name:"Ronaldinho",         emoji:"🇧🇷", titres:1, euroTitres:0, butscdm:33, matchscdm:97,  ballondor:0, note:"Champion du monde 2002, magicien du Brésil" },
+  { name:"Thierry Henry",      emoji:"🇫🇷", titres:1, euroTitres:0, butscdm:51, matchscdm:123, ballondor:0, note:"Champion du monde 1998, meilleur buteur historique des Bleus" },
+  { name:"Roberto Baggio",     emoji:"🇮🇹", titres:0, euroTitres:0, butscdm:27, matchscdm:56,  ballondor:1, note:"Finaliste malheureux 1994, l'un des plus grands n°10 italiens" },
+  { name:"Franz Beckenbauer",  emoji:"🇩🇪", titres:1, euroTitres:0, butscdm:14, matchscdm:103, ballondor:2, note:"Champion du monde 1974, inventeur du poste de libéro" },
+  { name:"Johan Cruyff",       emoji:"🇳🇱", titres:0, euroTitres:0, butscdm:33, matchscdm:48,  ballondor:3, note:"Finaliste 1974, génie du football total néerlandais" },
+  { name:"George Best",        emoji:"🇬🇧", titres:0, euroTitres:0, butscdm:9,  matchscdm:37,  ballondor:1, note:"Légende nord-irlandaise, jamais qualifié en Coupe du Monde" },
+  { name:"Michel Platini",     emoji:"🇫🇷", titres:0, euroTitres:0, butscdm:41, matchscdm:72,  ballondor:3, note:"Triple Ballon d'Or consécutif, capitaine des Bleus" },
+  { name:"Paolo Maldini",      emoji:"🇮🇹", titres:0, euroTitres:0, butscdm:7,  matchscdm:126, ballondor:0, note:"Record de longévité, finaliste de la Coupe du Monde 1994" },
+  { name:"David Beckham",      emoji:"🏴󠁧󠁢󠁥󠁮󠁧󠁿", titres:0, euroTitres:0, butscdm:17, matchscdm:115, ballondor:0, note:"Icône anglaise, maître des coups francs" },
+  { name:"Zico",               emoji:"🇧🇷", titres:0, euroTitres:0, butscdm:48, matchscdm:72,  ballondor:0, note:"Légende de Flamengo, jamais sacré champion du monde" },
+  { name:"Romário",            emoji:"🇧🇷", titres:1, euroTitres:0, butscdm:55, matchscdm:70,  ballondor:0, note:"Champion du monde 1994, buteur d'instinct redoutable" },
 ];
 
 const TOP_TRUMPS_CATEGORIES = [
-  { key:"titres",   label:"🏆 Titres CdM",     higher:true,  desc:"Coupes du Monde remportées" },
-  { key:"butscdm",  label:"⚽ Buts CdM",        higher:true,  desc:"Buts marqués en Coupe du Monde" },
-  { key:"matchscdm",label:"📅 Matchs CdM",      higher:true,  desc:"Matchs joués en Coupe du Monde" },
-  { key:"ballondor",label:"🥇 Ballons d'Or",    higher:true,  desc:"Ballons d'Or remportés" },
+  { key:"titres",    label:"🏆 Titres CdM",      higher:true,  desc:"Coupes du Monde remportées" },
+  { key:"euroTitres",label:"🌍 Titres Euro/Copa", higher:true,  desc:"Titres continentaux (Euro / Copa América)" },
+  { key:"butscdm",   label:"⚽ Buts sélection",   higher:true,  desc:"Buts marqués en équipe nationale" },
+  { key:"matchscdm", label:"📅 Matchs sél.",       higher:true,  desc:"Matchs joués en équipe nationale" },
+  { key:"ballondor", label:"🥇 Ballons d'Or",     higher:true,  desc:"Ballons d'Or remportés" },
 ];
 
 // ── MEILLEUR BUTEUR — données vérifiées WC 2026 (clubs et stats 2024) ──────
@@ -2277,21 +2321,21 @@ const BUTEUR_CARDS = [
   { name:"Endrick",           emoji:"🇧🇷", team:"Brésil",     club:"Real Madrid",    clubGoals:7,  intlGoals:13, age:18 },
   { name:"Hirving Lozano",    emoji:"🇲🇽", team:"Mexique",    club:"PSV",            clubGoals:8,  intlGoals:31, age:29 },
   // ── Légendes ──
-  { name:"Pelé",               emoji:"🇧🇷", team:"Brésil",    club:"Santos",         clubGoals:643, intlGoals:77, age:29 },
-  { name:"Diego Maradona",     emoji:"🇦🇷", team:"Argentine", club:"Napoli",         clubGoals:115, intlGoals:34, age:25 },
-  { name:"Zinédine Zidane",    emoji:"🇫🇷", team:"France",    club:"Real Madrid",    clubGoals:49,  intlGoals:31, age:26 },
-  { name:"Ronaldo Nazário",    emoji:"🇧🇷", team:"Brésil",    club:"Real Madrid",    clubGoals:104, intlGoals:62, age:25 },
-  { name:"Ronaldinho",         emoji:"🇧🇷", team:"Brésil",    club:"FC Barcelone",   clubGoals:94,  intlGoals:33, age:25 },
-  { name:"Thierry Henry",      emoji:"🇫🇷", team:"France",    club:"Arsenal",        clubGoals:228, intlGoals:51, age:26 },
-  { name:"Roberto Baggio",     emoji:"🇮🇹", team:"Italie",    club:"Juventus",       clubGoals:115, intlGoals:27, age:27 },
-  { name:"Franz Beckenbauer",  emoji:"🇩🇪", team:"Allemagne", club:"Bayern Munich",  clubGoals:60,  intlGoals:14, age:28 },
-  { name:"Johan Cruyff",       emoji:"🇳🇱", team:"Pays-Bas",  club:"Ajax",           clubGoals:190, intlGoals:33, age:27 },
-  { name:"George Best",        emoji:"🇬🇧", team:"Irlande du Nord", club:"Manchester United", clubGoals:179, intlGoals:9, age:22 },
-  { name:"Michel Platini",     emoji:"🇫🇷", team:"France",    club:"Juventus",       clubGoals:68,  intlGoals:41, age:29 },
-  { name:"Paolo Maldini",      emoji:"🇮🇹", team:"Italie",    club:"AC Milan",       clubGoals:29,  intlGoals:7,  age:30 },
-  { name:"David Beckham",      emoji:"🏴󠁧󠁢󠁥󠁮󠁧󠁿", team:"Angleterre", club:"Manchester United", clubGoals:85, intlGoals:17, age:27 },
-  { name:"Zico",               emoji:"🇧🇷", team:"Brésil",    club:"Flamengo",       clubGoals:508, intlGoals:48, age:29 },
-  { name:"Romário",            emoji:"🇧🇷", team:"Brésil",    club:"PSV Eindhoven",  clubGoals:145, intlGoals:55, age:28 },
+  { name:"Pelé",               emoji:"🇧🇷", team:"Brésil",    club:"Santos",         clubGoals:643, intlGoals:77 },
+  { name:"Diego Maradona",     emoji:"🇦🇷", team:"Argentine", club:"Napoli",         clubGoals:115, intlGoals:34 },
+  { name:"Zinédine Zidane",    emoji:"🇫🇷", team:"France",    club:"Real Madrid",    clubGoals:49,  intlGoals:31 },
+  { name:"Ronaldo Nazário",    emoji:"🇧🇷", team:"Brésil",    club:"Real Madrid",    clubGoals:104, intlGoals:62 },
+  { name:"Ronaldinho",         emoji:"🇧🇷", team:"Brésil",    club:"FC Barcelone",   clubGoals:94,  intlGoals:33 },
+  { name:"Thierry Henry",      emoji:"🇫🇷", team:"France",    club:"Arsenal",        clubGoals:228, intlGoals:51 },
+  { name:"Roberto Baggio",     emoji:"🇮🇹", team:"Italie",    club:"Juventus",       clubGoals:115, intlGoals:27 },
+  { name:"Franz Beckenbauer",  emoji:"🇩🇪", team:"Allemagne", club:"Bayern Munich",  clubGoals:60,  intlGoals:14 },
+  { name:"Johan Cruyff",       emoji:"🇳🇱", team:"Pays-Bas",  club:"Ajax",           clubGoals:190, intlGoals:33 },
+  { name:"George Best",        emoji:"🇬🇧", team:"Irlande du Nord", club:"Manchester United", clubGoals:179, intlGoals:9 },
+  { name:"Michel Platini",     emoji:"🇫🇷", team:"France",    club:"Juventus",       clubGoals:68,  intlGoals:41 },
+  { name:"Paolo Maldini",      emoji:"🇮🇹", team:"Italie",    club:"AC Milan",       clubGoals:29,  intlGoals:7  },
+  { name:"David Beckham",      emoji:"🏴󠁧󠁢󠁥󠁮󠁧󠁿", team:"Angleterre", club:"Manchester United", clubGoals:85, intlGoals:17 },
+  { name:"Zico",               emoji:"🇧🇷", team:"Brésil",    club:"Flamengo",       clubGoals:508, intlGoals:48 },
+  { name:"Romário",            emoji:"🇧🇷", team:"Brésil",    club:"PSV Eindhoven",  clubGoals:145, intlGoals:55 },
 ];
 
 // ═══ FOOTBALLEUR MYSTÈRE — banque de ~30 joueurs (légendes + actuels) ═══
@@ -2307,12 +2351,36 @@ const BUTEUR_CARDS = [
 // au titre de l'article Wikipedia. Cette table ne couvre que les exceptions
 // (abréviations, homonymes nécessitant une désambiguïsation).
 const PLAYER_WIKI_OVERRIDES = {
-  "Vinicius Jr.": "Vinícius Júnior",
-  "Bruno Fernandes": "Bruno Fernandes (footballer, born 1994)",
-  "Endrick": "Endrick (footballer, born 2006)",
-  "Ronaldo Nazário": "Ronaldo (Brazilian footballer)",
-  "Zico": "Zico (footballer)",
-  "Zinédine Zidane": "Zinedine Zidane",
+  // Joueurs actuels avec désambiguïsations ou accents
+  "Vinicius Jr.":      "Vinícius Júnior",
+  "Bruno Fernandes":   "Bruno Fernandes (footballer, born 1994)",
+  "Endrick":           "Endrick (footballer, born 2006)",
+  "Julián Álvarez":    "Julián Álvarez",
+  "Youssef En-Nesyri": "Youssef En-Nesyri",
+  "Romelu Lukaku":     "Romelu Lukaku",
+  "Memphis Depay":     "Memphis Depay",
+  "Darwin Núñez":      "Darwin Núñez",
+  "Cody Gakpo":        "Cody Gakpo",
+  "Hirving Lozano":    "Hirving Lozano",
+  "Sadio Mané":        "Sadio Mané",
+  "Raphinha":          "Raphinha (footballer)",
+  "Richarlison":       "Richarlison",
+  // Légendes
+  "Ronaldo Nazário":   "Ronaldo (Brazilian footballer)",
+  "Zico":              "Zico (footballer)",
+  "Zinédine Zidane":   "Zinedine Zidane",
+  "Romário":           "Romário",
+  "Roberto Baggio":    "Roberto Baggio",
+  "Franz Beckenbauer": "Franz Beckenbauer",
+  "Johan Cruyff":      "Johan Cruyff",
+  "George Best":       "George Best",
+  "Michel Platini":    "Michel Platini",
+  "Paolo Maldini":     "Paolo Maldini",
+  "David Beckham":     "David Beckham",
+  "Ronaldinho":        "Ronaldinho",
+  "Thierry Henry":     "Thierry Henry",
+  "Diego Maradona":    "Diego Maradona",
+  "Pelé":              "Pelé",
 };
 function wikiTitleFor(name) { return PLAYER_WIKI_OVERRIDES[name] || name; }
 
@@ -2397,9 +2465,58 @@ function jsonpRequest(baseUrl) {
   });
 }
 
+// ── Rappels de pronostics par phase éliminatoire ──────────────────────────
+// `valKey`   : clé dans validatedGroups pour savoir si le joueur a déjà validé
+// `deadline` : ISO — dernier moment où les pronos sont encore accessibles
+// `countdown`: ISO — date/heure de début de la 1ère rencontre (pour le décompte login)
+// `msg`      : message affiché dans la modale de rappel
+const ELIM_REMINDERS = [
+  {
+    phase: "seiziemes",
+    valKey: "ELIM_seiziemes",
+    deadline: "2026-06-28T21:00:00", // R1 le 28 juin à 21h00 — 1er match de la phase
+    countdown: "2026-06-28T21:00:00",
+    label: "1/16 de finale",
+    msg: "N'oubliez pas de faire vos pronostics pour les 1/16 de finale\navant le dimanche 28 juin à 21h !",
+  },
+  {
+    phase: "huitiemes",
+    valKey: "ELIM_huitiemes",
+    deadline: "2026-07-04T19:00:00", // Q1 le 4 juillet à 19h00 — 1er match de la phase
+    countdown: "2026-07-04T19:00:00",
+    label: "8e de finale",
+    msg: "N'oubliez pas de faire vos pronostics pour les 8e de finale\navant le samedi 4 juillet à 19h !",
+  },
+  {
+    phase: "quarts",
+    valKey: "ELIM_quarts",
+    deadline: "2026-07-09T22:00:00", // S1 le 9 juillet à 22h00 — 1er match de la phase
+    countdown: "2026-07-09T22:00:00",
+    label: "Quarts de finale",
+    msg: "N'oubliez pas de faire vos pronostics pour les Quarts de finale\navant le jeudi 9 juillet à 22h !",
+  },
+  {
+    phase: "demis",
+    valKey: "ELIM_demis",
+    deadline: "2026-07-14T21:00:00", // SF1 le 14 juillet à 21h00 — 1er match de la phase
+    countdown: "2026-07-14T21:00:00",
+    label: "Demi-finales",
+    msg: "N'oubliez pas de faire vos pronostics pour les Demi-finales\navant le mardi 14 juillet à 21h !",
+  },
+  {
+    phase: "finale",
+    valKey: "ELIM_finale",
+    deadline: "2026-07-19T21:00:00", // FIN le 19 juillet à 21h00 — coup d'envoi de la finale
+    countdown: "2026-07-19T21:00:00",
+    label: "Finale",
+    msg: "N'oubliez pas de faire vos pronostics pour la Grande Finale\navant le dimanche 19 juillet à 21h !",
+  },
+];
+
 const blank = () => ({ users:{}, predictions:{}, results:{}, scores:{}, validatedGroups:{}, finalLock:{}, seenAnim:{}, officialThirds:{}, thirdPicks:{}, seenEgg:{}, presence:{}, chat:{famille:[],collegues:[],externe:[]}, matchComments:{}, chatEnabled:true, appVersion: APP_VERSION, forceLogoutSignal: 0, seenChat:{}, gameScores:{}, gameScoresTotal:{}, gameHistory:{}, challenges:{}, gamePlaysToday:{},
   elimUnlocked: [],          // phases déverrouillées par admin: ["seiziemes","huitiemes",...]
   elimRealTeams: {},         // équipes réelles saisies par admin: {"R1":{home:"Maroc",away:"France"}, ...}
+  finaleData: { official:null, predictions:{} }, // résultat spécial finale (vainqueur/mode/buteurs/score)
 });
 function load() {
   try {
@@ -2471,6 +2588,7 @@ async function persistFirebase(ns) {
         gamePlaysToday:    ns.gamePlaysToday   || {},
         challenges:        ns.challenges      || {},
         presence:          ns.presence        || {},
+        finaleData:        ns.finaleData      || { official:null, predictions:{} },
       };
       // ⚠️ Le chat ET les commentaires par match ne sont PAS inclus ici —
       // ils sont gérés via des écritures atomiques (sendChat/addReaction)
@@ -2502,9 +2620,13 @@ async function persistFirebase(ns) {
 // ═══ BARÈME DES POINTS ════════════════════════════════════════════
 // Défini avant calcScores qui en a besoin
 const PHASE_POINTS = {
-  poules: 1, seiziemes: 3, huitiemes: 5,
-  quarts: 8, demis: 12, p3: 8, finale: 20
+  poules: 1, seiziemes: 3, huitiemes: 3,
+  quarts: 3, demis: 3, p3: 3,
+  finale: 5  // +5 bonus score exact, +2 par buteur bien pronostiqué
 };
+// Bonus finale
+const FINALE_BONUS_SCORE  = 5;  // score exact
+const FINALE_BONUS_BUTEUR = 2;  // par buteur bien pronostiqué (max 2 buteurs)
 
 function calcScores(st) {
   const sc = {};
@@ -2513,6 +2635,7 @@ function calcScores(st) {
     const userPreds = st.predictions[u] || {};
 
     Object.keys(st.scores || {}).forEach(id => {
+      if (id === "FIN") return; // la finale a son propre système de calcul (voir plus bas)
       const score = st.scores[id];
       const match = MATCHES.find(m => m.id === id);
       if (!match) return;
@@ -2534,6 +2657,26 @@ function calcScores(st) {
         if (pred === outcome) pts += PHASE_POINTS[match.phase] || 2;
       }
     });
+
+    // ── Finale : système spécial (vainqueur+mode = 5pts, +5 score exact, +2/buteur max 2) ──
+    const finOfficial = st.finaleData?.official;
+    const finMine = st.finaleData?.predictions?.[u];
+    if (finOfficial && finOfficial.winner && finMine && finMine.winner) {
+      const modeMatch = finOfficial.mode === finMine.mode;
+      const winnerMatch = finOfficial.winner === finMine.winner;
+      if (winnerMatch && modeMatch) pts += PHASE_POINTS.finale;
+      if (winnerMatch && finOfficial.scoreH != null && finOfficial.scoreA != null
+          && finMine.scoreH != null && finMine.scoreA != null
+          && finOfficial.scoreH === finMine.scoreH && finOfficial.scoreA === finMine.scoreA) {
+        pts += FINALE_BONUS_SCORE;
+      }
+      if (finOfficial.buteurs && finMine.buteurs) {
+        const offSet = new Set(finOfficial.buteurs.map(b=>(b||"").toLowerCase().trim()).filter(Boolean));
+        const matched = (finMine.buteurs||[]).filter(b => b && offSet.has(b.toLowerCase().trim()));
+        pts += Math.min(matched.length, 2) * FINALE_BONUS_BUTEUR;
+      }
+    }
+
     sc[u] = pts;
   });
   return sc;
@@ -2973,6 +3116,257 @@ function MatchCard({ m, pred, official, score, locked, onPick, isAdmin, onScore,
   );
 }
 
+// ══════════════════════════════════════════════════════════════════════
+// FINALE — panneau spécial : vainqueur / nul+prolongation / TAB / buteurs / score exact
+// ══════════════════════════════════════════════════════════════════════
+function FinaleResultBadge({ data, homeT, awayT }) {
+  if (!data || !data.winner) return null;
+  const winnerName = data.winner === "home" ? homeT : awayT;
+  const modeLabel = data.mode === "reg" ? "(temps réglementaire)"
+    : data.mode === "prolong" ? "(après prolongation)"
+    : data.mode === "tab" ? "(aux tirs au but)" : "";
+  return (
+    <div style={{textAlign:"center",fontSize:12,fontWeight:700,color:GOLD,marginTop:4}}>
+      🏆 {winnerName} champion du monde {modeLabel}
+      {data.scoreH != null && data.scoreA != null && (
+        <div style={{fontSize:11,color:MUTED,marginTop:2,fontWeight:400}}>
+          Score : {data.scoreH} – {data.scoreA}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FinalePanel({ m, isAdmin, homeT, awayT, official, myPick, onSave, locked, officialButeurs }) {
+  // official  = résultat admin (affiché en lecture seule côté joueur après verrouillage)
+  // myPick    = pronostic du joueur (toujours dans les champs de saisie côté joueur)
+  // Les champs de saisie utilisent TOUJOURS myPick (ou official si admin)
+  const data = isAdmin ? (official || {}) : (myPick || {});
+  const [scoreH, setScoreH] = useState(data.scoreH ?? "");
+  const [scoreA, setScoreA] = useState(data.scoreA ?? "");
+  const NB_BUTEUR_FIELDS = isAdmin ? 6 : 2;
+  const [buteurs, setButeurs] = useState(() => {
+    const arr = data.buteurs || [];
+    return Array.from({length:NB_BUTEUR_FIELDS}, (_,i) => arr[i] || "");
+  });
+
+  useEffect(() => {
+    setScoreH(data.scoreH ?? ""); setScoreA(data.scoreA ?? "");
+    const arr = data.buteurs || [];
+    setButeurs(Array.from({length:NB_BUTEUR_FIELDS}, (_,i) => arr[i] || ""));
+  }, [data.winner, data.mode, data.scoreH, data.scoreA, JSON.stringify(data.buteurs)]);
+
+  // ── Choisir le vainqueur en 90 minutes : remet toujours mode="reg" et efface tout état nul/prolong/tab ──
+  const setWinner90 = (side) => {
+    if (locked) return;
+    onSave({ winner: side, mode: "reg" });
+  };
+  const setDraw = () => {
+    if (locked) return;
+    onSave({ winner: null, mode: "draw" });
+  };
+  const setProlongWinner = (side) => {
+    if (locked) return;
+    onSave({ winner: side, mode: "prolong" });
+  };
+  const setTabWinner = (side) => {
+    if (locked) return;
+    onSave({ winner: side, mode: "tab" });
+  };
+  const saveScore = () => {
+    if (locked) return;
+    const h = scoreH === "" ? null : parseInt(scoreH);
+    const a = scoreA === "" ? null : parseInt(scoreA);
+    onSave({ scoreH: isNaN(h) ? null : h, scoreA: isNaN(a) ? null : a });
+  };
+  const saveButeurs = (newArr) => {
+    if (locked) return;
+    // Dédupliquer : un même nom (insensible à la casse/espaces) ne compte qu'une fois,
+    // même si l'admin l'a inscrit dans plusieurs champs (ex: doublé du même buteur)
+    const seen = new Set();
+    const cleaned = [];
+    newArr.forEach(b => {
+      const trimmed = (b || "").trim();
+      if (!trimmed) return;
+      const key = trimmed.toLowerCase();
+      if (seen.has(key)) return;
+      seen.add(key);
+      cleaned.push(trimmed);
+    });
+    onSave({ buteurs: cleaned });
+  };
+
+  // isDraw : on est dans le contexte "match nul après 90min" tant que le mode
+  // est draw/prolong/tab — ça permet de garder le sous-menu visible et de pouvoir
+  // changer d'avis entre prolongation et TAB sans perdre l'accès au bouton 90min
+  const inDrawContext = data.mode === "draw" || data.mode === "prolong" || data.mode === "tab";
+  const isReg = data.mode === "reg" && data.winner;
+
+  return (
+    <div style={{...t.card, border:`2px solid ${GOLD}`, background:"linear-gradient(135deg,rgba(245,200,66,.1),rgba(245,200,66,.03))"}}>
+      <div style={{textAlign:"center",marginBottom:10}}>
+        <div style={{fontSize:11,color:GOLD,fontWeight:800,textTransform:"uppercase",letterSpacing:1}}>🏆 Finale de la Coupe du Monde</div>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,marginTop:8}}>
+          <div style={{textAlign:"center"}}><div style={{fontSize:26}}>{F(homeT)}</div><div style={{fontSize:12,fontWeight:700}}>{homeT}</div></div>
+          <span style={{fontSize:14,color:MUTED,fontWeight:700}}>VS</span>
+          <div style={{textAlign:"center"}}><div style={{fontSize:26}}>{F(awayT)}</div><div style={{fontSize:12,fontWeight:700}}>{awayT}</div></div>
+        </div>
+      </div>
+
+      {/* ── Explication du barème (toujours visible, joueur et admin) ── */}
+      <div style={{marginBottom:10,padding:"8px 10px",borderRadius:8,background:"rgba(255,255,255,.04)",border:`1px solid ${BRD}`}}>
+        <div style={{fontSize:10,color:GOLD,fontWeight:700,marginBottom:4}}>📊 Comment sont calculés les points ?</div>
+        <div style={{fontSize:10,color:MUTED,lineHeight:1.6}}>
+          • <strong style={{color:TXT}}>Vainqueur + bonne issue</strong> (90min / prolongation / TAB) : <strong style={{color:GOLD}}>{PHASE_POINTS.finale} pts</strong><br/>
+          • 🎁 <strong style={{color:TXT}}>Bonus score exact</strong> (90 min, hors TAB) : <strong style={{color:GOLD}}>+{FINALE_BONUS_SCORE} pts</strong><br/>
+          • 🎁 <strong style={{color:TXT}}>Bonus par buteur juste</strong> (max 2 comptés) : <strong style={{color:GOLD}}>+{FINALE_BONUS_BUTEUR} pts</strong> chacun<br/>
+          <span style={{opacity:.8}}>Total maximum possible : {PHASE_POINTS.finale + FINALE_BONUS_SCORE + FINALE_BONUS_BUTEUR*2} pts</span>
+        </div>
+      </div>
+
+      {/* ── 1. Qui gagne en 90 minutes ? ── */}
+      <div style={{fontSize:11,color:MUTED,fontWeight:700,marginBottom:6,textTransform:"uppercase",letterSpacing:.5}}>
+        {isAdmin ? "1️⃣ Résultat officiel — 90 minutes" : "1️⃣ Ton pronostic — 90 minutes"}
+      </div>
+      <div style={{display:"flex",gap:6,marginBottom:8}}>
+        {["home","away"].map(side=>(
+          <button key={side} disabled={locked} onClick={()=>setWinner90(side)}
+            style={{flex:1,padding:"10px 6px",borderRadius:10,border:"none",cursor:locked?"default":"pointer",fontFamily:"inherit",fontWeight:700,fontSize:12,
+              opacity:locked?.6:1,
+              background:isReg&&data.winner===side?"rgba(245,200,66,.25)":"rgba(255,255,255,.06)",
+              color:isReg&&data.winner===side?GOLD:MUTED,
+              boxShadow:isReg&&data.winner===side?`0 0 0 2px ${GOLD}`:"none"}}>
+            🏆 {side==="home"?homeT:awayT}
+          </button>
+        ))}
+        <button disabled={locked} onClick={setDraw}
+          style={{flex:1,padding:"10px 6px",borderRadius:10,border:"none",cursor:locked?"default":"pointer",fontFamily:"inherit",fontWeight:700,fontSize:12,
+            opacity:locked?.6:1,
+            background:inDrawContext?"rgba(96,165,250,.25)":"rgba(255,255,255,.06)",
+            color:inDrawContext?"#60a5fa":MUTED,
+            boxShadow:inDrawContext?"0 0 0 2px #60a5fa":"none"}}>
+          🤝 Nul après 90 min
+        </button>
+      </div>
+
+      {/* ── 2. Si nul après 90min : prolongation ou TAB — reste affiché tant qu'on n'a pas re-choisi une victoire 90min ── */}
+      {inDrawContext && (
+        <div style={{marginBottom:8,padding:"10px",borderRadius:10,background:"rgba(96,165,250,.06)",border:"1px solid rgba(96,165,250,.25)"}}>
+          <div style={{fontSize:11,color:"#60a5fa",fontWeight:700,marginBottom:6}}>Et ensuite ?</div>
+          <div style={{fontSize:10,color:MUTED,marginBottom:6}}>Vainqueur après prolongation :</div>
+          <div style={{display:"flex",gap:6,marginBottom:8}}>
+            {["home","away"].map(side=>(
+              <button key={side} disabled={locked} onClick={()=>setProlongWinner(side)}
+                style={{flex:1,padding:"8px 6px",borderRadius:8,border:"none",cursor:locked?"default":"pointer",fontFamily:"inherit",fontWeight:700,fontSize:11,
+                  opacity:locked?.6:1,
+                  background:data.winner===side&&data.mode==="prolong"?"rgba(34,197,94,.2)":"rgba(255,255,255,.06)",
+                  color:data.winner===side&&data.mode==="prolong"?GREEN:MUTED}}>
+                ⏱ {side==="home"?homeT:awayT}
+              </button>
+            ))}
+          </div>
+          <div style={{fontSize:10,color:MUTED,marginBottom:6}}>Ou aux tirs au but :</div>
+          <div style={{display:"flex",gap:6}}>
+            {["home","away"].map(side=>(
+              <button key={side} disabled={locked} onClick={()=>setTabWinner(side)}
+                style={{flex:1,padding:"8px 6px",borderRadius:8,border:"none",cursor:locked?"default":"pointer",fontFamily:"inherit",fontWeight:700,fontSize:11,
+                  opacity:locked?.6:1,
+                  background:data.winner===side&&data.mode==="tab"?"rgba(231,76,60,.2)":"rgba(255,255,255,.06)",
+                  color:data.winner===side&&data.mode==="tab"?"#e74c3c":MUTED}}>
+                🎯 {side==="home"?homeT:awayT}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {data.winner && (
+        <div style={{textAlign:"center",fontSize:11,color:MUTED,marginBottom:10,fontStyle:"italic"}}>
+          {data.mode==="reg" && `Victoire ${data.winner==="home"?homeT:awayT} dans le temps réglementaire`}
+          {data.mode==="prolong" && `Victoire ${data.winner==="home"?homeT:awayT} après prolongation`}
+          {data.mode==="tab" && `Victoire ${data.winner==="home"?homeT:awayT} aux tirs au but`}
+        </div>
+      )}
+
+      {/* ── 3. Bonus score exact ── */}
+      <div style={{fontSize:11,color:MUTED,fontWeight:700,marginBottom:6,marginTop:10,textTransform:"uppercase",letterSpacing:.5}}>
+        2️⃣ {isAdmin?"Score exact (90 min, hors TAB)":"🎁 Bonus : score exact (+"+FINALE_BONUS_SCORE+" pts)"}
+      </div>
+      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+        <input type="number" min="0" max="20" value={scoreH} disabled={locked}
+          onChange={e=>setScoreH(e.target.value)} onBlur={saveScore}
+          placeholder="0"
+          style={{flex:1,textAlign:"center",fontSize:20,fontWeight:800,background:SURF2,border:`2px solid ${scoreH!==""?GOLD:BRD}`,borderRadius:10,padding:"8px 4px",color:TXT,fontFamily:"inherit",outline:"none"}}/>
+        <span style={{fontSize:16,color:MUTED,fontWeight:700}}>–</span>
+        <input type="number" min="0" max="20" value={scoreA} disabled={locked}
+          onChange={e=>setScoreA(e.target.value)} onBlur={saveScore}
+          placeholder="0"
+          style={{flex:1,textAlign:"center",fontSize:20,fontWeight:800,background:SURF2,border:`2px solid ${scoreA!==""?GOLD:BRD}`,borderRadius:10,padding:"8px 4px",color:TXT,fontFamily:"inherit",outline:"none"}}/>
+      </div>
+
+      {/* ── 4. Buteurs ── */}
+      <div style={{fontSize:11,color:MUTED,fontWeight:700,marginBottom:6,marginTop:10,textTransform:"uppercase",letterSpacing:.5}}>
+        3️⃣ {isAdmin?`Buteurs officiels (jusqu'à ${NB_BUTEUR_FIELDS})`:`🎁 Bonus : noms des buteurs (+${FINALE_BONUS_BUTEUR} pts chacun, max 2 comptés)`}
+      </div>
+      {isAdmin && (
+        <div style={{fontSize:9,color:MUTED,marginBottom:6,fontStyle:"italic"}}>Un même buteur auteur d'un doublé ne doit être inscrit qu'une fois.</div>
+      )}
+      <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:6}}>
+        {buteurs.map((val,i)=>(
+          <input key={i} value={val} disabled={locked}
+            placeholder={isAdmin ? `Buteur ${i+1} (optionnel)` : `Nom buteur ${i+1} (optionnel)`}
+            onChange={e=>{
+              const next=[...buteurs]; next[i]=e.target.value; setButeurs(next);
+            }}
+            onBlur={()=>saveButeurs(buteurs)}
+            style={{padding:"8px",borderRadius:8,border:`1px solid ${BRD}`,background:SURF2,color:TXT,fontSize:12,fontFamily:"inherit",outline:"none"}}/>
+        ))}
+      </div>
+
+      {/* ── Buteurs officiels déjà saisis par l'admin (affichés côté joueur) ── */}
+      {!isAdmin && officialButeurs && officialButeurs.length > 0 && (
+        <div style={{marginTop:10,padding:"8px 10px",borderRadius:8,background:"rgba(34,197,94,.06)",border:"1px solid rgba(34,197,94,.25)"}}>
+          <div style={{fontSize:10,color:GREEN,fontWeight:700,marginBottom:4}}>⚽ Buteurs officiels de la finale :</div>
+          <div style={{fontSize:12,color:TXT,fontWeight:600}}>{officialButeurs.join(", ")}</div>
+        </div>
+      )}
+
+      {isAdmin && <FinaleResultBadge data={official} homeT={homeT} awayT={awayT}/>}
+
+      {/* ── Résultat officiel affiché côté joueur après verrouillage ── */}
+      {!isAdmin && official && official.winner && locked && (
+        <div style={{marginTop:12,padding:"12px",borderRadius:10,background:"rgba(245,200,66,.08)",border:`2px solid ${GOLD}`}}>
+          <div style={{fontSize:11,color:GOLD,fontWeight:800,textTransform:"uppercase",letterSpacing:.5,marginBottom:8}}>🏆 Résultat officiel</div>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:12,marginBottom:8}}>
+            <div style={{textAlign:"center",opacity:official.winner==="away"?.4:1}}>
+              <div style={{fontSize:24}}>{F(homeT)}</div>
+              <div style={{fontSize:11,fontWeight:700,color:official.winner==="home"?GOLD:MUTED}}>{homeT}</div>
+            </div>
+            {official.scoreH != null && official.scoreA != null ? (
+              <div style={{textAlign:"center"}}>
+                <div style={{fontSize:28,fontWeight:900,color:TXT}}>{official.scoreH} – {official.scoreA}</div>
+                <div style={{fontSize:10,color:MUTED}}>(90 min)</div>
+              </div>
+            ) : (
+              <span style={{fontSize:18,color:MUTED}}>–</span>
+            )}
+            <div style={{textAlign:"center",opacity:official.winner==="home"?.4:1}}>
+              <div style={{fontSize:24}}>{F(awayT)}</div>
+              <div style={{fontSize:11,fontWeight:700,color:official.winner==="away"?GOLD:MUTED}}>{awayT}</div>
+            </div>
+          </div>
+          <div style={{textAlign:"center",fontSize:12,fontWeight:700,color:GOLD}}>
+            {official.mode==="reg" && `🏆 ${official.winner==="home"?homeT:awayT} champion du monde (90 min)`}
+            {official.mode==="prolong" && `🏆 ${official.winner==="home"?homeT:awayT} champion du monde (prolongation)`}
+            {official.mode==="tab" && `🏆 ${official.winner==="home"?homeT:awayT} champion du monde (TAB)`}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
 // ══════════════════════════════════════════
 // APP
 // ══════════════════════════════════════════
@@ -3173,6 +3567,7 @@ export default function App() {
   const eggTimer = useRef(null);
   const quizTimerRef = useRef(null); // permet d'annuler l'auto-avance si le joueur clique "Suivant"
   const [tick, setTick] = useState(0);
+  const [pronoReminder, setPronoReminder] = useState(null); // clé de phase affichée dans la modale de rappel
   const [resultsScreen, setResultsScreen] = useState(null);
   const [notification, setNotification] = useState(null);
   
@@ -3220,7 +3615,14 @@ export default function App() {
   const [activeGame, setActiveGame]       = useState(null);
   const [gamePhase, setGamePhase]         = useState("menu");
   const [jeuxSubTab, setJeuxSubTab]       = useState("jouer"); // "jouer" | "classements" | "historique"
-  const [gameMode, setGameMode]           = useState(null);   // null | "solo" | "defi"
+  const [elimCollapsed, setElimCollapsed] = useState(new Set()); // phases repliées dans l'onglet élim
+  const [gameMode, setGameMode]           = useState(null);   // null | "solo" | "defi" | "ordi"
+  // ── Penalty vs Ordi ──
+  const [penOrdiPhase, setPenOrdiPhase]   = useState("choose"); // "choose"|"waiting"|"reveal"
+  const [penOrdiRole, setPenOrdiRole]     = useState(null);     // "tireur"|"gardien"
+  const [penOrdiPick, setPenOrdiPick]     = useState(null);     // zone choisie par joueur
+  const [penOrdiCpu, setPenOrdiCpu]       = useState(null);     // zone choisie par l'ordi
+  const [penOrdiScore, setPenOrdiScore]   = useState({player:0, cpu:0, round:1, total:5}); // score
   const [scoresSubTab, setScoresSubTab]   = useState("pronos"); // "pronos" | "parmatch" | "jeux"
   const [statsMatchPlayer, setStatsMatchPlayer] = useState(null); // joueur sélectionné pour stats détaillées (admin)
   const [qIdx, setQIdx]                   = useState(0);
@@ -3253,6 +3655,14 @@ export default function App() {
   const [penZonePick, setPenZonePick]         = useState(null); // zone choisie par ce joueur
   const [penRevealStage, setPenRevealStage]   = useState("none"); // "none" | "animating" | "result"
   const penAnimRef = useRef(null); // dernier challengeId pour lequel l'animation a déjà été lancée
+  // ── Curseurs animés solo (joueur + IA) ──
+  const [penCursorPos, setPenCursorPos]   = useState({x:50, y:35});
+  const penCursorIntervalRef = useRef(null);
+  const penCursorStartRef    = useRef(null);
+  const [penAiCursorPos, setPenAiCursorPos] = useState({x:50, y:35});
+  const penAiIntervalRef = useRef(null);
+  const penAiStartRef    = useRef(null);
+  const [penDifficulty, setPenDifficulty] = useState(null); // {label,HA,VA,color}
   const [activeChallengeId, setActiveChallengeId] = useState(null); // défi en cours (quiz/quisuisje/plusmoins/toptrumps)
   const [ttChallengeQueue, setTtChallengeQueue]   = useState(null); // paires de cartes restantes en mode défi (Top Trumps)
   const [challengePicker, setChallengePicker]     = useState(null); // game id en cours de sélection d'adversaire
@@ -3438,22 +3848,94 @@ export default function App() {
     };
   }, [eggActive]);
 
-  // Animation de révélation du penalty : une fois par défi, dès que les 2 tirs sont soumis
+  // ── PENALTY MULTI-ROUND : résolution auto quand les deux joueurs ont posé leur pick ──
   useEffect(() => {
-    if (activeGame !== "penalty" || !penChallengeId) return;
+    if (!penChallengeId) return;
     const ch = (st.challenges||{})[penChallengeId];
-    const both = ch && ch.shotFrom && ch.shotTo;
-    if (both && penAnimRef.current !== penChallengeId) {
-      penAnimRef.current = penChallengeId;
-      setPenRevealStage("animating");
-      const timer = setTimeout(()=>setPenRevealStage("result"), 1100);
-      return () => clearTimeout(timer);
+    if (!ch || ch.game!=="penalty" || ch.status!=="active") return;
+    if (ch.shotFrom !== undefined) return; // ancien format — ne pas toucher
+    const pick = ch.pick || {};
+    const tireur = ch.tireur;
+    if (!tireur) return;
+    const gardien = ch.from===tireur ? ch.to : ch.from;
+    if (!pick[tireur] || !pick[gardien]) return;
+    const kickKey = `${penChallengeId}_k${(ch.kicks||[]).length}`;
+    if (penAnimRef.current === kickKey) return;
+    penAnimRef.current = kickKey;
+    const goal = pick[tireur] !== pick[gardien];
+    const kicks = [...(ch.kicks||[]), {tireur, gardien, tp:pick[tireur], gp:pick[gardien], goal, ts:Date.now()}];
+    const fromGoals = kicks.filter(k=>k.tireur===ch.from&&k.goal).length;
+    const toGoals   = kicks.filter(k=>k.tireur===ch.to  &&k.goal).length;
+    const done = kicks.length >= 6;
+    const nextTireur = done ? null : (tireur===ch.from ? ch.to : ch.from);
+    const winner = done ? (fromGoals>toGoals?ch.from:fromGoals<toGoals?ch.to:null) : null;
+    const newCh = {...ch, kicks, pick:{}, tireur:nextTireur, fromGoals, toGoals, status:done?"done":"active", winner};
+    if (done) {
+      const gs=st.gameScores||{}, gst=st.gameScoresTotal||{};
+      const pp=gs.penalty||{}, ppt=gst.penalty||{};
+      const gh=st.gameHistory||{}, ts=Date.now();
+      const DAILY_LIMIT_LOCAL = 3;
+      const gptl = st.gamePlaysToday || {};
+      const wdc = winner ? (((gptl.penalty||{})[winner]?.date===todayKey()) ? (gptl.penalty[winner].count||0) : 0) : 0;
+      const winCapped = winner ? wdc >= DAILY_LIMIT_LOCAL : false;
+      const newPlaysToday = winner ? {...gptl, penalty:{...(gptl.penalty||{}),[winner]:{date:todayKey(),count:wdc+1}}} : st.gamePlaysToday;
+      const mkE=(won,opp)=>({game:"penalty",score:won?1:0,mode:"defi",opponent:opp,won:won?"win":"loss",ts});
+      save({...st,
+        gamePlaysToday: newPlaysToday,
+        challenges:{...(st.challenges||{}),[penChallengeId]:newCh},
+        gameScores:    (winner&&!winCapped)?{...gs,penalty:{...pp,[winner]:(pp[winner]||0)+1}}:gs,
+        gameScoresTotal:(winner&&!winCapped)?{...gst,penalty:{...ppt,[winner]:(ppt[winner]||0)+1}}:gst,
+        gameHistory:{...gh,
+          [ch.from]:[...(gh[ch.from]||[]),mkE(winner===ch.from,ch.to)].slice(-50),
+          [ch.to]:  [...(gh[ch.to]  ||[]),mkE(winner===ch.to,  ch.from)].slice(-50),
+        },
+      });
+      if (winner===user&&winCapped) showNotif("info","⏳ Limite quotidienne atteinte (3/3) — victoire non comptabilisée.");
+    } else {
+      save({...st, challenges:{...(st.challenges||{}),[penChallengeId]:newCh}});
     }
-    if (!both && penAnimRef.current !== null) {
-      penAnimRef.current = null;
-      setPenRevealStage("none");
+  }, [penChallengeId, st.challenges]);
+
+  // ── PENALTY SOLO : curseur joueur animé ──
+  useEffect(() => {
+    const soloRole = penShots.length%2===0 ? "tireur" : "gardien";
+    const on = activeGame==="penalty" && gameMode==="solo" && penPhase==="shoot" && penShots.length<6;
+    if (!on) { clearInterval(penCursorIntervalRef.current); penCursorIntervalRef.current=null; return; }
+    if (!penCursorStartRef.current) penCursorStartRef.current = Date.now();
+    const H=soloRole==="tireur"?1800:1500, V=soloRole==="tireur"?2700:2200;
+    penCursorIntervalRef.current = setInterval(()=>{
+      const t=Date.now()-penCursorStartRef.current;
+      const tH=(t%H)/H, tV=(t%V)/V;
+      setPenCursorPos({x:12+(tH<.5?tH*2:2-tH*2)*76, y:12+(tV<.5?tV*2:2-tV*2)*56});
+    },40);
+    return ()=>{ clearInterval(penCursorIntervalRef.current); penCursorIntervalRef.current=null; };
+  }, [activeGame, gameMode, penPhase, penShots.length]);
+
+  // ── PENALTY SOLO : curseur IA animé + difficulté aléatoire par tir ──
+  useEffect(() => {
+    const on = activeGame==="penalty" && gameMode==="solo" && penPhase==="shoot" && penShots.length<6;
+    if (!on) { clearInterval(penAiIntervalRef.current); penAiIntervalRef.current=null; return; }
+    if (!penAiStartRef.current) {
+      penAiStartRef.current = Date.now()+600;
+      const DIFFS=[
+        {label:"😌 Facile",   HA:2200,VA:3100,color:"#22c55e"},
+        {label:"🙂 Normal",   HA:1600,VA:2400,color:GOLD},
+        {label:"😤 Difficile",HA:1050,VA:1550,color:"#f97316"},
+        {label:"😱 Très dur", HA:700, VA:1000,color:"#ef4444"},
+      ];
+      const weights=[0.25,0.40,0.25,0.10];
+      let r=Math.random(), idx=0;
+      for(let i=0;i<weights.length;i++){r-=weights[i];if(r<=0){idx=i;break;}}
+      setPenDifficulty(DIFFS[idx]);
     }
-  }, [activeGame, penChallengeId, st.challenges]);
+    const HA=penDifficulty?.HA??1600, VA=penDifficulty?.VA??2400;
+    penAiIntervalRef.current = setInterval(()=>{
+      const t=Date.now()-penAiStartRef.current;
+      const tH=(t%HA)/HA, tV=(t%VA)/VA;
+      setPenAiCursorPos({x:12+(tH<.5?tH*2:2-tH*2)*76, y:12+(tV<.5?tV*2:2-tV*2)*56});
+    },40);
+    return ()=>{ clearInterval(penAiIntervalRef.current); penAiIntervalRef.current=null; };
+  }, [activeGame, gameMode, penPhase, penShots.length, penDifficulty]);
 
   // Enregistre le score dans le défi en cours une fois la partie terminée (quiz/quisuisje/plusmoins/toptrumps)
   useEffect(() => {
@@ -3494,9 +3976,14 @@ export default function App() {
       }
     }
 
-    save({...st,
-      challenges:{...(st.challenges||{}), [activeChallengeId]: updated},
-      gameHistory: updatedGameHistory,
+    setSt(prev => {
+      const ns = {...prev,
+        challenges:{...(prev.challenges||{}), [activeChallengeId]: updated},
+        gameHistory: updatedGameHistory,
+      };
+      persistFirebase(ns);
+      try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
+      return ns;
     });
   }, [gamePhase, activeChallengeId, qScore]);
 
@@ -3514,7 +4001,7 @@ export default function App() {
     if (!FB_ENABLED || !_fbReady) return;
     const all = st.challenges || {};
     const badIds = Object.entries(all)
-      .filter(([,c]) => c.game==="penalty" && c.status!=="done" && !c.roleFrom)
+      .filter(([,c]) => c.game==="penalty" && c.status!=="done" && !c.roleFrom && c.tireur===undefined)
       .map(([id]) => id);
     if (!badIds.length) return;
     const updates = {};
@@ -3800,7 +4287,7 @@ export default function App() {
     }
   }, [scr, muted]);
 
-  // Tick chaque seconde pour les countdowns (login + accueil)
+  // ── Tick chaque seconde pour les countdowns (login + accueil)
   useEffect(() => {
     const start = new Date("2026-06-11T21:00:00");
     if (new Date() >= start) return;
@@ -3808,6 +4295,23 @@ export default function App() {
     const interval = setInterval(() => setTick(t=>t+1), 1000);
     return () => clearInterval(interval);
   }, [scr, tab]);
+
+  // ── Modale de rappel de pronostic : affichée à chaque connexion tant que
+  // le joueur n'a pas validé la phase éliminatoire en cours
+  useEffect(() => {
+    if (scr !== "app" || !user || user === "admin") return;
+    const now = new Date();
+    const validated = st.validatedGroups[user] || [];
+    const elimUnlocked = st.elimUnlocked || [];
+    // Cherche la première phase déverrouillée par l'admin dont la deadline
+    // n'est pas encore passée ET que le joueur n'a pas encore validée
+    const active = ELIM_REMINDERS.find(r =>
+      elimUnlocked.includes(r.phase) &&
+      now < new Date(r.deadline) &&
+      !validated.includes(r.valKey)
+    );
+    if (active) setPronoReminder(active.phase);
+  }, [scr, user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Scroll en haut à chaque changement d'onglet, de groupe, ou de sous-écran jeux
   // (le scroll réel se fait sur contentRef, pas sur window/body — le shell racine
@@ -3905,6 +4409,7 @@ export default function App() {
     // du joueur suivant qui se connecte sur le même appareil (ex : écran de
     // sélection d'adversaire qui réapparaît tout seul) ──
     setActiveGame(null); setGamePhase("menu"); setJeuxSubTab("jouer"); setGameMode(null);
+    setPenOrdiPhase("choose"); setPenOrdiRole(null); setPenOrdiPick(null); setPenOrdiCpu(null); setPenOrdiScore({player:0,cpu:0,round:1,total:5});
     setScoresSubTab("pronos"); setGroupPronoPlayer(null); setStatsMatchPlayer(null);
     setTab("home");
     setChallengePicker(null); setChallengeTarget(null);
@@ -4068,33 +4573,106 @@ export default function App() {
     save(ns); 
   }
   function setScore(id, side, val) {
-    // side = "h" ou "a", val = string chiffre
-    const cur = (st.scores||{})[id] || {h:"", a:""};
-    const updated = {...cur, [side]: val};
-    const ns = {...st, scores:{...(st.scores||{}), [id]: updated}};
-    // Dériver results pour rétrocompat (animations etc.)
-    const match = MATCHES.find(m=>m.id===id);
-    const outcome = outcomeOf(updated, match?.phase !== "poules");
-    ns.results = {...(ns.results||{})};
-    if (outcome) ns.results[id] = outcome; else delete ns.results[id];
-    
-    // Feedback : affiche le résultat mis à jour
-    if (updated.h && updated.a) {
-      const homeTeam = resolveTeam(match.home, ns.results||{}, {}, ns.officialThirds||{});
-      const awayTeam = resolveTeam(match.away, ns.results||{}, {}, ns.officialThirds||{});
-      const outcomeText = outcome === "1" ? `${homeTeam} gagne` : outcome === "2" ? `${awayTeam} gagne` : "Match nul";
-      showNotif("success", `⚽ ${homeTeam} ${updated.h}-${updated.a} ${awayTeam}`);
-    }
-    
-    soundScore(); save(ns);
+    // Utilise setSt fonctionnel pour éviter la race condition :
+    // deux saisies rapides (score dom puis ext) ne s'écrasent plus
+    setSt(prev => {
+      const cur = (prev.scores||{})[id] || {h:"", a:""};
+      const updated = {...cur, [side]: val};
+      const ns = {...prev, scores:{...(prev.scores||{}), [id]: updated}};
+      const match = MATCHES.find(m=>m.id===id);
+      const outcome = outcomeOf(updated, match?.phase !== "poules");
+      ns.results = {...(prev.results||{})};
+      if (outcome) {
+        ns.results[id] = outcome;
+        // Stocker le timestamp de saisie pour trier par ordre réel de saisie
+        ns.resultTs = {...(prev.resultTs||{}), [id]: Date.now()};
+      } else {
+        delete ns.results[id];
+        const ts2 = {...(prev.resultTs||{})};
+        delete ts2[id];
+        ns.resultTs = ts2;
+      }
+      if (updated.h && updated.a) {
+        const homeTeam = resolveTeam(match.home, ns.results||{}, {}, ns.officialThirds||{});
+        const awayTeam = resolveTeam(match.away, ns.results||{}, {}, ns.officialThirds||{});
+        showNotif("success", `⚽ ${homeTeam} ${updated.h}-${updated.a} ${awayTeam}`);
+        soundScore();
+      }
+      persistFirebase(ns);
+      try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
+      return ns;
+    });
   }
 
   function clearScore(id) {
-    const ns = {...st, scores:{...(st.scores||{})}};
-    delete ns.scores[id];
-    ns.results = {...(ns.results||{})};
-    delete ns.results[id];
-    save(ns);
+    setSt(prev => {
+      const ns = {...prev, scores:{...(prev.scores||{})}};
+      delete ns.scores[id];
+      ns.results = {...(prev.results||{})};
+      delete ns.results[id];
+      const ts2 = {...(prev.resultTs||{})};
+      delete ts2[id];
+      ns.resultTs = ts2;
+      persistFirebase(ns);
+      try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
+      return ns;
+    });
+  }
+
+  // ── FINALE : sauvegarde du résultat officiel (admin) ──
+  function saveFinaleOfficial(partial) {
+    setSt(prev => {
+      const prevOfficial = prev.finaleData?.official || {};
+      const merged = {...prevOfficial, ...partial};
+      const ns = {...prev, finaleData:{...(prev.finaleData||{}), official: merged}};
+      // Synchroniser aussi st.results["FIN"] pour rester compatible avec
+      // tout code qui lirait results["FIN"] (animations, stats par match...)
+      if (merged.winner) {
+        ns.results = {...(prev.results||{}), FIN: merged.winner === "home" ? "1" : "2"};
+        ns.resultTs = {...(prev.resultTs||{}), FIN: Date.now()};
+      }
+      persistFirebase(ns);
+      try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
+      return ns;
+    });
+  }
+  // ── FINALE : sauvegarde du pronostic du joueur courant ──
+  function saveFinalePrediction(partial) {
+    setSt(prev => {
+      const prevMine = prev.finaleData?.predictions?.[user] || {};
+      const merged = {...prevMine, ...partial};
+      const ns = {...prev, finaleData:{...(prev.finaleData||{}), predictions:{...(prev.finaleData?.predictions||{}), [user]: merged}}};
+      // Synchroniser aussi predictions[user]["FIN"] en "1"/"2" pour rester compatible
+      if (merged.winner) {
+        const prevPreds = prev.predictions?.[user] || {};
+        ns.predictions = {...prev.predictions, [user]: {...prevPreds, FIN: merged.winner === "home" ? "1" : "2"}};
+      }
+      persistFirebase(ns);
+      try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
+      return ns;
+    });
+  }
+
+  // ── FINALE : calcul des points (3 pts vainqueur+mode, +5 score exact, +2/buteur max 2) ──
+  function calcFinalePoints(off, mine) {
+    if (!off || !off.winner || !mine || !mine.winner) return 0;
+    let pts = 0;
+    const modeMatch = off.mode === mine.mode;
+    const winnerMatch = off.winner === mine.winner;
+    if (winnerMatch && modeMatch) pts += PHASE_POINTS.finale;
+    if (winnerMatch && off.scoreH != null && off.scoreA != null && mine.scoreH != null && mine.scoreA != null
+        && Number(off.scoreH) === Number(mine.scoreH) && Number(off.scoreA) === Number(mine.scoreA)) {
+      pts += FINALE_BONUS_SCORE;
+    }
+    if (off.buteurs && mine.buteurs) {
+      // Les buteurs officiels sont déjà dédupliqués à la saisie admin
+      const offSet = new Set(off.buteurs.map(b=>(b||"").toLowerCase().trim()).filter(Boolean));
+      // Pour les buteurs du joueur : dédupliquer aussi pour éviter la triche
+      const myUnique = [...new Set((mine.buteurs||[]).map(b=>(b||"").toLowerCase().trim()).filter(Boolean))];
+      const matched = myUnique.filter(b => offSet.has(b));
+      pts += Math.min(matched.length, 2) * FINALE_BONUS_BUTEUR;
+    }
+    return pts;
   }
 
   // ── ANIMATION ON CORRECT RESULT ──
@@ -4656,12 +5234,18 @@ export default function App() {
             48 équipes · 104 matchs · 1 champion
           </div>
 
-          {/* COUNTDOWN LOGIN */}
+          {/* COUNTDOWN LOGIN — dynamique : pointe vers la prochaine phase élim
+              si le tournoi est déjà lancé, sinon vers le coup d'envoi */}
           {(()=>{
-            const start = new Date("2026-06-11T21:00:00");
             const now2 = new Date();
-            const diff = start - now2;
-            if (diff <= 0) return (
+            const kickoff = new Date("2026-06-11T21:00:00");
+            // Trouve la prochaine fenêtre de pronostic élim non encore fermée
+            const nextElim = ELIM_REMINDERS.find(r => now2 < new Date(r.deadline));
+            // Cible : soit le coup d'envoi (avant le 11 juin), soit la prochaine phase élim
+            const target = now2 < kickoff ? kickoff : nextElim ? new Date(nextElim.countdown) : null;
+            const label  = now2 < kickoff ? "⚽ Coup d'envoi dans"
+              : nextElim ? `⏰ Pronostics ${nextElim.label} dans` : null;
+            if (!target || now2 >= target) return (
               <div style={{
                 marginTop:12,
                 border:"1px solid rgba(46,204,113,.4)",
@@ -4671,16 +5255,17 @@ export default function App() {
                 boxShadow:"0 0 20px rgba(0,212,170,.15)",
                 animation:"glowPulse 2s ease-in-out infinite",
                 filter:"drop-shadow(0 0 6px rgba(0,212,170,.3))"
-              }}>🟢 La compétition est lancée !</div>
+              }}>{now2 < kickoff ? "🟢 La compétition est lancée !" : nextElim ? `🔓 Pronostics ${nextElim.label} ouverts !` : "🏆 Le tournoi est terminé !"}</div>
             );
-            const days = Math.floor(diff/86400000);
-            const hrs  = Math.floor((diff%86400000)/3600000);
-            const mins = Math.floor((diff%3600000)/60000);
-            const secs = Math.floor((diff%60000)/1000);
+            const diff2 = target - now2;
+            const days = Math.floor(diff2/86400000);
+            const hrs  = Math.floor((diff2%86400000)/3600000);
+            const mins = Math.floor((diff2%3600000)/60000);
+            const secs = Math.floor((diff2%60000)/1000);
             return (
               <div style={{marginTop:14}}>
                 <div style={{fontSize:9,color:"rgba(255,210,52,.5)",letterSpacing:2,textTransform:"uppercase",marginBottom:8,fontWeight:700}}>
-                  ⚽ Coup d&apos;envoi dans
+                  {label}
                 </div>
                 <div style={{
                   display:"inline-flex",gap:8,
@@ -4689,7 +5274,7 @@ export default function App() {
                   borderRadius:16,padding:"12px 18px",
                   boxShadow:"0 4px 20px rgba(255,140,0,.15)",
                 }}>
-                  {[[days,"j"],[hrs,"h"],[mins,"m"],[secs,"s"]].map(([v,l],i)=>(
+                  {[[days,"j"],[hrs,"h"],[mins,"m"],[secs,"s"]].filter(([v,l])=>l!=="j"||v>0).map(([v,l],i,arr)=>(
                     <div key={l} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
                       <div style={{
                         fontSize:26,fontWeight:900,
@@ -4699,7 +5284,6 @@ export default function App() {
                         textAlign:"center",lineHeight:1,
                       }}>{String(v).padStart(2,"0")}</div>
                       <div style={{fontSize:8,color:"rgba(255,255,255,.35)",fontWeight:600,letterSpacing:.5}}>{l}</div>
-                      {i<3 && <div style={{position:"absolute",fontSize:18,color:"rgba(255,140,0,.4)",marginTop:4,marginLeft:60}}>:</div>}
                     </div>
                   ))}
                 </div>
@@ -5109,7 +5693,11 @@ export default function App() {
                     setEggClicks(0);
                     // Mémoriser la découverte pour ne plus proposer le badge
                     if (!(st.seenEgg||{})[user]) {
-                      save({...st, seenEgg:{...(st.seenEgg||{}), [user]: true}});
+                      setSt(prev => ({...prev, seenEgg:{...(prev.seenEgg||{}),[user]:true}}));
+                      try { localStorage.setItem(KEY, JSON.stringify({...st, seenEgg:{...(st.seenEgg||{}),[user]:true}})); } catch(e) {}
+                      if (FB_ENABLED && _fbReady) {
+                        _fbUpdate("/", { [`seenEgg/${user}`]: true }).catch(e => console.warn("seenEgg Firebase write error:", e));
+                      }
                     }
                     try{[523,659,784,1047,784,1047,1319].forEach((f,i)=>playTone(f,"sine",0.3,0.4,i*0.12));}catch(e){}
                   }
@@ -5298,7 +5886,9 @@ export default function App() {
                 .filter(m=>m.dk>=today)
                 .sort((a,b)=>a.dk.localeCompare(b.dk)||a.time.localeCompare(b.time));
               const nextDate = allUpcoming[0]?.dk;
-              const nextMatches = nextDate ? MATCHES.filter(m=>m.dk===nextDate) : [];
+              const nextMatches = nextDate
+                ? MATCHES.filter(m=>m.dk===nextDate).sort((a,b)=>a.time.localeCompare(b.time))
+                : [];
               const isToday = nextDate === today;
               const played = MATCHES.filter(m=>m.dk<today);
               const lastPlayed = played.length>0 ? played[played.length-1] : null;
@@ -5337,7 +5927,7 @@ export default function App() {
               📆 {showCal?"Masquer":"Voir"} tous les matchs par date
             </button>
             {showCal && [...new Set(MATCHES.map(m=>m.dk))].sort().map(dk=>{
-              const dayMatches=MATCHES.filter(m=>m.dk===dk);
+              const dayMatches=MATCHES.filter(m=>m.dk===dk).sort((a,b)=>a.time.localeCompare(b.time));
               const isPast=dk<today,isNow=dk===today;
               return(
                 <div key={dk} style={{marginBottom:12}}>
@@ -5354,7 +5944,7 @@ export default function App() {
                     const teamFH=FLAGS[rHraw]?F(rHraw):"❓";
                     const teamFA=FLAGS[rAraw]?F(rAraw):"❓";
                     // Score: si officiel avec score → afficher score, sinon résultat, sinon heure
-                    const centerLabel=sc?`${sc.h}–${sc.a}`:off?(off==="1"?"V.D":"" || off==="2"?"V.E":"" || "Nul"):m.time;
+                    const centerLabel = sc ? `${sc.h}–${sc.a}` : off ? (off==="1" ? "V. Dom." : off==="2" ? "V. Ext." : "Nul") : m.time;
                     return(
                       <div key={m.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"7px 10px",marginBottom:4,borderRadius:10,background:isPast?"rgba(255,255,255,.03)":SURF,border:`1px solid ${isPast?"rgba(255,255,255,.06)":BRD}`,opacity:isPast?.7:1}}>
                         <div style={{flex:1,display:"flex",alignItems:"center",gap:4,minWidth:0}}>
@@ -5387,12 +5977,15 @@ export default function App() {
               const pendingReceived = Object.entries(allCh).filter(([,c])=>
                 c.to===user && c.status==="pending"
               );
+              const pendingSent = Object.entries(allCh).filter(([,c])=>
+                c.from===user && c.status==="pending" && ["quiz","quisuisje","plusmoins","toptrumps","mystere"].includes(c.game)
+              );
               const myTurn = Object.entries(allCh).filter(([,c])=>
                 c.status==="active" && ((c.from===user&&c.fromScore===null)||(c.to===user&&c.toScore===null))
                 || (c.status==="accepted"&&((c.from===user&&c.fromScore===null)||(c.to===user&&c.toScore===null)))
-                || (c.game==="penalty"&&c.status==="active"&&((c.from===user&&!c.shotFrom)||(c.to===user&&!c.shotTo)))
+                || (c.game==="penalty"&&c.status==="active"&&c.tireur!=null&&!(c.pick||{})[user])
               );
-              const total = pendingReceived.length + myTurn.length;
+              const total = pendingReceived.length + myTurn.length + pendingSent.length;
               if (!total) return null;
               return (
                 <div style={{marginBottom:14}}>
@@ -5401,7 +5994,7 @@ export default function App() {
                     <div key={id} style={{...t.card,marginBottom:8,border:`1px solid ${AMB}`,background:"rgba(245,158,11,.08)",padding:"12px 14px"}}>
                       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
                         <div>
-                          <span style={{fontSize:13,fontWeight:800,color:TXT}}>{ch.from.toUpperCase()}</span>
+                          <span style={{fontSize:13,fontWeight:800,color:TXT}}>{ch.from?.toUpperCase?.()||ch.from||"?"}</span>
                           <span style={{fontSize:11,color:MUTED}}> te défie au </span>
                           <span style={{fontSize:12,fontWeight:700,color:AMB}}>{GAME_SHORT_HOME[ch.game]||ch.game}</span>
                         </div>
@@ -5412,6 +6005,19 @@ export default function App() {
                       </div>
                     </div>
                   ))}
+                  {pendingSent.map(([id,ch])=>(
+                    <div key={id} style={{...t.card,marginBottom:8,border:`1px solid rgba(255,255,255,.12)`,background:"rgba(255,255,255,.03)",padding:"12px 14px"}}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                        <div>
+                          <span style={{fontSize:11,color:MUTED}}>Défi envoyé à </span>
+                          <span style={{fontSize:13,fontWeight:800,color:TXT}}>{ch.to?.toUpperCase?.()||ch.to||"?"}</span>
+                          <span style={{fontSize:11,color:MUTED}}> — </span>
+                          <span style={{fontSize:12,fontWeight:700,color:MUTED}}>{GAME_SHORT_HOME[ch.game]||ch.game}</span>
+                        </div>
+                        <span style={{fontSize:11,color:MUTED}}>⏳ En attente</span>
+                      </div>
+                    </div>
+                  ))}
                   {myTurn.map(([id,ch])=>{
                     const opp = ch.from===user?ch.to:ch.from;
                     return (
@@ -5419,7 +6025,7 @@ export default function App() {
                         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
                           <div>
                             <span style={{fontSize:11,color:MUTED}}>C'est ton tour vs </span>
-                            <span style={{fontSize:13,fontWeight:800,color:TXT}}>{opp.toUpperCase()}</span>
+                            <span style={{fontSize:13,fontWeight:800,color:TXT}}>{opp?.toUpperCase?.()||opp||"?"}</span>
                             <span style={{fontSize:11,color:MUTED}}> — </span>
                             <span style={{fontSize:12,fontWeight:700,color:GOLD}}>{GAME_SHORT_HOME[ch.game]||ch.game}</span>
                           </div>
@@ -5589,29 +6195,72 @@ export default function App() {
                 <div style={{fontSize:9,color:MUTED,marginTop:4}}>Les affiches sont communes à tous — seul le bon résultat compte</div>
               </div>
 
-              {/* Phases déverrouillées */}
-              {elimUnlocked.map(phase=>{
+              {/* Phases déverrouillées — la phase en cours (non encore validée) s'affiche toujours en premier */}
+              {(()=>{
+                const isLocked = !!st.finalLock[user];
+                const validatedKeys = st.validatedGroups[user] || [];
+                // Séparer phases à faire (non validées) des phases déjà validées
+                const todo  = elimUnlocked.filter(ph => !validatedKeys.includes(phaseKeys[ph]));
+                const done  = elimUnlocked.filter(ph =>  validatedKeys.includes(phaseKeys[ph]));
+                // Afficher d'abord la phase à faire, puis les phases déjà validées repliées
+                const ordered = [...todo, ...done];
+                return ordered.map((phase, phIdx) => {
                 const matchList = MATCHES.filter(m=>m.phase===phase&&m.group==="ELIM");
                 const phLabel = phaseLabels[phase]||phase;
                 const valKey = phaseKeys[phase];
                 const isValidated = (st.validatedGroups[user]||[]).includes(valKey);
-                const isLocked = !!st.finalLock[user];
-                const canEdit = !isLocked && !isValidated;
+                const canEdit = !isLocked && !isValidated; // 🔒 verrou anti-triche : une fois validé, plus aucune modification possible
+                const isDonePhase = isValidated;
+                // Replié par défaut si la phase est déjà validée (non déverrouillée)
+                const phCollapsed = isDonePhase && !elimCollapsed.has(phase + "_open");
+                const toggleCollapse = () => setElimCollapsed(prev => {
+                  const next = new Set(prev);
+                  if (next.has(phase + "_open")) next.delete(phase + "_open");
+                  else next.add(phase + "_open");
+                  return next;
+                });
 
                 const validatePhase = () => {
                   if(!canEdit) return;
-                  const ns={...st,validatedGroups:{...st.validatedGroups,[user]:[...(st.validatedGroups[user]||[]),valKey]}};
-                  save(ns); showNotif("success",`✅ ${phLabel} validés !`);
+                  setSt(prev => {
+                    const prevVal = (prev.validatedGroups||{})[user] || [];
+                    if (prevVal.includes(valKey)) return prev;
+                    const ns = {...prev, validatedGroups:{...prev.validatedGroups, [user]:[...prevVal, valKey]}};
+                    persistFirebase(ns);
+                    try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
+                    showNotif("success", `✅ ${phLabel} validés !`);
+                    return ns;
+                  });
                 };
 
                 return (
-                  <div key={phase} style={{marginBottom:20}}>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-                      <div style={{fontSize:13,fontWeight:800,color:GOLD}}>{phLabel}</div>
-                      {isValidated
-                        ? <span style={{fontSize:10,color:GREEN,fontWeight:700}}>✅ Validé</span>
-                        : canEdit && <span style={{fontSize:10,color:AMB}}>⏳ En attente de validation</span>}
+                  <div key={phase} style={{marginBottom:14,opacity:isDonePhase?.85:1}}>
+                    <div onClick={isDonePhase ? toggleCollapse : undefined}
+                      style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:phCollapsed?0:8,
+                        cursor:isDonePhase?"pointer":"default",
+                        padding:isDonePhase?"6px 10px":"0",
+                        borderRadius:isDonePhase?8:0,
+                        background:isDonePhase?"rgba(34,197,94,.06)":undefined,
+                        border:isDonePhase?"1px solid rgba(34,197,94,.2)":undefined}}>
+                      <div style={{fontSize:13,fontWeight:800,color:isDonePhase?GREEN:GOLD}}>
+                        {isDonePhase?"✅ ":""}{phLabel}
+                      </div>
+                      {isDonePhase
+                        ? <span style={{fontSize:10,color:GREEN,fontWeight:700}}>{phCollapsed?"▼ Voir":"▲ Replier"}</span>
+                        : isValidated
+                          ? <span style={{fontSize:10,color:GREEN,fontWeight:700}}>✅ Validé</span>
+                          : canEdit && <span style={{fontSize:10,color:AMB}}>⏳ En attente de validation</span>}
                     </div>
+                    {!phCollapsed && (<>
+                    {isValidated && (
+                      <div style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",borderRadius:8,background:"rgba(239,68,68,.07)",border:"1px solid rgba(239,68,68,.2)",marginBottom:10}}>
+                        <span style={{fontSize:16}}>🔒</span>
+                        <div>
+                          <div style={{fontSize:11,fontWeight:700,color:RED}}>Pronostics verrouillés</div>
+                          <div style={{fontSize:10,color:MUTED}}>Tu as validé cette phase — aucune modification n'est possible</div>
+                        </div>
+                      </div>
+                    )}
                     {matchList.map(m=>{
                       const realHome = elimRealTeams[m.id]?.home || m.home;
                       const realAway = elimRealTeams[m.id]?.away || m.away;
@@ -5619,6 +6268,128 @@ export default function App() {
                       const myPred = (preds||{})[m.id];
                       const correct = official && myPred === official;
                       const wrong = official && myPred && myPred !== official;
+
+                      // ── FINALE : panneau spécial joueur ──
+                      if (m.id === "FIN") {
+                        const finOfficial = st.finaleData?.official;
+                        const finMine = st.finaleData?.predictions?.[user];
+                        const finLocked = !canEdit;
+                        // Révéler dès que l'admin a saisi un résultat complet (winner présent)
+                        // On n'attend pas le verrouillage individuel — la finale est publique une fois jouée
+                        const finRevealed = !!(finOfficial && finOfficial.winner);
+                        const finPts = finRevealed ? calcFinalePoints(finOfficial, finMine) : null;
+                        const winnerModeOk = finRevealed && finMine?.winner &&
+                          finOfficial.winner === finMine.winner && finOfficial.mode === finMine.mode;
+                        const scoreOk = winnerModeOk &&
+                          finOfficial.scoreH != null && finOfficial.scoreA != null &&
+                          finMine?.scoreH != null && finMine?.scoreA != null &&
+                          Number(finOfficial.scoreH) === Number(finMine.scoreH) && Number(finOfficial.scoreA) === Number(finMine.scoreA);
+                        const normFin=s=>(s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]/g," ").trim();
+                        const levFin=(a,b)=>{const m=a.length,n=b.length,dp=Array.from({length:m+1},(_,i)=>Array.from({length:n+1},(_,j)=>i===0?j:j===0?i:0));for(let i=1;i<=m;i++)for(let j=1;j<=n;j++)dp[i][j]=a[i-1]===b[j-1]?dp[i-1][j-1]:1+Math.min(dp[i-1][j],dp[i][j-1],dp[i-1][j-1]);return dp[m][n];};
+                        const isMFin=(g,r)=>{const gn=normFin(g),rn=normFin(r);if(!gn||!rn)return false;const thr=Math.min(rn.length,gn.length)<=5?1:2;if(levFin(gn,rn)<=thr)return true;const ln=(rn.split(" ").filter(Boolean));const last=ln[ln.length-1];return last&&last.length>=3&&levFin(gn,last)<=1;};
+                        const offButeursUniq=[...new Set((finOfficial?.buteurs||[]).map(b=>normFin(b)).filter(Boolean))];
+                        const myButeursMatched = finRevealed ? offButeursUniq.filter(r=>(finMine?.buteurs||[]).some(g=>isMFin(g,r))) : [];
+                        return (
+                          <div key={m.id}>
+                            <FinalePanel m={m} isAdmin={false} homeT={realHome} awayT={realAway}
+                              official={finRevealed ? finOfficial : null} myPick={finMine}
+                              onSave={saveFinalePrediction} locked={finLocked}
+                              officialButeurs={finRevealed ? finOfficial?.buteurs : null}/>
+                          {/* ── Résultat officiel + comparaison avec le pronostic du joueur ── */}
+                          {finRevealed && (() => {
+                            const offWinner = finOfficial.winner==="home" ? realHome : realAway;
+                            const modeLabel = {reg:"Victoire 90 min", prolong:"Victoire après prolongation", tab:"Victoire aux tirs au but", draw:"Match nul"}[finOfficial.mode] || finOfficial.mode;
+                            const myWinner  = finMine?.winner ? (finMine.winner==="home" ? realHome : realAway) : null;
+                            const myModeLabel = finMine?.mode ? ({reg:"Victoire 90 min", prolong:"Victoire après prolongation", tab:"Victoire aux tirs au but", draw:"Match nul"}[finMine.mode]||finMine.mode) : null;
+                            const hasScore  = finOfficial.scoreH != null && finOfficial.scoreA != null;
+                            const hasButeurs = (finOfficial.buteurs||[]).length > 0;
+                            return (
+                              <div style={{marginTop:12,borderRadius:12,overflow:"hidden",border:`2px solid ${finPts>0?"rgba(34,197,94,.4)":"rgba(239,68,68,.3)"}`}}
+                                ref={el=>{if(el&&!el._sounded&&finPts>0){el._sounded=true;soundTrumpetVictory();}}}>
+
+                                {/* En-tête total points */}
+                                <div style={{padding:"10px 14px",textAlign:"center",
+                                  background:finPts>0?"rgba(34,197,94,.12)":"rgba(239,68,68,.08)"}}>
+                                  <div style={{fontSize:22,fontWeight:900,color:finPts>0?GREEN:RED}}>
+                                    {finPts>0 ? `🏆 +${finPts} pts` : "❌ 0 pt"}
+                                  </div>
+                                  <div style={{fontSize:11,color:MUTED,marginTop:2}}>
+                                    {finPts>0 ? "Bravo pour ton pronostic finale !" : !finMine?.winner ? "Aucun pronostic enregistré" : "Pronostic finale manqué"}
+                                  </div>
+                                </div>
+
+                                {/* Résultat officiel */}
+                                <div style={{padding:"10px 14px",background:"rgba(255,255,255,.03)",borderTop:"1px solid rgba(255,255,255,.07)"}}>
+                                  <div style={{fontSize:10,color:MUTED,fontWeight:700,textTransform:"uppercase",letterSpacing:.5,marginBottom:8}}>📋 Résultat officiel</div>
+                                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+                                    <span style={{fontSize:18}}>{FLAGS[offWinner]||"🏳️"}</span>
+                                    <span style={{fontSize:13,fontWeight:800,color:GOLD}}>{offWinner}</span>
+                                    <span style={{fontSize:10,color:MUTED}}>· {modeLabel}</span>
+                                  </div>
+                                  {hasScore && (
+                                    <div style={{fontSize:11,color:MUTED,marginBottom:4}}>
+                                      Score 90 min : <strong style={{color:TXT}}>{finOfficial.scoreH} – {finOfficial.scoreA}</strong>
+                                    </div>
+                                  )}
+                                  {hasButeurs && (
+                                    <div style={{fontSize:11,color:MUTED}}>
+                                      Buteurs : <strong style={{color:TXT}}>{finOfficial.buteurs.join(", ")}</strong>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Ce que le joueur avait mis */}
+                                {finMine?.winner && (
+                                  <div style={{padding:"10px 14px",background:"rgba(255,255,255,.02)",borderTop:"1px solid rgba(255,255,255,.07)"}}>
+                                    <div style={{fontSize:10,color:MUTED,fontWeight:700,textTransform:"uppercase",letterSpacing:.5,marginBottom:8}}>🎯 Ton pronostic</div>
+                                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+                                      <span style={{fontSize:18}}>{FLAGS[myWinner]||"🏳️"}</span>
+                                      <span style={{fontSize:13,fontWeight:700,color:winnerModeOk?GREEN:RED}}>{myWinner}</span>
+                                      {myModeLabel && <span style={{fontSize:10,color:MUTED}}>· {myModeLabel}</span>}
+                                      <span style={{fontSize:14,marginLeft:"auto"}}>{winnerModeOk?"✅":"❌"}</span>
+                                    </div>
+                                    {(finMine.scoreH!=null&&finMine.scoreA!=null) && (
+                                      <div style={{fontSize:11,color:MUTED,marginBottom:4,display:"flex",justifyContent:"space-between"}}>
+                                        <span>Score : <strong style={{color:scoreOk?GREEN:TXT}}>{finMine.scoreH} – {finMine.scoreA}</strong></span>
+                                        <span style={{fontSize:14}}>{scoreOk?"✅":"❌"}</span>
+                                      </div>
+                                    )}
+                                    {(finMine.buteurs||[]).filter(Boolean).length>0 && (
+                                      <div style={{fontSize:11,color:MUTED,display:"flex",justifyContent:"space-between"}}>
+                                        <span>Buteurs : <strong style={{color:TXT}}>{(finMine.buteurs||[]).filter(Boolean).join(", ")}</strong></span>
+                                        <span style={{fontSize:14}}>{myButeursMatched.length>0?"✅":"❌"}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+
+                                {/* Détail des points */}
+                                <div style={{padding:"10px 14px",background:"rgba(255,255,255,.02)",borderTop:"1px solid rgba(255,255,255,.07)"}}>
+                                  <div style={{fontSize:10,color:MUTED,fontWeight:700,textTransform:"uppercase",letterSpacing:.5,marginBottom:8}}>💰 Détail des points</div>
+                                  {[
+                                    {ok:winnerModeOk,  label:"Vainqueur + issue correcte", pts:PHASE_POINTS.finale},
+                                    {ok:scoreOk,       label:"Score exact (90 min)",        pts:FINALE_BONUS_SCORE},
+                                    ...(myButeursMatched.length>0 ? myButeursMatched.slice(0,2).map(b=>({ok:true, label:`Buteur : ${b}`, pts:FINALE_BONUS_BUTEUR})) : hasButeurs ? [{ok:false, label:"Buteur(s)", pts:FINALE_BONUS_BUTEUR}] : []),
+                                  ].map((row,i)=>(
+                                    <div key={i} style={{display:"flex",alignItems:"center",gap:8,marginBottom:4,fontSize:11}}>
+                                      <span style={{fontSize:13}}>{row.ok?"✅":"❌"}</span>
+                                      <span style={{flex:1,color:row.ok?TXT:MUTED}}>{row.label}</span>
+                                      <span style={{fontWeight:800,color:row.ok?GREEN:MUTED}}>{row.ok?`+${row.pts} pts`:"—"}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          })()}
+                          {finLocked && (!finMine || !finMine.winner) && (
+                            <div style={{textAlign:"center",marginTop:8,padding:"8px",borderRadius:8,background:"rgba(239,68,68,.06)",border:"1px solid rgba(239,68,68,.25)",fontSize:12,color:RED}}>
+                              ❌ Aucun pronostic enregistré pour la finale
+                            </div>
+                          )}
+                          </div>
+                        );
+                      }
+
                       return (
                         <div key={m.id} style={{...t.card,marginBottom:8,padding:"10px 12px",background:correct?"rgba(34,197,94,.08)":wrong?"rgba(239,68,68,.08)":"rgba(255,255,255,.04)",border:`1px solid ${correct?"rgba(34,197,94,.3)":wrong?"rgba(239,68,68,.3)":"rgba(255,255,255,.08)"}`}}>
                           <div style={{fontSize:10,color:MUTED,marginBottom:8}}>{m.date} · {m.time} · {m.city}</div>
@@ -5629,7 +6400,9 @@ export default function App() {
                             </div>
                             <div style={{textAlign:"center"}}>
                               {official
-                                ? <div style={{fontSize:13,fontWeight:800,color:correct?GREEN:wrong?RED:GOLD}}>{official==="1"?"1-0":official==="2"?"0-1":"N"}</div>
+                                ? <div style={{fontSize:12,fontWeight:800,color:correct?GREEN:wrong?RED:GOLD,textAlign:"center",lineHeight:1.2}}>
+                                    {official==="1"? `✓ ${realHome.split(" ")[0]}` : official==="2" ? `✓ ${realAway.split(" ")[0]}` : "Nul"}
+                                  </div>
                                 : <div style={{fontSize:11,color:MUTED}}>VS</div>}
                             </div>
                             <div style={{flex:1,textAlign:"center"}}>
@@ -5640,8 +6413,15 @@ export default function App() {
                           {canEdit && (
                             <div style={{display:"flex",gap:6}}>
                               {["1","2"].map(v=>(
-                                <button key={v} onClick={()=>pick(m.id,v)}
-                                  style={{flex:1,padding:"8px",borderRadius:8,border:"none",cursor:"pointer",fontFamily:"inherit",fontWeight:700,fontSize:11,transition:"all .15s",
+                                <button key={v} onClick={()=>{
+                                  setSt(prev => {
+                                    const prevPreds = (prev.predictions||{})[user] || {};
+                                    const ns = {...prev, predictions:{...prev.predictions, [user]:{...prevPreds, [m.id]:v}}};
+                                    persistFirebase(ns);
+                                    try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
+                                    return ns;
+                                  });
+                                }}                                  style={{flex:1,padding:"8px",borderRadius:8,border:"none",cursor:"pointer",fontFamily:"inherit",fontWeight:700,fontSize:11,transition:"all .15s",
                                     background:myPred===v?"rgba(245,200,66,.25)":"rgba(255,255,255,.06)",
                                     color:myPred===v?GOLD:MUTED,
                                     boxShadow:myPred===v?`0 0 0 2px ${GOLD}`:"none"}}>
@@ -5668,9 +6448,11 @@ export default function App() {
                         ✅ Valider {phLabel}
                       </button>
                     )}
+                    </>)}
                   </div>
                 );
-              })}
+              }); // fin ordered.map
+              })()}
             </div>
           );
         })()}
@@ -5734,7 +6516,8 @@ export default function App() {
           // ── Sous-onglet "Pronos du groupe par match" ──
           function MatchStatsBlock() {
             const groupUsers = isAdmin ? allNonAdminUsers : sameGroupUsers.concat(sameGroupUsers.includes(user)?[]:[user]);
-            const playedMatches = [...MATCHES.filter(m => (st.results||{})[m.id])].reverse(); // récent en premier
+            const resultTs = st.resultTs || {};
+            const playedMatches = [...MATCHES.filter(m => (st.results||{})[m.id])].sort((a,b) => (resultTs[b.id]||0) - (resultTs[a.id]||0)); // plus récemment saisi en premier
             if (!playedMatches.length) return <div style={t.empty}>Les stats par match apparaîtront dès le premier résultat officiel. ⚽</div>;
             return (
               <div>
@@ -5992,8 +6775,12 @@ export default function App() {
           // ── Détail des pronos du coéquipier sélectionné ──
           const uPreds = st.predictions[selected] || {};
           const uThirds = (st.thirdPicks||{})[selected] || {};
-          const resolve = (team, matchId, side) =>
-            resolveTeamWithPredictions(team, st.results||{}, uPreds, st.scores||{}, st.officialThirds||{}, uThirds);
+          // Priorité à l'affiche officielle admin (elimRealTeams) — sinon recalcul via pronos du joueur affiché
+          const resolve = (team, matchId, side) => {
+            const real = (st.elimRealTeams||{})[matchId];
+            if (real && real[side]) return real[side];
+            return resolveTeamWithPredictions(team, st.results||{}, uPreds, st.scores||{}, st.officialThirds||{}, uThirds);
+          };
 
           return (
             <div style={t.sec}>
@@ -7436,23 +8223,34 @@ export default function App() {
                 const setTeamInputs = setAdminTeamInputs;
 
                 const toggleUnlock = (phase) => {
-                  const cur = st.elimUnlocked || [];
-                  const isLocked = cur.includes(phase);
-                  const ns = {...st, elimUnlocked: isLocked ? cur.filter(p=>p!==phase) : [...cur, phase]};
-                  save(ns); showNotif("success", `${isLocked?"🔒 Verrouillé":"🔓 Déverrouillé"} : ${phaseLabels[phase]}`);
+                  setSt(prev => {
+                    const cur = prev.elimUnlocked || [];
+                    const isLocked = cur.includes(phase);
+                    const ns = {...prev, elimUnlocked: isLocked ? cur.filter(p=>p!==phase) : [...cur, phase]};
+                    persistFirebase(ns);
+                    try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
+                    showNotif("success", `${isLocked?"🔒 Verrouillé":"🔓 Déverrouillé"} : ${phaseLabels[phase]}`);
+                    return ns;
+                  });
                 };
 
                 const saveRealTeams = (phase) => {
                   const matchList = MATCHES.filter(m=>m.phase===phase&&m.group==="ELIM");
-                  const updates = {};
-                  matchList.forEach(m => {
-                    const h = teamInputs[m.id+"_home"] || (elimRealTeams[m.id]?.home) || "";
-                    const a = teamInputs[m.id+"_away"] || (elimRealTeams[m.id]?.away) || "";
-                    if (h || a) updates[m.id] = {home:h||m.home, away:a||m.away};
+                  setSt(prev => {
+                    const prevElimRealTeams = prev.elimRealTeams || {};
+                    const updates = {};
+                    matchList.forEach(m => {
+                      const h = teamInputs[m.id+"_home"] || (prevElimRealTeams[m.id]?.home) || "";
+                      const a = teamInputs[m.id+"_away"] || (prevElimRealTeams[m.id]?.away) || "";
+                      if (h || a) updates[m.id] = {home:h||m.home, away:a||m.away};
+                    });
+                    const ns = {...prev, elimRealTeams:{...prevElimRealTeams, ...updates}};
+                    persistFirebase(ns);
+                    try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
+                    showNotif("success", "✅ Affiches enregistrées !");
+                    setEditPhase(null); setTeamInputs({});
+                    return ns;
                   });
-                  save({...st, elimRealTeams:{...elimRealTeams, ...updates}});
-                  showNotif("success", "✅ Affiches enregistrées !");
-                  setEditPhase(null); setTeamInputs({});
                 };
 
                 return (
@@ -7473,7 +8271,7 @@ export default function App() {
                             <div style={{display:"flex",gap:6}}>
                               <button onClick={()=>setEditPhase(editPhase===phase?null:phase)}
                                 style={{padding:"5px 8px",borderRadius:6,border:"none",background:"rgba(245,200,66,.15)",color:GOLD,fontSize:10,fontWeight:700,cursor:"pointer"}}>
-                                ✏️ Affiches & Scores
+                                ✏️ Affiches
                               </button>
                               <button onClick={()=>toggleUnlock(phase)}
                                 style={{padding:"5px 8px",borderRadius:6,border:"none",background:unlocked?"rgba(34,197,94,.2)":"rgba(255,255,255,.08)",color:unlocked?GREEN:MUTED,fontSize:10,fontWeight:700,cursor:"pointer"}}>
@@ -7530,45 +8328,6 @@ export default function App() {
                                 style={{width:"100%",padding:"8px",borderRadius:8,border:"none",background:GOLD,color:"#0a0e1a",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
                                 💾 Enregistrer les affiches
                               </button>
-                              {/* ── Saisie des scores, directement ici (même panneau) ── */}
-                              <div style={{marginTop:14,paddingTop:12,borderTop:`1px solid ${BRD}`}}>
-                                <div style={{fontSize:11,color:GOLD,fontWeight:700,marginBottom:8}}>⚽ Scores — {phaseLabels[phase]}</div>
-                                {matchList
-                                  .sort((a,b)=>a.dk.localeCompare(b.dk)||a.time.localeCompare(b.time))
-                                  .map(m=>{
-                                    const hasThirdHome = m.home.startsWith("3e ");
-                                    const hasThirdAway = m.away.startsWith("3e ");
-                                    const offThirds = st.officialThirds || {};
-                                    let takenGroupsM = undefined;
-                                    if (m.phase === "seiziemes" && (hasThirdHome || hasThirdAway)) {
-                                      takenGroupsM = new Set();
-                                      MATCHES.filter(other => other.phase === "seiziemes" && other.id !== m.id).forEach(other => {
-                                        [["home", other.home], ["away", other.away]].forEach(([side, slot]) => {
-                                          if (slot.startsWith("3e ")) {
-                                            const g = offThirds[other.id + "_" + side];
-                                            if (g) takenGroupsM.add(g);
-                                          }
-                                        });
-                                      });
-                                    }
-                                    return (
-                                      <MatchCard key={m.id} m={m} official={(st.results||{})[m.id]}
-                                        score={(st.scores||{})[m.id]}
-                                        isAdmin onScore={setScore} onClear={clearScore} results={st.results||{}} officialThirds={st.officialThirds||{}} predictions={{}} userThirds={{}}
-                                        realTeams={(st.elimRealTeams||{})[m.id]}
-                                        thirdPick={(hasThirdHome||hasThirdAway) ? {
-                                          home: hasThirdHome ? (offThirds[m.id+"_home"] || null) : null,
-                                          away: hasThirdAway ? (offThirds[m.id+"_away"] || null) : null,
-                                        } : null}
-                                        onThirdPick={(hasThirdHome||hasThirdAway)
-                                          ? (side, g) => setOfficialThird(m.id, side, g)
-                                          : null}
-                                        takenGroups={takenGroupsM}
-                                      />
-                                    );
-                                  })
-                                }
-                              </div>
                             </div>
                           )}
                         </div>
@@ -7603,6 +8362,18 @@ export default function App() {
                     });
                   }
 
+                  // ── FINALE : panneau spécial (vainqueur/nul/prolongation/TAB/buteurs/score) ──
+                  if (m.id === "FIN") {
+                    const realTeams = (st.elimRealTeams||{})[m.id];
+                    const homeT = realTeams?.home || resolveTeamWithPredictions(m.home, st.results||{}, {}, {}, st.officialThirds||{}, {});
+                    const awayT = realTeams?.away || resolveTeamWithPredictions(m.away, st.results||{}, {}, {}, st.officialThirds||{}, {});
+                    return (
+                      <FinalePanel key={m.id} m={m} isAdmin homeT={homeT} awayT={awayT}
+                        official={st.finaleData?.official} myPick={null}
+                        onSave={saveFinaleOfficial} locked={false}/>
+                    );
+                  }
+
                   return (
                     <MatchCard key={m.id} m={m} official={(st.results||{})[m.id]}
                       score={(st.scores||{})[m.id]}
@@ -7631,7 +8402,8 @@ export default function App() {
           <div style={t.sec}>
             <div style={{height:12}}/>
             {(()=>{
-              const played = [...MATCHES.filter(m=>(st.results||{})[m.id])].reverse(); // récent en premier
+              const _resultTs = st.resultTs || {};
+              const played = [...MATCHES.filter(m=>(st.results||{})[m.id])].sort((a,b) => (_resultTs[b.id]||0) - (_resultTs[a.id]||0)); // plus récemment saisi en premier
               if (played.length===0) return (
                 <div style={{...t.card,textAlign:"center",padding:"28px 16px"}}>
                   <div style={{fontSize:32,marginBottom:8}}>⏳</div>
@@ -7889,7 +8661,12 @@ export default function App() {
             const id = `chal_${user}_${toUser}_${game}_${Date.now()}`;
             const qSet = buildQuestionSet(game);
             const chData = {from:user,to:toUser,game,status:"pending",questionSet:qSet,fromScore:null,toScore:null,ts:Date.now()};
-            save({...st, challenges:{...challenges,[id]:chData}});
+            setSt(prev => {
+              const ns = {...prev, challenges:{...(prev.challenges||{}),[id]:chData}};
+              persistFirebase(ns);
+              try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
+              return ns;
+            });
             setChallengePicker(null);
             showNotif("success",`⚔️ Défi envoyé à ${toUser.toUpperCase()} ! À toi de jouer en premier.`);
             launchChallengeGame(id, chData);
@@ -7897,13 +8674,23 @@ export default function App() {
           const acceptChallenge = (id) => {
             const ch = challenges[id];
             if (ch && blockIfDailyLimitReached(ch.game, user)) return;
-            save({...st, challenges:{...challenges,[id]:{...challenges[id],status:"accepted"}}});
+            setSt(prev => {
+              const ns = {...prev, challenges:{...(prev.challenges||{}),[id]:{...(prev.challenges||{})[id],status:"accepted"}}};
+              persistFirebase(ns);
+              try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
+              return ns;
+            });
             launchChallengeGame(id);
           };
           const declineChallenge = (id) => {
             const ch=challenges[id];
-            save({...st,challenges:{...challenges,[id]:{...ch,status:"declined"}}});
-            showNotif("info",`Défi de ${ch.from.toUpperCase()} refusé`);
+            setSt(prev => {
+              const ns = {...prev, challenges:{...(prev.challenges||{}),[id]:{...ch,status:"declined"}}};
+              persistFirebase(ns);
+              try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
+              return ns;
+            });
+            showNotif("info",`Défi de ${ch.from?.toUpperCase?.()||ch.from||"?"} refusé`);
           };
           // Une fois "accepted", le challenger (from) doit aussi jouer son tour
           const playMyTurn = (id) => {
@@ -7928,12 +8715,19 @@ export default function App() {
             setPmInput(""); setPmAnswered(false); setPmTotal(0); setPmIdx(0);
             setButeurWinner(null); setButeurDeck([]); setButeurPick(null); setButeurDone(false);
             setPenChallengeId(null); setPenZonePick(null); setPenRevealStage("none"); penAnimRef.current=null;
+            setPenCursorPos({x:50,y:35}); penCursorStartRef.current=null;
+            if(penCursorIntervalRef.current){clearInterval(penCursorIntervalRef.current);penCursorIntervalRef.current=null;}
+            setPenAiCursorPos({x:50,y:35}); penAiStartRef.current=null;
+            if(penAiIntervalRef.current){clearInterval(penAiIntervalRef.current);penAiIntervalRef.current=null;}
+            setPenDifficulty(null);
             setActiveChallengeId(null); setTtChallengeQueue(null); setGameMode(null);
+            setPenOrdiPhase("choose"); setPenOrdiRole(null); setPenOrdiPick(null); setPenOrdiCpu(null); setPenOrdiScore({player:0,cpu:0,round:1,total:5});
             setMysteryPlayer(null); setMysteryRevealOrder([]); setMysteryTurn(0); setMysteryPhotoUrl(null); setMysteryPhotoError(null); setMysteryLastGuess("");
           };
 
-          const startGame = (game, length) => {
+          const startGame = (game, length, mode=null) => {
             setActiveGame(game); setGamePhase("playing"); resetGame();
+            if (mode) setGameMode(mode); // après resetGame qui efface gameMode
             playGameMusic(game);
             soundWhistle();
             if (game==="toptrumps") {
@@ -8008,7 +8802,7 @@ export default function App() {
               plusmoins: {icon:"🔢", name:"Plus ou Moins",         canDefi:true,  needLength:true},
               toptrumps: {icon:"🃏", name:"Qui a le plus ?",       canDefi:true,  needLength:false},
               buteur:    {icon:"🥅", name:"Meilleur Buteur",       canDefi:false, needLength:false},
-              penalty:   {icon:"⚽", name:"Tirs au but",           canDefi:false, needLength:false}, // défi géré par son propre écran, pas le flux générique
+              penalty:   {icon:"⚽", name:"Tirs au but",           canDefi:true,  needLength:false, canOrdi:true},
               mystere:   {icon:"🧩", name:"Footballeur Mystère",   canDefi:true,  needLength:false},
             }[activeGame] || {icon:"🎮", name:activeGame, canDefi:false, needLength:false};
             return (
@@ -8022,9 +8816,9 @@ export default function App() {
                 </div>
                 {/* Solo */}
                 <button onClick={()=>{
-                  setGameMode("solo");
                   if (blockIfDailyLimitReached(activeGame, user)) { setGamePhase("menu"); setActiveGame(null); return; }
-                  gInfo.needLength ? setGamePhase("length") : startGame(activeGame);
+                  if (gInfo.needLength) { setGameMode("solo"); setGamePhase("length"); }
+                  else startGame(activeGame, 0, "solo");
                 }} style={{
                   display:"block",width:"100%",marginBottom:12,padding:"18px 14px",
                   borderRadius:14,border:`2px solid ${GOLD}`,background:"rgba(245,200,66,.06)",
@@ -8043,6 +8837,7 @@ export default function App() {
                   <button onClick={()=>{
                     setGameMode("defi");
                     if (blockIfDailyLimitReached(activeGame, user)) { setGamePhase("menu"); setActiveGame(null); return; }
+                    if (activeGame === "penalty") { startGame("penalty", 0, "defi"); return; }
                     setChallengePicker(activeGame);
                   }} style={{
                     display:"block",width:"100%",marginBottom:12,padding:"18px 14px",
@@ -8084,7 +8879,7 @@ export default function App() {
                   <div style={{fontSize:12,color:MUTED}}>Choisis la durée de ta partie</div>
                 </div>
                 {lengthOptions[activeGame].map(opt=>(
-                  <button key={opt.l} onClick={()=>startGame(activeGame,opt.n)}
+                  <button key={opt.l} onClick={()=>startGame(activeGame,opt.n,"solo")}
                     style={{display:"block",width:"100%",marginBottom:8,padding:"14px",borderRadius:10,border:`1px solid ${BRD}`,background:"rgba(255,255,255,.05)",color:TXT,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit",textAlign:"center"}}>
                     {opt.l}{opt.n?` — ${opt.n} questions`:" — toutes les questions"}
                   </button>
@@ -8100,10 +8895,28 @@ export default function App() {
               <div style={{height:8}}/>
               {/* Switcher Jouer / Classements / Historique */}
               <div style={{display:"flex",gap:4,marginBottom:14,background:"rgba(255,255,255,.04)",borderRadius:10,padding:4}}>
-                {[{k:"jouer",l:"🎮 Jouer"},{k:"classements",l:"🏆 Scores"},{k:"historique",l:"📜 Historique"}].map(s=>(
-                  <button key={s.k} onClick={()=>setJeuxSubTab(s.k)} style={{flex:1,padding:"8px 4px",borderRadius:8,border:"none",cursor:"pointer",fontWeight:700,fontSize:11,fontFamily:"inherit",
-                    background:jeuxSubTab===s.k?GOLD:"transparent",color:jeuxSubTab===s.k?"#0a0e1a":MUTED}}>{s.l}</button>
-                ))}
+              {(()=>{
+                const pendingCount = (
+                  Object.values(challenges).filter(c=>c.to===user&&c.status==="pending").length +
+                  Object.values(challenges).filter(c=>(c.from===user||c.to===user)&&c.game==="penalty"&&c.status==="active"&&c.tireur!=null&&!(c.pick||{})[user]).length +
+                  Object.values(challenges).filter(c=>CHALLENGE_GAMES.includes(c.game)&&((c.from===user&&c.fromScore===null&&c.status==="active")||(c.to===user&&c.toScore===null&&c.status==="active"))).length
+                );
+                return (
+                  <div style={{display:"flex",gap:4,marginBottom:12,background:"rgba(255,255,255,.04)",borderRadius:10,padding:4}}>
+                    {[{k:"jouer",l:"🎮 Jouer"},{k:"classements",l:"🏆 Scores"},{k:"historique",l:"📜 Historique"}].map(s=>(
+                      <button key={s.k} onClick={()=>setJeuxSubTab(s.k)} style={{flex:1,padding:"8px 4px",borderRadius:8,border:"none",cursor:"pointer",fontWeight:700,fontSize:11,fontFamily:"inherit",position:"relative",
+                        background:jeuxSubTab===s.k?GOLD:"transparent",color:jeuxSubTab===s.k?"#0a0e1a":MUTED}}>
+                        {s.l}
+                        {s.k==="jouer"&&pendingCount>0&&(
+                          <span style={{position:"absolute",top:2,right:4,background:RED,color:"#fff",borderRadius:"50%",fontSize:9,fontWeight:900,minWidth:14,height:14,display:"flex",alignItems:"center",justifyContent:"center",lineHeight:1}}>
+                            {pendingCount}
+                          </span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                );
+              })()}
               </div>
 
               {jeuxSubTab==="classements" && (
@@ -8144,7 +8957,7 @@ export default function App() {
               {jeuxSubTab==="jouer" && <>
               {myPendingChallenges.map(([id,ch])=>(
                 <div key={id} style={{...t.card,marginBottom:8,border:`1px solid ${AMB}`,background:"rgba(245,158,11,.08)"}}>
-                  <div style={{fontSize:12,color:AMB,marginBottom:6}}>⚔️ <strong>{ch.from.toUpperCase()}</strong> te défie au {({quiz:"Quiz",quisuisje:"Qui suis-je ?",plusmoins:"Plus ou Moins",toptrumps:"Qui a le plus ?",mystere:"Footballeur Mystère"})[ch.game]||ch.game} !</div>
+                  <div style={{fontSize:12,color:AMB,marginBottom:6}}>⚔️ <strong>{ch.from?.toUpperCase?.()||ch.from||"?"}</strong> te défie au {({quiz:"Quiz",quisuisje:"Qui suis-je ?",plusmoins:"Plus ou Moins",toptrumps:"Qui a le plus ?",mystere:"Footballeur Mystère"})[ch.game]||ch.game} !</div>
                   <div style={{display:"flex",gap:8}}>
                     <button onClick={()=>acceptChallenge(id)} style={{flex:2,padding:"8px",borderRadius:8,border:"none",background:AMB,color:"#000",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>✅ Accepter →</button>
                     <button onClick={()=>declineChallenge(id)} style={{flex:1,padding:"8px",borderRadius:8,border:"1px solid rgba(239,68,68,.4)",background:"rgba(239,68,68,.1)",color:RED,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>✗ Refuser</button>
@@ -8156,41 +8969,66 @@ export default function App() {
                 const opp = ch.from===user?ch.to:ch.from;
                 return (
                   <div key={id} style={{...t.card,marginBottom:8,border:`1px solid ${GOLD}`,background:"rgba(245,200,66,.08)"}}>
-                    <div style={{fontSize:12,color:GOLD,marginBottom:6}}>🎯 C'est ton tour contre <strong>{opp.toUpperCase()}</strong> ({({quiz:"Quiz",quisuisje:"Qui suis-je ?",plusmoins:"Plus ou Moins",toptrumps:"Qui a le plus ?",mystere:"Footballeur Mystère"})[ch.game]||ch.game})</div>
+                    <div style={{fontSize:12,color:GOLD,marginBottom:6}}>🎯 C'est ton tour contre <strong>{opp?.toUpperCase?.()||opp||"?"}</strong> ({({quiz:"Quiz",quisuisje:"Qui suis-je ?",plusmoins:"Plus ou Moins",toptrumps:"Qui a le plus ?",mystere:"Footballeur Mystère"})[ch.game]||ch.game})</div>
                     <button onClick={()=>playMyTurn(id)} style={{width:"100%",padding:"8px",borderRadius:8,border:"none",background:GOLD,color:"#0a0e1a",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>▶️ Jouer mon tour</button>
                   </div>
                 );
               })}
-              {/* Défis penalty reçus */}
+              {/* Défis penalty en attente d'acceptation */}
               {Object.entries(challenges).filter(([,c])=>c.game==="penalty"&&c.to===user&&c.status==="pending").map(([id,ch])=>(
                 <div key={id} style={{...t.card,marginBottom:8,border:`1px solid ${AMB}`,background:"rgba(245,158,11,.08)"}}>
-                  <div style={{fontSize:12,color:AMB,marginBottom:6}}>⚔️ <strong>{ch.from.toUpperCase()}</strong> te défie au Penalty !</div>
+                  <div style={{fontSize:12,color:AMB,marginBottom:6}}>⚔️ <strong>{ch.from?.toUpperCase?.()}</strong> te défie aux Tirs au but !</div>
                   <div style={{display:"flex",gap:8}}>
                     <button onClick={()=>{
-                        if (blockIfDailyLimitReached("penalty", user)) return;
-                        setActiveGame("penalty");setGamePhase("playing");resetGame();playGameMusic("penalty");soundWhistle();setPenChallengeId(id);save({...st,challenges:{...challenges,[id]:{...ch,status:"active"}}});
-                      }}
-                      style={{flex:2,padding:"8px",borderRadius:8,border:"none",background:AMB,color:"#000",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
-                      ✅ Accepter →
-                    </button>
-                    <button onClick={()=>{
-                        const ns={...challenges}; delete ns[id];
-                        save({...st,challenges:ns});
-                        showNotif("info",`Défi de ${ch.from.toUpperCase()} refusé`);
-                      }}
-                      style={{flex:1,padding:"8px",borderRadius:8,border:"1px solid rgba(239,68,68,.4)",background:"rgba(239,68,68,.1)",color:RED,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
-                      ✗ Refuser
-                    </button>
+                        if(blockIfDailyLimitReached("penalty",user))return;
+                        const firstTireur=Math.random()<.5?ch.from:ch.to;
+                        save({...st,challenges:{...challenges,[id]:{...ch,status:"active",tireur:firstTireur}}});
+                        setActiveGame("penalty");setGamePhase("playing");resetGame();playGameMusic("penalty");soundWhistle();setPenChallengeId(id);
+                      }} style={{flex:2,padding:"8px",borderRadius:8,border:"none",background:AMB,color:"#000",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>✅ Accepter →</button>
+                    <button onClick={()=>{ const ns={...challenges};delete ns[id];save({...st,challenges:ns});showNotif("info",`Défi de ${ch.from?.toUpperCase?.()||ch.from} refusé`); }}
+                      style={{flex:1,padding:"8px",borderRadius:8,border:"1px solid rgba(239,68,68,.4)",background:"rgba(239,68,68,.1)",color:RED,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>✗ Refuser</button>
                   </div>
                 </div>
               ))}
+              {/* Mes défis penalty envoyés, en attente d'acceptation */}
+              {Object.entries(challenges).filter(([,c])=>c.game==="penalty"&&c.from===user&&c.status==="pending").map(([id,ch])=>(
+                <div key={id} style={{...t.card,marginBottom:8,border:`1px solid ${BRD}`,opacity:.8}}>
+                  <div style={{fontSize:11,color:MUTED}}>⏳ Défi envoyé à <strong>{ch.to?.toUpperCase?.()}</strong> — en attente d'acceptation</div>
+                </div>
+              ))}
+              {/* Défis penalty actifs (multi-rounds) — à mon tour de jouer */}
+              {Object.entries(challenges).filter(([,ch])=>
+                ch.game==="penalty"&&ch.tireur!=null&&ch.status==="active"&&
+                (ch.from===user||ch.to===user)&&!(ch.pick||{})[user]
+              ).map(([id,ch])=>{
+                const opp=ch.from===user?ch.to:ch.from;
+                const iAmTireur=ch.tireur===user;
+                const kickNum=(ch.kicks||[]).length+1;
+                const myGoals=ch.from===user?(ch.fromGoals||0):(ch.toGoals||0);
+                const oppGoals=ch.from===user?(ch.toGoals||0):(ch.fromGoals||0);
+                return (
+                  <div key={id} style={{...t.card,marginBottom:8,border:`2px solid ${iAmTireur?GOLD:"#60a5fa"}`,background:iAmTireur?"rgba(245,200,66,.08)":"rgba(59,130,246,.08)"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+                      <span style={{fontSize:22}}>{iAmTireur?"⚽":"🧤"}</span>
+                      <div style={{flex:1}}>
+                        <div style={{fontSize:12,fontWeight:700,color:iAmTireur?GOLD:"#60a5fa"}}>{iAmTireur?"Tu TIRES":"Tu GARDES"} — Tir {kickNum}/6</div>
+                        <div style={{fontSize:10,color:MUTED}}>vs {opp?.toUpperCase?.()}  ·  <span style={{color:GOLD,fontWeight:700}}>{myGoals}</span>–{oppGoals}</div>
+                      </div>
+                    </div>
+                    <button onClick={()=>{ setActiveGame("penalty");setGamePhase("playing");resetGame();playGameMusic("penalty");setPenChallengeId(id); }}
+                      style={{width:"100%",padding:"9px",borderRadius:9,border:"none",background:iAmTireur?GOLD:"#3b82f6",color:iAmTireur?"#0a0e1a":"#fff",fontWeight:800,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
+                      ▶️ {iAmTireur?"Choisir ma zone de tir":"Choisir ma zone de plongeon"}
+                    </button>
+                  </div>
+                );
+              })}
               {myDeclinedChallenges.length>0 && (
                 <div style={{marginBottom:14}}>
                   <div style={{fontSize:11,color:RED,marginBottom:6,fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>😔 Défis refusés</div>
                   {myDeclinedChallenges.map(([id,ch])=>(
                     <div key={id} style={{...t.card,marginBottom:6,padding:"8px 12px",display:"flex",justifyContent:"space-between",alignItems:"center",background:"rgba(239,68,68,.06)",border:"1px solid rgba(239,68,68,.25)"}}>
                       <span style={{fontSize:11,color:TXT}}>{({quiz:"Quiz",quisuisje:"Qui suis-je ?",plusmoins:"Plus ou Moins",toptrumps:"Qui a le plus ?",mystere:"Footballeur Mystère"})[ch.game]||ch.game} vs {ch.to.toUpperCase()} — refusé</span>
-                      <button onClick={()=>{const ns={...challenges}; delete ns[id]; save({...st,challenges:ns});}} style={{background:"none",border:"none",color:MUTED,fontSize:14,cursor:"pointer",padding:"0 4px"}}>✕</button>
+                      <button onClick={()=>{setSt(prev=>{const ns={...(prev.challenges||{})};delete ns[id];const ns2={...prev,challenges:ns};persistFirebase(ns2);try{localStorage.setItem(KEY,JSON.stringify(ns2));}catch(e){}return ns2;});}} style={{background:"none",border:"none",color:MUTED,fontSize:14,cursor:"pointer",padding:"0 4px"}}>✕</button>
                     </div>
                   ))}
                 </div>
@@ -8761,7 +9599,7 @@ export default function App() {
                       <div style={{fontSize:10,color:MUTED,marginTop:2}}>{card.team}</div>
                       <div style={{fontSize:10,color:MUTED}}>{card.club}</div>
                       <div style={{fontSize:10,color:GREEN,fontWeight:700,marginTop:4}}>{card.intlGoals} buts sél.</div>
-                      <div style={{fontSize:10,color:MUTED}}>{card.clubGoals} buts club · {card.age}ans</div>
+                      <div style={{fontSize:10,color:MUTED}}>{card.clubGoals} buts carrière{card.age ? ` · ${card.age} ans` : ""}</div>
                     </button>
                   ))}
                 </div>
@@ -8770,19 +9608,290 @@ export default function App() {
             );
           }
 
-          // ══ PENALTY MULTIJOUEUR ════════════════════════════════
+          // ══ PENALTY — jeu de timing ════════════════════════════
           if (activeGame==="penalty") {
+            // Zones identiques à l'ancien système (compat. challenges existants)
             const zones=[
-              {id:"hg",label:"Haut Gauche", emoji:"↖️",x:18,y:22},
-              {id:"hc",label:"Haut Centre", emoji:"⬆️",x:50,y:14},
-              {id:"hd",label:"Haut Droite", emoji:"↗️",x:82,y:22},
-              {id:"bg",label:"Bas Gauche",  emoji:"↙️",x:18,y:78},
-              {id:"bc",label:"Bas Centre",  emoji:"⬇️",x:50,y:86},
-              {id:"bd",label:"Bas Droite",  emoji:"↘️",x:82,y:78},
+              {id:"hg",label:"Haut Gauche",emoji:"↖️",x:18,y:22},
+              {id:"hc",label:"Haut Centre",emoji:"⬆️",x:50,y:14},
+              {id:"hd",label:"Haut Droite",emoji:"↗️",x:82,y:22},
+              {id:"bg",label:"Bas Gauche", emoji:"↙️",x:18,y:78},
+              {id:"bc",label:"Bas Centre", emoji:"⬇️",x:50,y:86},
+              {id:"bd",label:"Bas Droite", emoji:"↘️",x:82,y:78},
             ];
-            const zoneOf=(id)=>zones.find(z=>z.id===id);
-            const currentChallenge=penChallengeId?challenges[penChallengeId]:null;
+            const zoneOf = id => zones.find(z=>z.id===id);
+
+            // Zone dérivée de la position du curseur (en %)
+            // Le but occupe x 12-88, y 12-68 dans le conteneur
+            const getPenZone = pos => {
+              const col = pos.x < 36.7 ? "g" : pos.x < 63.3 ? "c" : "d";
+              const row = pos.y < 40   ? "h" : "b";
+              return row + col;
+            };
+            const curZoneId = getPenZone(penCursorPos);
+
+            // ── Vue du but (réutilisable solo + défi) ─────────────
+            // Appelée comme fonction (pas comme composant) pour éviter les re-montages
+            const renderGoal = ({showCursor=false, cursorEmoji="🎯", cursor2Emoji=null, cursor2Pos=null, resultShot=null, resultAi=null, resultIsGood=null}={}) => {
+              const GL = [ // layout des 6 zones sur le conteneur
+                {id:"hg",l:"10%",t:"10%",w:"26.7%",h:"30%"},
+                {id:"hc",l:"36.7%",t:"10%",w:"26.6%",h:"30%"},
+                {id:"hd",l:"63.3%",t:"10%",w:"26.7%",h:"30%"},
+                {id:"bg",l:"10%",t:"40%",w:"26.7%",h:"30%"},
+                {id:"bc",l:"36.7%",t:"40%",w:"26.6%",h:"30%"},
+                {id:"bd",l:"63.3%",t:"40%",w:"26.7%",h:"30%"},
+              ];
+              return (
+                <div style={{position:"relative",width:"100%",paddingBottom:"64%",borderRadius:14,
+                  overflow:"hidden",border:"1.5px solid rgba(255,255,255,.1)",
+                  background:"linear-gradient(180deg,#0b1320 0%,#0b1320 70%,#12320f 70%,#12320f 100%)",marginBottom:8}}>
+                  {/* Filet */}
+                  <div style={{position:"absolute",top:"10%",left:"10%",right:"10%",height:"60%",
+                    backgroundImage:"repeating-linear-gradient(0deg,rgba(255,255,255,.05) 0,rgba(255,255,255,.05) 1px,transparent 1px,transparent 14%),repeating-linear-gradient(90deg,rgba(255,255,255,.05) 0,rgba(255,255,255,.05) 1px,transparent 1px,transparent 14%)"}}/>
+                  {/* Cadre du but */}
+                  <div style={{position:"absolute",top:"10%",left:"10%",right:"10%",height:"60%",
+                    border:"3px solid rgba(255,255,255,.85)",borderBottom:"none",
+                    borderRadius:"3px 3px 0 0",boxSizing:"border-box"}}/>
+                  {/* Pelouse */}
+                  <div style={{position:"absolute",top:"70%",left:0,right:0,bottom:0,
+                    borderTop:"2px solid rgba(34,197,94,.5)",
+                    background:"linear-gradient(180deg,rgba(22,101,22,.4),rgba(22,101,22,.65))"}}/>
+                  {/* Point de penalty */}
+                  <div style={{position:"absolute",bottom:"4%",left:"50%",transform:"translateX(-50%)",
+                    width:5,height:5,borderRadius:"50%",background:"rgba(255,255,255,.45)"}}/>
+                  {/* Overlay des 6 zones */}
+                  {GL.map(({id,l,t,w,h})=>{
+                    const isCur = showCursor && id===curZoneId;
+                    const isBall= resultShot && id===resultShot;
+                    const isGk  = resultAi   && id===resultAi && !isBall;
+                    return (
+                      <div key={id} style={{
+                        position:"absolute",left:l,top:t,width:w,height:h,boxSizing:"border-box",
+                        background:isBall?"rgba(245,200,66,.3)":isGk?"rgba(59,130,246,.22)":isCur?"rgba(245,200,66,.16)":"transparent",
+                        border:isBall?`2px solid ${GOLD}`:isGk?"2px solid #60a5fa":isCur?`1.5px solid rgba(245,200,66,.6)`:"1px solid rgba(255,255,255,.06)",
+                        transition:"background .07s,border .07s",
+                        display:"flex",alignItems:"center",justifyContent:"center",
+                      }}>
+                        {isBall&&<span style={{fontSize:20}}>⚽</span>}
+                        {isGk  &&<span style={{fontSize:20}}>🧤</span>}
+                        {isCur&&!isBall&&!isGk&&(
+                          <span style={{fontSize:8,color:GOLD,fontWeight:800,textAlign:"center",lineHeight:1.4,opacity:.9}}>
+                            {zoneOf(id)?.emoji}<br/>{zoneOf(id)?.label}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                  {/* Curseur animé joueur */}
+                  {showCursor&&(
+                    <div style={{position:"absolute",left:`${penCursorPos.x}%`,top:`${penCursorPos.y}%`,
+                      transform:"translate(-50%,-50%)",fontSize:24,pointerEvents:"none",zIndex:10,
+                      filter:"drop-shadow(0 0 9px rgba(245,200,66,1)) drop-shadow(0 0 3px rgba(0,0,0,.9))",
+                    }}>{cursorEmoji}</div>
+                  )}
+                  {/* Curseur IA (gardien adverse visible quand on est tireur) */}
+                  {cursor2Pos&&cursor2Emoji&&!resultShot&&(
+                    <div style={{position:"absolute",left:`${cursor2Pos.x}%`,top:`${cursor2Pos.y}%`,
+                      transform:"translate(-50%,-50%)",fontSize:22,pointerEvents:"none",zIndex:9,
+                      filter:"drop-shadow(0 0 8px rgba(96,165,250,0.95))",
+                    }}>{cursor2Emoji}</div>
+                  )}
+                  {/* Label résultat */}
+                  {resultShot&&(
+                    <div style={{position:"absolute",bottom:5,left:0,right:0,textAlign:"center",
+                      fontSize:15,fontWeight:900,letterSpacing:.5,
+                      color: resultIsGood!==null ? (resultIsGood?GREEN:"#60a5fa") : (resultShot!==resultAi?GREEN:"#60a5fa"),
+                      textShadow:"0 2px 10px rgba(0,0,0,.95)"}}>
+                      {resultShot!==resultAi?"⚽  B U T !":"🧤  A R R Ê T É !"}
+                    </div>
+                  )}
+                </div>
+              );
+            };
+
+            // ══ SOLO : 6 tirs alternés tireur / gardien ═════════════
+            if (gameMode==="solo") {
+              const role = penShots.length%2===0 ? "tireur" : "gardien";
+              const isTireur = role==="tireur";
+              const kickNum  = penShots.length+1;
+              const last     = penShots[penShots.length-1];
+              const shooting = penPhase==="shoot" && penShots.length<6;
+              const myPts = penShots.filter(s=>(s.role==="tireur"&&s.isGoal)||(s.role==="gardien"&&!s.isGoal)).length;
+              const aiPts = penShots.filter(s=>(s.role==="tireur"&&!s.isGoal)||(s.role==="gardien"&&s.isGoal)).length;
+              const curZoneId = getPenZone(penCursorPos);
+              const aiZoneId  = getPenZone(penAiCursorPos);
+
+              const handleKick = () => {
+                if (!shooting) return;
+                const myZone = getPenZone(penCursorPos);
+                let aiZone, isGoal;
+                if (isTireur) {
+                  aiZone = getPenZone(penAiCursorPos);
+                  isGoal = myZone!==aiZone;
+                  isGoal ? soundGoal() : soundSave();
+                } else {
+                  const allZ=["hg","hc","hd","bg","bc","bd"];
+                  const others=allZ.filter(z=>z!==myZone);
+                  aiZone = getPenZone(penAiCursorPos); // tireur IA = là où son curseur pointait quand tu as plongé
+                  isGoal = aiZone!==myZone;
+                  !isGoal ? soundSave() : soundWrongGame();
+                }
+                const ns=[...penShots,{role,myZone,aiZone,isGoal}];
+                setPenShots(ns); setPenPhase("anim");
+                penAiStartRef.current=null; penCursorStartRef.current=null;
+                setPenDifficulty(null); // force new difficulty draw on next kick
+                setTimeout(()=>{
+                  if(ns.length>=6){
+                    const pts=ns.filter(s=>(s.role==="tireur"&&s.isGoal)||(s.role==="gardien"&&!s.isGoal)).length;
+                    saveGameScore("penalty",pts); setQScore(pts);
+                    setTimeout(()=>{setGamePhase("result");stopGameMusic();},400);
+                  } else { setPenPhase("shoot"); }
+                },2000);
+              };
+
+              const resultShot = penPhase==="anim"&&last ? (last.role==="tireur"?last.myZone:last.aiZone) : null;
+              const resultAi   = penPhase==="anim"&&last ? (last.role==="tireur"?last.aiZone:last.myZone) : null;
+              const resultIsGood = penPhase==="anim"&&last ? ((last.role==="tireur"&&last.isGoal)||(last.role==="gardien"&&!last.isGoal)) : null;
+
+              return (
+                <div style={t.sec}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10,marginTop:8}}>
+                    <button onClick={()=>{setGamePhase("menu");setActiveGame(null);stopGameMusic();}} style={{padding:"4px 10px",borderRadius:6,border:"none",background:"rgba(255,255,255,.08)",color:MUTED,fontSize:11,cursor:"pointer"}}>← Quitter</button>
+                    <div style={{fontSize:12,fontWeight:800,color:shooting?(isTireur?GOLD:"#60a5fa"):MUTED}}>
+                      {shooting?(isTireur?"⚽ Tu TIRES":"🧤 Tu GARDES"):"⏳"} — {Math.min(kickNum,6)}/6
+                    </div>
+                    <div style={{fontSize:12,fontWeight:700}}>
+                      <span style={{color:GOLD}}>{myPts}</span><span style={{color:MUTED}}>–</span><span style={{color:RED}}>{aiPts}</span>
+                    </div>
+                  </div>
+
+                  <div style={{display:"flex",gap:4,justifyContent:"center",marginBottom:12}}>
+                    {Array.from({length:6},(_,i)=>{
+                      const s=penShots[i];
+                      const isKickTireur=i%2===0;
+                      const isNext=i===penShots.length&&penPhase==="shoot";
+                      const iGood=s&&((s.role==="tireur"&&s.isGoal)||(s.role==="gardien"&&!s.isGoal));
+                      return (
+                        <div key={i} style={{
+                          width:34,height:34,borderRadius:"50%",
+                          background:s?(iGood?"rgba(34,197,94,.2)":"rgba(239,68,68,.15)"):"rgba(255,255,255,.05)",
+                          border:`2px solid ${s?(iGood?GREEN:RED):isNext?(isKickTireur?GOLD:"#60a5fa"):"rgba(255,255,255,.12)"}`,
+                          display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,
+                          boxShadow:isNext?`0 0 12px ${isKickTireur?"rgba(245,200,66,.4)":"rgba(59,130,246,.35)"}`:"none",
+                          transition:"all .3s",
+                        }}>
+                          {s?(iGood?"✅":"❌"):(isNext?(isKickTireur?"⚽":"🧤"):"")}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {shooting&&(
+                    <div style={{...t.card,textAlign:"center",marginBottom:10,padding:"12px",
+                      background:isTireur?"rgba(245,200,66,.1)":"rgba(59,130,246,.1)",
+                      border:`2px solid ${isTireur?"rgba(245,200,66,.45)":"rgba(59,130,246,.45)"}`}}>
+                      <div style={{fontSize:30,marginBottom:3}}>{isTireur?"⚽":"🧤"}</div>
+                      <div style={{fontSize:16,fontWeight:900,color:isTireur?GOLD:"#60a5fa",letterSpacing:.5}}>
+                        {isTireur?"TU TIRES !":"TU GARDES !"}
+                      </div>
+                      <div style={{fontSize:10,color:MUTED,marginTop:4}}>
+                        {isTireur
+                          ?"Le 🧤 gardien bouge en temps réel — tire là où il n'est PAS !"
+                          :"L'attaquant se prépare — anticipe et plonge au bon endroit !"}
+                      </div>
+                      {penDifficulty&&(
+                        <div style={{display:"inline-block",marginTop:8,padding:"3px 12px",borderRadius:20,
+                          background:`${penDifficulty.color}22`,border:`1px solid ${penDifficulty.color}66`,
+                          fontSize:11,fontWeight:800,color:penDifficulty.color}}>
+                          {penDifficulty.label}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {renderGoal({
+                    showCursor: shooting,
+                    cursorEmoji: isTireur?"🎯":"🧤",
+                    cursor2Emoji: shooting ? (isTireur?"🧤":"⚽") : null,
+                    cursor2Pos:   shooting ? penAiCursorPos : null,
+                    resultShot,
+                    resultAi,
+                    resultIsGood,
+                  })}
+
+                    {shooting&&(
+                    <div style={{textAlign:"center",marginBottom:10}}>
+                      <div style={{fontSize:13,fontWeight:800,color:isTireur?GOLD:"#60a5fa"}}>
+                        {isTireur?"Tu vises ":"Tu plonges → "}
+                        {zoneOf(curZoneId)?.emoji} <strong>{zoneOf(curZoneId)?.label}</strong>
+                      </div>
+                      {isTireur&&(
+                        <div style={{fontSize:11,marginTop:4,color:"#60a5fa"}}>
+                          Gardien : {zoneOf(aiZoneId)?.emoji} {zoneOf(aiZoneId)?.label}
+                          {curZoneId!==aiZoneId
+                            ? <span style={{color:GREEN,fontWeight:700}}> ✅ Zone libre !</span>
+                            : <span style={{color:RED,  fontWeight:700}}> ⚠️ Il est là !</span>}
+                        </div>
+                      )}
+                      {!isTireur&&(
+                        <div style={{fontSize:11,marginTop:4,color:GOLD}}>
+                          Tireur ⚽ : {zoneOf(aiZoneId)?.emoji} {zoneOf(aiZoneId)?.label}
+                          {curZoneId===aiZoneId
+                            ? <span style={{color:GREEN,fontWeight:700}}> ✅ Tu es bien placé !</span>
+                            : <span style={{color:AMB,  fontWeight:700}}> ↔ Il vise ailleurs...</span>}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {shooting&&(
+                    <>
+                      <button onClick={handleKick} style={{
+                        width:"100%",padding:"20px",borderRadius:14,border:"none",
+                        background:isTireur?`linear-gradient(135deg,${GOLD},#f59e0b)`:"linear-gradient(135deg,#3b82f6,#1d4ed8)",
+                        color:isTireur?"#0a0e1a":"#fff",fontWeight:900,fontSize:22,cursor:"pointer",fontFamily:"inherit",
+                        boxShadow:isTireur?`0 6px 30px rgba(245,200,66,.55)`:"0 6px 30px rgba(59,130,246,.4)",letterSpacing:.5,
+                      }}>
+                        {isTireur?"⚽  T I R E R !":"🧤  P L O N G E R !"}
+                      </button>
+                      <div style={{textAlign:"center",fontSize:10,color:MUTED,marginTop:7}}>
+                        {isTireur?"Tire quand le 🧤 gardien est loin de ta zone !":"Plonge quand tu as anticipé la zone du tireur !"}
+                      </div>
+                    </>
+                  )}
+
+                  {penPhase==="anim"&&last&&penShots.length<6&&(()=>{
+                    const iGood=(last.role==="tireur"&&last.isGoal)||(last.role==="gardien"&&!last.isGoal);
+                    const msg=last.role==="tireur"
+                      ?(last.isGoal?"⚽ But ! Bien visé !":"🧤 Arrêté ! Le gardien était là")
+                      :(!last.isGoal?"✅ Arrêt ! Bien anticipé !":"❌ But encaissé...");
+                    const detail=last.role==="tireur"
+                      ?`Tir ${zoneOf(last.myZone)?.emoji} · Gardien ${zoneOf(last.aiZone)?.emoji}`
+                      :`IA tire ${zoneOf(last.aiZone)?.emoji} · Tu plonges ${zoneOf(last.myZone)?.emoji}`;
+                    return (
+                      <div style={{...t.card,textAlign:"center",background:iGood?"rgba(34,197,94,.1)":"rgba(239,68,68,.08)",border:`1px solid ${iGood?GREEN:RED}`}}>
+                        <div style={{fontSize:14,fontWeight:800,color:iGood?GREEN:RED}}>{msg}</div>
+                        <div style={{fontSize:10,color:MUTED,marginTop:3}}>{detail}</div>
+                      </div>
+                    );
+                  })()}
+
+                  <div style={{textAlign:"center",marginTop:8,fontSize:11,color:MUTED}}>
+                    Toi <span style={{color:GOLD,fontWeight:700}}>{myPts}</span> · IA <span style={{color:RED,fontWeight:700}}>{aiPts}</span>
+                  </div>
+                  <div style={{height:16}}/>
+                </div>
+              );
+            }
+
+            // ══ DÉFI PENALTY — multi-round (6 tirs, rôles alternants) ══════
+            const currentChallenge=penChallengeId?(challenges[penChallengeId]):null;
+
+            // Écran de sélection d'un adversaire
             if(!penChallengeId||!currentChallenge){
+              const activeOnes=Object.entries(challenges).filter(([,c])=>
+                c.game==="penalty"&&c.status!=="done"&&
+                ((c.from===user)||(c.to===user&&c.status==="active")));
               return (
                 <div style={t.sec}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,marginTop:8}}>
@@ -8790,56 +9899,57 @@ export default function App() {
                     <div style={{fontSize:13,fontWeight:700,color:GOLD}}>⚽ Penalty — Défi</div>
                     <div style={{width:60}}/>
                   </div>
-                  <div style={{...t.card,textAlign:"center",marginBottom:12,background:"rgba(245,200,66,.06)"}}>
-                    <div style={{fontSize:13,fontWeight:700,color:GOLD,marginBottom:4}}>Défie un joueur !</div>
-                    <div style={{fontSize:10,color:MUTED}}>Rôles assignés au hasard : tireur ou gardien</div>
-                    <div style={{fontSize:10,color:MUTED,marginTop:2}}>Chacun choisit sa zone en secret puis on révèle</div>
+                  <div style={{...t.card,marginBottom:14,background:"rgba(245,200,66,.05)"}}>
+                    <div style={{fontSize:13,fontWeight:700,color:GOLD,marginBottom:6}}>⚽ Comment ça marche ?</div>
+                    <div style={{fontSize:11,color:MUTED,lineHeight:1.6}}>
+                      6 tirs en alternance — tu tires 3 fois, tu gardes 3 fois.<br/>
+                      <span style={{color:TXT}}>L'historique des zones est visible après chaque tir</span> : observe les habitudes de ton adversaire, bluff sur tes propres choix. Plus le match avance, moins c'est du hasard.
+                    </div>
                   </div>
-                  {/* Mes défis actifs (acceptés, en cours) — un par défi, pas par adversaire */}
-                  {(() => {
-                    const activeOnes = Object.entries(challenges).filter(([,c])=>c.game==="penalty"&&c.status!=="done"&&((c.from===user)||(c.to===user&&c.status==="active")));
-                    if (!activeOnes.length) return null;
-                    return (
-                      <div style={{marginBottom:14}}>
-                        <div style={{fontSize:11,color:MUTED,marginBottom:6,fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>⚔️ Mes défis en cours</div>
-                        {activeOnes.map(([id,c])=>{
-                          const opp = c.from===user?c.to:c.from;
-                          const myTurnDone = (c.from===user?c.shotFrom:c.shotTo);
-                          const statusLabel = c.status==="pending" ? "⏳ En attente d'acceptation" : myTurnDone ? "⏳ En attente" : "🎯 À toi de tirer";
-                          return (
-                            <button key={id} onClick={()=>setPenChallengeId(id)} style={{display:"flex",justifyContent:"space-between",alignItems:"center",width:"100%",marginBottom:6,padding:"10px 12px",borderRadius:10,border:`1px solid ${AMB}`,background:"rgba(245,158,11,.08)",color:TXT,cursor:"pointer",fontFamily:"inherit"}}>
-                              <span style={{fontSize:12,fontWeight:700}}>vs {opp.toUpperCase()}</span>
-                              <span style={{fontSize:11,color:AMB,fontWeight:700}}>{statusLabel} →</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    );
-                  })()}
+                  {activeOnes.length>0&&(
+                    <div style={{marginBottom:14}}>
+                      <div style={{fontSize:10,color:MUTED,marginBottom:6,fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>⚔️ Défis en cours</div>
+                      {activeOnes.map(([id,c])=>{
+                        const opp=c.from===user?c.to:c.from;
+                        const kicks=c.kicks||[];
+                        const myPick=(c.pick||{})[user];
+                        const statusLabel = c.status==="pending"
+                          ? (c.to===user ? "⏳ À accepter/refuser" : "⏳ En attente d'acceptation")
+                          : kicks.length===0?"Tir 1/6 — début":myPick?`Tir ${kicks.length+1}/6 — ⏳ tu as joué`:`Tir ${kicks.length+1}/6 — 🎯 à toi`;
+                        return (
+                          <button key={id} onClick={()=>setPenChallengeId(id)} style={{display:"flex",justifyContent:"space-between",alignItems:"center",width:"100%",marginBottom:6,padding:"10px 12px",borderRadius:10,border:`1px solid ${AMB}`,background:"rgba(245,158,11,.08)",color:TXT,cursor:"pointer",fontFamily:"inherit"}}>
+                            <span style={{fontSize:12,fontWeight:700}}>vs {opp?.toUpperCase?.()}</span>
+                            <span style={{fontSize:11,color:AMB,fontWeight:700}}>{statusLabel} →</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                  <div style={{fontSize:10,color:MUTED,marginBottom:6,fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>Nouveau défi</div>
                   {players.length===0&&<div style={t.empty}>Aucun autre joueur disponible</div>}
-                  <div style={{fontSize:11,color:MUTED,marginBottom:6,fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>Lancer un nouveau défi</div>
                   {players.map(p=>{
-                    const existingPen = Object.values(challenges).find(c =>
-                      c.game==="penalty" && (c.status==="pending"||c.status==="active") &&
-                      ((c.from===user&&c.to===p)||(c.from===p&&c.to===user))
-                    );
+                    const ex=Object.values(challenges).find(c=>c.game==="penalty"&&c.status!=="done"&&((c.from===user&&c.to===p)||(c.from===p&&c.to===user)));
                     return (
                       <div key={p} style={{...t.card,marginBottom:8,display:"flex",alignItems:"center",gap:12}}>
                         <div style={{flex:1}}>
-                          <div style={{fontSize:13,fontWeight:700,color:TXT}}>{onlinePlayers.includes(p)&&<span style={{color:GREEN,marginRight:4}}>🟢</span>}{p.toUpperCase()}</div>
+                          <div style={{fontSize:13,fontWeight:700,color:TXT}}>{onlinePlayers.includes(p)&&<span style={{color:GREEN,marginRight:4}}>🟢</span>}{p?.toUpperCase?.()}</div>
                           <div style={{fontSize:10,color:MUTED}}>{scores[p]||0} pts</div>
                         </div>
-                        {existingPen ? (
-                          <span style={{fontSize:10,color:MUTED,fontStyle:"italic"}}>Défi déjà en cours</span>
-                        ) : (
+                        {ex?(
+                          <span style={{fontSize:10,color:MUTED,fontStyle:"italic"}}>Défi en cours</span>
+                        ):(
                           <button onClick={()=>{
-                              if (blockIfDailyLimitReached("penalty", user)) return;
-                              if (blockIfDailyLimitReached("penalty", p)) return;
-                              const id=`pen_${user}_${p}_${Date.now()}`;
-                              const roleFrom=Math.random()<0.5?"tireur":"gardien";
-                              save({...st,challenges:{...challenges,[id]:{from:user,to:p,game:"penalty",roleFrom,roleTo:roleFrom==="tireur"?"gardien":"tireur",shotFrom:null,shotTo:null,status:"pending",winner:null,ts:Date.now()}}});
-                              setPenChallengeId(id);
-                            }} style={{padding:"8px 12px",borderRadius:8,border:"none",background:GOLD,color:"#0a0e1a",fontSize:11,fontWeight:700,cursor:"pointer"}}>⚔️ Défier</button>
+                            const id=`pen_${user}_${p}_${Date.now()}`;
+                            save({...st,challenges:{...challenges,[id]:{
+                              game:"penalty",from:user,to:p,
+                              kicks:[],pick:{},
+                              tireur:null,             // assigné à l'acceptation seulement
+                              fromGoals:0,toGoals:0,
+                              status:"pending",          // ⬅️ attend l'acceptation de l'adversaire
+                              winner:null,ts:Date.now(),
+                            }}});
+                            setPenChallengeId(id);
+                          }} style={{padding:"8px 12px",borderRadius:8,border:"none",background:GOLD,color:"#0a0e1a",fontSize:11,fontWeight:700,cursor:"pointer"}}>⚔️ Défier</button>
                         )}
                       </div>
                     );
@@ -8848,143 +9958,317 @@ export default function App() {
                 </div>
               );
             }
-            const isFrom=currentChallenge.from===user;
-            const myRole=isFrom?currentChallenge.roleFrom:currentChallenge.roleTo;
-            const opponent=isFrom?currentChallenge.to:currentChallenge.from;
-            const myShot=isFrom?currentChallenge.shotFrom:currentChallenge.shotTo;
-            const oppShot=isFrom?currentChallenge.shotTo:currentChallenge.shotFrom;
-            if (!myRole) {
-              // Défi corrompu (ne devrait plus se produire) — on évite le plantage et on permet de revenir en arrière
+
+            // ── Vue d'un défi actif ──────────────────────────────
+            const ch=currentChallenge;
+
+            // Ancien format (shotFrom/shotTo) : affichage minimal
+            if (ch.shotFrom !== undefined) {
               return (
                 <div style={t.sec}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10,marginTop:8}}>
-                    <button onClick={()=>setPenChallengeId(null)} style={{padding:"4px 10px",borderRadius:6,border:"none",background:"rgba(255,255,255,.08)",color:MUTED,fontSize:11,cursor:"pointer"}}>← Retour</button>
-                  </div>
-                  <div style={t.empty}>Ce défi est invalide et a été nettoyé. Relance-en un nouveau !</div>
+                  <button onClick={()=>setPenChallengeId(null)} style={{margin:"12px 0",padding:"4px 10px",borderRadius:6,border:"none",background:"rgba(255,255,255,.08)",color:MUTED,fontSize:11,cursor:"pointer"}}>← Retour</button>
+                  <div style={{...t.card,textAlign:"center",color:MUTED,fontSize:12}}>Ce défi est dans l'ancien format — il ne peut plus être joué.<br/>Lance un nouveau défi !</div>
                 </div>
               );
             }
-            const submitShot=(zone)=>{
-              if(myShot)return; setPenZonePick(zone);
-              const newCh=isFrom?{...currentChallenge,shotFrom:zone}:{...currentChallenge,shotTo:zone};
-              const otherShot=isFrom?currentChallenge.shotTo:currentChallenge.shotFrom;
-              if(otherShot){
-                const tShot=isFrom&&myRole==="tireur"?zone:isFrom?otherShot:myRole==="tireur"?zone:otherShot;
-                const gShot=isFrom&&myRole==="gardien"?zone:isFrom?otherShot:myRole==="gardien"?zone:otherShot;
-                const saved=tShot===gShot;
-                const win=saved?(myRole==="gardien"?user:opponent):(myRole==="tireur"?user:opponent);
-                newCh.status="done";newCh.winner=win;
-                const gs=st.gameScores||{},ps=gs.penalty||{};
-                const gst=st.gameScoresTotal||{},pst=gst.penalty||{};
-                const winDailyCount = getDailyCount("penalty", win);
-                const winCapped = winDailyCount >= DAILY_PLAY_LIMIT;
-                const newPlaysToday2 = bumpDailyCount("penalty", win);
 
-                // ── Historique : enregistrer la partie penalty pour les deux joueurs ──
-                const ghAll = st.gameHistory || {};
-                // Joueur courant
-                const myWon = win===user?"win":"loss";
-                const myHist = (ghAll[user]||[]);
-                const myEntry = {game:"penalty",score:win===user?1:0,mode:"defi",opponent,won:myWon,ts:Date.now()};
-                const myCapped = [...myHist, myEntry].slice(-50);
-                // Adversaire : mettre à jour son entrée won=null en won réel si elle existe, sinon ajouter
-                const oppWon = win===opponent?"win":"loss";
-                const oppHist = [...(ghAll[opponent]||[])];
-                const oppEntryIdx = oppHist.map((h,i)=>({h,i})).reverse()
-                  .find(({h})=>h.mode==="defi"&&h.game==="penalty"&&h.opponent===user&&h.won===null);
-                if (oppEntryIdx) oppHist[oppEntryIdx.i] = {...oppEntryIdx.h, won:oppWon};
-                else oppHist.push({game:"penalty",score:win===opponent?1:0,mode:"defi",opponent:user,won:oppWon,ts:Date.now()-1});
-                const oppCapped = oppHist.slice(-50);
+            // ── Défi en attente d'acceptation ──
+            // Tant que le défi n'est pas accepté, AUCUN tir ne peut être joué.
+            // C'est ce qui garantit que refuser empêche réellement de jouer.
+            if (ch.status==="pending") {
+              const isRecipient = ch.to===user;
+              const opp2 = isRecipient ? ch.from : ch.to;
+              const acceptPenalty = () => {
+                if (blockIfDailyLimitReached("penalty", user)) return;
+                const firstTireur = Math.random()<.5 ? ch.from : ch.to;
+                save({...st,challenges:{...challenges,[penChallengeId]:{...ch,status:"active",tireur:firstTireur}}});
+              };
+              const declinePenalty = () => {
+                const ns={...challenges}; delete ns[penChallengeId];
+                save({...st,challenges:ns});
+                showNotif("info",`Défi de ${ch.from?.toUpperCase?.()} refusé`);
+                setPenChallengeId(null);
+              };
+              return (
+                <div style={t.sec}>
+                  <button onClick={()=>setPenChallengeId(null)} style={{margin:"12px 0",padding:"4px 10px",borderRadius:6,border:"none",background:"rgba(255,255,255,.08)",color:MUTED,fontSize:11,cursor:"pointer"}}>← Retour</button>
+                  {isRecipient ? (
+                    <div style={{...t.card,textAlign:"center",background:"rgba(245,200,66,.08)",border:`1px solid rgba(245,200,66,.35)`}}>
+                      <div style={{fontSize:32,marginBottom:6}}>⚔️</div>
+                      <div style={{fontSize:14,fontWeight:800,color:GOLD,marginBottom:4}}>{opp2?.toUpperCase?.()} te défie aux tirs au but !</div>
+                      <div style={{fontSize:10,color:MUTED,marginBottom:12}}>6 tirs alternés — rôles tirés au sort à l'acceptation</div>
+                      <div style={{display:"flex",gap:8}}>
+                        <button onClick={acceptPenalty} style={{flex:2,padding:"10px",borderRadius:9,border:"none",background:GOLD,color:"#0a0e1a",fontWeight:800,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>✅ Accepter</button>
+                        <button onClick={declinePenalty} style={{flex:1,padding:"10px",borderRadius:9,border:"1px solid rgba(239,68,68,.4)",background:"rgba(239,68,68,.1)",color:RED,fontWeight:800,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>✗ Refuser</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{...t.card,textAlign:"center",color:MUTED}}>
+                      <div style={{fontSize:28,marginBottom:6}}>⏳</div>
+                      <div style={{fontSize:13,fontWeight:700,color:TXT}}>En attente que {opp2?.toUpperCase?.()} accepte ton défi…</div>
+                    </div>
+                  )}
+                </div>
+              );
+            }
 
-                save({...st,
-                  gamePlaysToday: newPlaysToday2,
-                  gameScores: winCapped ? gs : {...gs,penalty:{...ps,[win]:(ps[win]||0)+1}},
-                  gameScoresTotal: winCapped ? gst : {...gst,penalty:{...pst,[win]:(pst[win]||0)+1}},
-                  challenges:{...challenges,[penChallengeId]:newCh},
-                  gameHistory: {...ghAll, [user]:myCapped, [opponent]:oppCapped},
-                });
-                if(win===user&&winCapped) showNotif("info",`⏳ Limite quotidienne atteinte (${DAILY_PLAY_LIMIT}/${DAILY_PLAY_LIMIT}) — cette victoire ne compte pas dans ton score.`);
-                if(win===user)soundGoal();else soundSave();
-              }else{save({...st,challenges:{...challenges,[penChallengeId]:newCh}});}
+            const isFrom=ch.from===user;
+            const opponent=isFrom?ch.to:ch.from;
+            if (!opponent) { setPenChallengeId(null); return null; }
+
+            const myGoals   = isFrom ? ch.fromGoals||0 : ch.toGoals||0;
+            const oppGoals  = isFrom ? ch.toGoals||0   : ch.fromGoals||0;
+            const kicks     = ch.kicks||[];
+            const kicksDone = kicks.length;
+            const iAmTireur = ch.tireur===user;
+            const myPick    = (ch.pick||{})[user];
+            const totalKicks= 6;
+
+            const myPastPicks = kicks.filter(k=>iAmTireur?k.tireur===user:k.gardien===user).map(k=>iAmTireur?k.tp:k.gp);
+            const oppPastPicks= kicks.filter(k=>iAmTireur?k.gardien===opponent:k.tireur===opponent).map(k=>iAmTireur?k.gp:k.tp);
+
+            const submitPick=(zone)=>{
+              if(myPick)return;
+              save({...st,challenges:{...challenges,[penChallengeId]:{...ch,pick:{...(ch.pick||{}),[user]:zone}}}});
             };
-            const done=currentChallenge.status==="done";
-            const bothPicked=done||(currentChallenge.shotFrom&&currentChallenge.shotTo);
+
+            // ── Résultat final ──
+            if(ch.status==="done"){
+              const won=ch.winner===user, draw=!ch.winner;
+              return (
+                <div style={t.sec}>
+                  <button onClick={()=>setPenChallengeId(null)} style={{margin:"12px 0 8px",padding:"4px 10px",borderRadius:6,border:"none",background:"rgba(255,255,255,.08)",color:MUTED,fontSize:11,cursor:"pointer"}}>← Retour</button>
+                  <div style={{...t.card,textAlign:"center",marginBottom:12,
+                    background:won?"rgba(34,197,94,.15)":draw?"rgba(255,255,255,.05)":"rgba(239,68,68,.12)",
+                    border:`1px solid ${won?GREEN:draw?BRD:RED}`}}>
+                    <div style={{fontSize:36,marginBottom:6}}>{won?"🏆":draw?"🤝":"😔"}</div>
+                    <div style={{fontSize:18,fontWeight:900,color:won?GREEN:draw?MUTED:RED}}>
+                      {won?"Victoire !":draw?"Match nul":"Défaite"}
+                    </div>
+                    <div style={{fontSize:22,fontWeight:900,marginTop:8,color:TXT}}>
+                      <span style={{color:GOLD}}>{myGoals}</span>
+                      <span style={{color:MUTED}}> — </span>
+                      <span>{oppGoals}</span>
+                    </div>
+                    <div style={{fontSize:11,color:MUTED,marginTop:4}}>vs {opponent?.toUpperCase?.()}</div>
+                  </div>
+                  <div>
+                    <div style={{fontSize:10,fontWeight:700,color:MUTED,marginBottom:8,textTransform:"uppercase",letterSpacing:.5}}>📊 Récapitulatif des 6 tirs</div>
+                    {kicks.map((k,i)=>{
+                      const zT=zoneOf(k.tp), zG=zoneOf(k.gp);
+                      const tireurName  = k.tireur===user  ? "TOI" : (opponent?.toUpperCase?.()||k.tireur?.toUpperCase?.());
+                      const gardienName = k.gardien===user ? "TOI" : (opponent?.toUpperCase?.()||k.gardien?.toUpperCase?.());
+                      const meWon = (k.goal&&k.tireur===user)||(!k.goal&&k.gardien===user);
+                      const winnerName = k.goal ? tireurName : gardienName;
+                      const sameZone = k.tp===k.gp;
+                      return (
+                        <div key={i} style={{marginBottom:8,padding:"10px 12px",borderRadius:10,
+                          border:`1.5px solid ${meWon?"rgba(34,197,94,.45)":"rgba(239,68,68,.4)"}`,
+                          background:meWon?"rgba(34,197,94,.07)":"rgba(239,68,68,.05)"}}>
+                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:7}}>
+                            <span style={{fontSize:10,color:MUTED,fontWeight:700,letterSpacing:.5}}>TIR #{i+1}</span>
+                            <span style={{fontSize:12,fontWeight:900,color:k.goal?GREEN:"#60a5fa"}}>
+                              {k.goal?"⚽ BUT":"🧤 ARRÊTÉ"}
+                            </span>
+                          </div>
+                          <div style={{display:"flex",alignItems:"center",gap:6,fontSize:11,marginBottom:4}}>
+                            <span style={{color:GOLD,fontWeight:800,minWidth:50}}>⚽ {tireurName}</span>
+                            <span style={{color:MUTED,fontSize:10}}>tire</span>
+                            <span style={{color:TXT,fontWeight:700}}>{zT?.emoji} {zT?.label}</span>
+                          </div>
+                          <div style={{display:"flex",alignItems:"center",gap:6,fontSize:11}}>
+                            <span style={{color:"#60a5fa",fontWeight:800,minWidth:50}}>🧤 {gardienName}</span>
+                            <span style={{color:MUTED,fontSize:10}}>plonge</span>
+                            <span style={{color:TXT,fontWeight:700}}>{zG?.emoji} {zG?.label}</span>
+                            {sameZone&&<span style={{color:MUTED,fontSize:9,fontStyle:"italic"}}>— même zone !</span>}
+                          </div>
+                          <div style={{marginTop:7,fontSize:10,fontWeight:800,color:meWon?GREEN:RED,textAlign:"right"}}>
+                            {meWon ? "✅ Point pour toi" : `❌ Point pour ${winnerName}`}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div style={{height:24}}/>
+                </div>
+              );
+            }
+
+            // ── Tir en cours ──
             return (
               <div style={t.sec}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10,marginTop:8}}>
                   <button onClick={()=>setPenChallengeId(null)} style={{padding:"4px 10px",borderRadius:6,border:"none",background:"rgba(255,255,255,.08)",color:MUTED,fontSize:11,cursor:"pointer"}}>← Retour</button>
-                  <div style={{fontSize:11,color:MUTED}}>vs {opponent.toUpperCase()}</div>
-                  <div style={{fontSize:11,color:GOLD,fontWeight:700}}>⚽</div>
+                  <div style={{fontSize:11,fontWeight:700,color:MUTED}}>Tir {kicksDone+1}/{totalKicks}</div>
+                  <div style={{fontSize:11,color:MUTED}}>vs {opponent?.toUpperCase?.()}</div>
                 </div>
-                <div style={{...t.card,textAlign:"center",marginBottom:12,background:myRole==="tireur"?"rgba(245,200,66,.1)":"rgba(0,150,255,.1)",border:`1px solid ${myRole==="tireur"?"rgba(245,200,66,.4)":"rgba(0,150,255,.4)"}`}}>
-                  <div style={{fontSize:28,marginBottom:4}}>{myRole==="tireur"?"⚽":"🧤"}</div>
-                  <div style={{fontSize:14,fontWeight:800,color:myRole==="tireur"?GOLD:"#60a5fa"}}>Tu es le {myRole.toUpperCase()}</div>
-                  <div style={{fontSize:10,color:MUTED,marginTop:2}}>{myRole==="tireur"?"Choisis ta direction en secret":"Choisis où tu plonges en secret"}</div>
+
+                <div style={{...t.card,display:"flex",justifyContent:"space-around",alignItems:"center",marginBottom:12,padding:"12px"}}>
+                  <div style={{textAlign:"center"}}>
+                    <div style={{fontSize:30,fontWeight:900,color:GOLD,lineHeight:1}}>{myGoals}</div>
+                    <div style={{fontSize:10,color:MUTED,marginTop:2}}>TOI</div>
+                  </div>
+                  <div style={{textAlign:"center"}}>
+                    <div style={{display:"flex",gap:4,marginBottom:4,justifyContent:"center"}}>
+                      {Array.from({length:totalKicks},(_,i)=>{
+                        const k=kicks[i];
+                        if(!k) return <div key={i} style={{width:10,height:10,borderRadius:"50%",background:"rgba(255,255,255,.1)"}}/>;
+                        const iWon=(k.goal&&k.tireur===user)||(!k.goal&&k.gardien===user);
+                        return <div key={i} style={{width:10,height:10,borderRadius:"50%",background:iWon?GREEN:RED}}/>;
+                      })}
+                    </div>
+                    <div style={{fontSize:9,color:MUTED}}>{totalKicks-kicksDone} restants</div>
+                    <div style={{fontSize:8,color:MUTED,marginTop:2}}>🟢 toi · 🔴 adversaire</div>
+                  </div>
+                  <div style={{textAlign:"center"}}>
+                    <div style={{fontSize:30,fontWeight:900,color:TXT,lineHeight:1}}>{oppGoals}</div>
+                    <div style={{fontSize:10,color:MUTED,marginTop:2}}>{opponent?.toUpperCase?.()?.slice(0,8)}</div>
+                  </div>
                 </div>
-                {bothPicked?(
-                  <div style={{...t.card,textAlign:"center",background:penRevealStage!=="result"?"rgba(255,255,255,.04)":(currentChallenge.winner===user?"rgba(34,197,94,.2)":"rgba(239,68,68,.2)"),border:penRevealStage!=="result"?`1px solid ${BRD}`:`1px solid ${currentChallenge.winner===user?GREEN:RED}`}}>
-                    {/* Scène animée : but + ballon + gardien */}
-                    {(()=>{
-                      const ts=myRole==="tireur"?myShot:oppShot, gs=myRole==="gardien"?myShot:oppShot;
-                      const tZone=zoneOf(ts), gZone=zoneOf(gs);
-                      const revealed = penRevealStage==="result";
-                      const ballX = revealed||penRevealStage==="animating" ? tZone?.x : 50;
-                      const ballY = revealed||penRevealStage==="animating" ? tZone?.y : 50;
-                      const gkX   = revealed||penRevealStage==="animating" ? gZone?.x   : 50;
-                      const gkY   = revealed||penRevealStage==="animating" ? gZone?.y   : 50;
-                      const saved = ts===gs;
+
+                {kicks.length>0&&(
+                  <div style={{marginBottom:12}}>
+                    <div style={{fontSize:10,fontWeight:700,color:MUTED,marginBottom:8,textTransform:"uppercase",letterSpacing:.5}}>📊 Historique du match</div>
+                    {kicks.map((k,i)=>{
+                      const zT=zoneOf(k.tp), zG=zoneOf(k.gp);
+                      const tireurName  = k.tireur===user  ? "TOI" : (opponent?.toUpperCase?.()||k.tireur?.toUpperCase?.());
+                      const gardienName = k.gardien===user ? "TOI" : (opponent?.toUpperCase?.()||k.gardien?.toUpperCase?.());
+                      const meWon = (k.goal&&k.tireur===user)||(!k.goal&&k.gardien===user);
+                      const winnerName = k.goal ? tireurName : gardienName;
+                      const sameZone = k.tp===k.gp;
                       return (
-                        <div style={{position:"relative",width:"100%",height:150,borderRadius:10,marginBottom:10,overflow:"hidden",
-                          background:"linear-gradient(180deg, rgba(255,255,255,.05) 0%, rgba(46,204,113,.12) 100%)",
-                          border:`1px solid ${BRD}`}}>
-                          {/* Cadre du but */}
-                          <div style={{position:"absolute",top:6,left:"10%",width:"80%",height:"72%",border:"3px solid rgba(255,255,255,.35)",borderBottom:"none",borderRadius:"2px 2px 0 0"}}/>
-                          {/* Gardien */}
-                          <span style={{position:"absolute",left:`${gkX}%`,top:`${gkY}%`,transform:"translate(-50%,-50%)",fontSize:26,transition:"left .9s cubic-bezier(.2,.8,.2,1), top .9s cubic-bezier(.2,.8,.2,1)"}}>🧤</span>
-                          {/* Ballon */}
-                          <span style={{position:"absolute",left:`${ballX}%`,top:`${ballY}%`,transform:"translate(-50%,-50%)",fontSize:22,transition:"left .9s cubic-bezier(.2,.8,.2,1), top .9s cubic-bezier(.2,.8,.2,1)"}}>⚽</span>
-                          {revealed && (
-                            <div style={{position:"absolute",bottom:6,left:0,right:0,textAlign:"center",fontSize:13,fontWeight:900,letterSpacing:1,
-                              color:saved?"#60a5fa":GREEN,textShadow:"0 1px 3px rgba(0,0,0,.6)"}}>
-                              {saved?"🧤 ARRÊTÉ !":"⚽ BUT !"}
-                            </div>
-                          )}
+                        <div key={i} style={{marginBottom:8,padding:"10px 12px",borderRadius:10,
+                          border:`1.5px solid ${meWon?"rgba(34,197,94,.45)":"rgba(239,68,68,.4)"}`,
+                          background:meWon?"rgba(34,197,94,.07)":"rgba(239,68,68,.05)"}}>
+                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:7}}>
+                            <span style={{fontSize:10,color:MUTED,fontWeight:700,letterSpacing:.5}}>TIR #{i+1}</span>
+                            <span style={{fontSize:12,fontWeight:900,color:k.goal?GREEN:"#60a5fa"}}>
+                              {k.goal?"⚽ BUT":"🧤 ARRÊTÉ"}
+                            </span>
+                          </div>
+                          <div style={{display:"flex",alignItems:"center",gap:6,fontSize:11,marginBottom:4}}>
+                            <span style={{color:GOLD,fontWeight:800,minWidth:50}}>⚽ {tireurName}</span>
+                            <span style={{color:MUTED,fontSize:10}}>tire</span>
+                            <span style={{color:TXT,fontWeight:700}}>{zT?.emoji} {zT?.label}</span>
+                          </div>
+                          <div style={{display:"flex",alignItems:"center",gap:6,fontSize:11}}>
+                            <span style={{color:"#60a5fa",fontWeight:800,minWidth:50}}>🧤 {gardienName}</span>
+                            <span style={{color:MUTED,fontSize:10}}>plonge</span>
+                            <span style={{color:TXT,fontWeight:700}}>{zG?.emoji} {zG?.label}</span>
+                            {sameZone&&<span style={{color:MUTED,fontSize:9,fontStyle:"italic"}}>— même zone !</span>}
+                          </div>
+                          <div style={{marginTop:7,fontSize:10,fontWeight:800,color:meWon?GREEN:RED,textAlign:"right"}}>
+                            {meWon ? "✅ Point pour toi" : `❌ Point pour ${winnerName}`}
+                          </div>
                         </div>
                       );
-                    })()}
-                    {penRevealStage==="result" ? (<>
-                      <div style={{fontSize:24,marginBottom:4}}>{currentChallenge.winner===user?"🏆":"😔"}</div>
-                      <div style={{fontSize:14,fontWeight:800,color:currentChallenge.winner===user?GREEN:RED}}>{currentChallenge.winner===user?"TU GAGNES !":"Tu perds..."}</div>
-                      <div style={{fontSize:11,color:MUTED,marginTop:4}}>{(()=>{const ts=myRole==="tireur"?myShot:oppShot,gs=myRole==="gardien"?myShot:oppShot;return ts===gs?`Même zone : ${zoneOf(ts)?.label}`:`Tireur ${zoneOf(ts)?.emoji} · Gardien ${zoneOf(gs)?.emoji}`;})()}</div>
-                      <button onClick={()=>{setPenChallengeId(null);setGamePhase("menu");setActiveGame(null);stopGameMusic();}} style={{marginTop:12,padding:"8px 16px",borderRadius:8,border:"none",background:GOLD,color:"#0a0e1a",fontWeight:700,fontSize:12,cursor:"pointer"}}>← Menu</button>
-                    </>) : (
-                      <div style={{fontSize:12,color:MUTED,fontWeight:700}}>⏱️ Tir en cours…</div>
+                    })}
+                    {oppPastPicks.length>=2&&(
+                      <div style={{marginTop:4,fontSize:10,color:AMB,padding:"6px 9px",borderRadius:7,background:"rgba(245,158,11,.08)"}}>
+                        💡 {iAmTireur?"Le gardien a défendu ":"L'adversaire a tiré "}{[...new Set(oppPastPicks)].map(z=>zoneOf(z)?.emoji).join(" ")} — adapte-toi !
+                      </div>
                     )}
                   </div>
-                ):myShot?(
-                  <div style={{...t.card,textAlign:"center",background:"rgba(245,200,66,.08)"}}>
-                    <div style={{fontSize:20,marginBottom:4}}>⏳</div>
-                    <div style={{fontSize:12,color:GOLD,fontWeight:700}}>Tu as choisi {zoneOf(myShot)?.emoji} {zoneOf(myShot)?.label}</div>
-                    <div style={{fontSize:10,color:MUTED,marginTop:4}}>En attente de {opponent.toUpperCase()}...</div>
+                )}
+
+                <div style={{...t.card,textAlign:"center",marginBottom:12,
+                  background:iAmTireur?"rgba(245,200,66,.1)":"rgba(59,130,246,.1)",
+                  border:`1px solid ${iAmTireur?"rgba(245,200,66,.35)":"rgba(59,130,246,.35)"}`}}>
+                  <div style={{fontSize:28,marginBottom:2}}>{iAmTireur?"⚽":"🧤"}</div>
+                  <div style={{fontSize:15,fontWeight:900,color:iAmTireur?GOLD:"#60a5fa"}}>
+                    {iAmTireur?"Tu TIRES ce coup":"Tu GARDES ce coup"}
+                  </div>
+                  <div style={{fontSize:10,color:MUTED,marginTop:3}}>
+                    {iAmTireur?"Observe l'historique — va là où le gardien ne s'attend pas !":"Analyse les tirs précédents — anticipe la zone !"}
+                  </div>
+                </div>
+
+                {myPick?(
+                  <div style={{...t.card,textAlign:"center",background:"rgba(245,200,66,.07)",border:`1px solid rgba(245,200,66,.25)`}}>
+                    <div style={{fontSize:22,marginBottom:4}}>⏳</div>
+                    <div style={{fontSize:13,fontWeight:700,color:GOLD}}>Tu as joué {zoneOf(myPick)?.emoji} {zoneOf(myPick)?.label}</div>
+                    <div style={{fontSize:10,color:MUTED,marginTop:4}}>En attente de {opponent?.toUpperCase?.()}…</div>
                   </div>
                 ):(
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
-                    {zones.map(z=>(
-                      <button key={z.id} onClick={()=>submitShot(z.id)} style={{padding:"14px 4px",borderRadius:10,border:"2px solid rgba(245,200,66,.3)",background:"rgba(245,200,66,.08)",color:GOLD,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit",textAlign:"center"}}>
-                        {z.emoji}<br/><span style={{fontSize:9}}>{z.label}</span>
-                      </button>
-                    ))}
-                  </div>
+                  <>
+                    {myPastPicks.length>0&&(
+                      <div style={{fontSize:10,color:MUTED,textAlign:"center",marginBottom:8}}>
+                        Tes zones précédentes : {myPastPicks.map(z=>zoneOf(z)?.emoji).join(" ")}
+                        <span style={{color:AMB}}> · bluff possible !</span>
+                      </div>
+                    )}
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:8}}>
+                      {zones.map(z=>{
+                        const used=myPastPicks.filter(p=>p===z.id).length;
+                        return (
+                          <button key={z.id} onClick={()=>submitPick(z.id)} style={{
+                            padding:"14px 4px",borderRadius:10,
+                            border:`1px solid ${used>0?"rgba(245,200,66,.35)":BRD}`,
+                            background:used>0?"rgba(245,200,66,.07)":"rgba(255,255,255,.04)",
+                            color:TXT,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit",
+                            textAlign:"center",
+                          }}>
+                            {z.emoji}
+                            <div style={{fontSize:9,color:MUTED,marginTop:2}}>{z.label}</div>
+                            {used>0&&<div style={{fontSize:8,color:AMB}}>{"↩".repeat(used)}</div>}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div style={{textAlign:"center",fontSize:10,color:MUTED}}>
+                      {iAmTireur?"Bluff sur tes habitudes — évite d'être prévisible !":"L'adversaire voit tes plongeons précédents aussi !"}
+                    </div>
+                  </>
                 )}
                 <div style={{height:24}}/>
               </div>
             );
-          }
+          } // fin if activeGame==="penalty"
 
           return null;
         })()}
 
       </div>
+
+      {/* ── MODALE RAPPEL PRONOSTIC ÉLIM ── */}
+      {pronoReminder && (()=>{
+        const reminder = ELIM_REMINDERS.find(r=>r.phase===pronoReminder);
+        if (!reminder) return null;
+        const now = new Date();
+        const dl = new Date(reminder.deadline);
+        const diff = dl - now;
+        const days = Math.floor(diff/86400000);
+        const hrs  = Math.floor((diff%86400000)/3600000);
+        const mins = Math.floor((diff%3600000)/60000);
+        const lines = reminder.msg.split("\n");
+        return (
+          <div style={{position:"fixed",inset:0,zIndex:9999,background:"rgba(0,0,0,.85)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+            <div style={{background:"#0f1628",border:`2px solid ${GOLD}`,borderRadius:24,padding:28,maxWidth:360,width:"100%",textAlign:"center",boxShadow:`0 0 60px rgba(255,210,52,.25)`}}>
+              <div style={{fontSize:48,marginBottom:12}}>⚽</div>
+              <div style={{fontSize:20,fontWeight:900,color:GOLD,marginBottom:8,lineHeight:1.2}}>
+                {reminder.label}
+              </div>
+              {lines.map((l,i)=>(
+                <div key={i} style={{fontSize:15,color:TXT,fontWeight:i===0?600:400,lineHeight:1.5,marginBottom:i===0?4:0}}>
+                  {l}
+                </div>
+              ))}
+              {diff > 0 && (
+                <div style={{display:"inline-flex",gap:10,marginTop:16,background:"rgba(255,210,52,.08)",border:`1px solid rgba(255,210,52,.3)`,borderRadius:14,padding:"10px 16px"}}>
+                  {days>0 && <div style={{textAlign:"center"}}><div style={{fontSize:22,fontWeight:900,color:GOLD}}>{days}j</div><div style={{fontSize:9,color:MUTED}}>jour{days>1?"s":""}</div></div>}
+                  <div style={{textAlign:"center"}}><div style={{fontSize:22,fontWeight:900,color:GOLD}}>{String(hrs).padStart(2,"0")}h</div><div style={{fontSize:9,color:MUTED}}>heures</div></div>
+                  <div style={{textAlign:"center"}}><div style={{fontSize:22,fontWeight:900,color:GOLD}}>{String(mins).padStart(2,"0")}m</div><div style={{fontSize:9,color:MUTED}}>minutes</div></div>
+                </div>
+              )}
+              <button
+                onClick={()=>{ setPronoReminder(null); setTab("elim"); setEPhase(reminder.phase); }}
+                style={{marginTop:22,width:"100%",padding:"14px",borderRadius:14,border:"none",background:GRAD_SUN,color:"#0a0e1a",fontWeight:900,fontSize:16,cursor:"pointer",fontFamily:"inherit",boxShadow:"0 4px 20px rgba(255,140,0,.4)"}}>
+                OK, je vais faire mes pronostics !
+              </button>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* BOTTOM NAV */}
       <div style={{...t.bnav, position:"static", flexShrink:0}}>
@@ -9008,7 +10292,7 @@ export default function App() {
             ? Object.values(st.challenges||{}).filter(c=>
                 (c.to===user&&c.status==="pending") ||
                 (c.status==="accepted"&&((c.from===user&&c.fromScore===null)||(c.to===user&&c.toScore===null))) ||
-                (c.game==="penalty"&&c.status==="active"&&((c.from===user&&!c.shotFrom)||(c.to===user&&!c.shotTo)))
+                (c.game==="penalty"&&c.status==="active"&&c.tireur!=null&&!(c.pick||{})[user])
               ).length
             : 0;
           return (
@@ -9019,16 +10303,11 @@ export default function App() {
                 const seenObj = typeof seenForUser==="object" && seenForUser ? seenForUser : {};
                 const updated = {...seenObj};
                 myChatGroups.forEach(g => { updated[g] = ((st.chat||{})[g]||[]).length; });
-                const ns = {...st, seenChat:{...(st.seenChat||{}),[user]:updated}};
-                // 🛡️ Mise à jour locale immédiate (fait disparaître le badge non-lu)
-                setSt(ns);
-                persist(ns);
-                // 🛡️ Écriture Firebase ATOMIQUE : ne touche QUE seenChat/<user>, jamais
-                // le reste de l'état. Avant ce fix, ceci passait par save() qui réécrivait
-                // TOUT st à partir de l'état local — vu la fréquence de ce clic (barre de
-                // nav, utilisée par tout le monde en permanence), c'était une source majeure
-                // d'écrasement silencieux d'actions toutes fraîches (pronostics, scores...)
-                // faites juste avant par n'importe quel utilisateur sur n'importe quel onglet.
+                // 🛡️ Écriture Firebase ATOMIQUE — ne touche QUE seenChat/<user>
+                // (avant : persistFirebase(ns) réécrivait TOUT st et pouvait
+                // écraser des scores saisis juste avant par un autre utilisateur)
+                setSt(prev => ({...prev, seenChat:{...(prev.seenChat||{}),[user]:updated}}));
+                try { localStorage.setItem(KEY, JSON.stringify({...st, seenChat:{...(st.seenChat||{}),[user]:updated}})); } catch(e) {}
                 if (FB_ENABLED && _fbReady) {
                   _fbUpdate("/", { [`seenChat/${user}`]: updated }).catch(e => console.warn("seenChat (nav) Firebase write error:", e));
                 }
