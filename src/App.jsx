@@ -3891,7 +3891,7 @@ export default function App() {
           [ch.to]:  [...(gh[ch.to]  ||[]),mkE(winner===ch.to,  ch.from)].slice(-50),
         },
       });
-      if (winner===user&&winCapped) showNotif("info","⏳ Limite quotidienne atteinte (3/3) — victoire non comptabilisée.");
+      if (winner===user&&winCapped) showNotif("info","⏳ Limite quotidienne atteinte — victoire non comptabilisée.");
     } else {
       save({...st, challenges:{...(st.challenges||{}),[penChallengeId]:newCh}});
     }
@@ -4290,10 +4290,10 @@ export default function App() {
 
   // ── Tick chaque seconde pour les countdowns (login + accueil)
   useEffect(() => {
-    if (scr !== "login" && !(scr === "app" && tab === "home")) return;
+    if (scr !== "login" && !(scr === "app" && tab === "home") && !pronoReminder) return;
     const interval = setInterval(() => setTick(t=>t+1), 1000);
     return () => clearInterval(interval);
-  }, [scr, tab]);
+  }, [scr, tab, pronoReminder]);
 
   // ── Modale de rappel de pronostic : affichée à chaque connexion tant que
   // le joueur n'a pas validé la phase éliminatoire en cours
@@ -5236,6 +5236,7 @@ export default function App() {
           {/* COUNTDOWN LOGIN — dynamique : pointe vers la prochaine phase élim
               si le tournoi est déjà lancé, sinon vers le coup d'envoi */}
           {(()=>{
+            void tick; // force le re-render chaque seconde via le setInterval
             const now2 = new Date();
             const kickoff = new Date("2026-06-11T21:00:00");
             // Trouve la prochaine fenêtre de pronostic élim non encore fermée
@@ -5762,6 +5763,7 @@ export default function App() {
 
               {/* COUNTDOWN temps réel */}
               {(()=>{
+                void tick; // force re-render chaque seconde
                 const start = new Date("2026-06-11T21:00:00");
                 const now2 = new Date();
                 const diff = start - now2;
@@ -8542,7 +8544,7 @@ export default function App() {
           // Au-delà, impossible de lancer une nouvelle partie OU un nouveau défi
           // (et pas seulement "ça ne compte pas") — pour éviter de retomber sur
           // les mêmes questions/cartes et fausser l'équité entre joueurs ──
-          const DAILY_PLAY_LIMIT = 3;
+          const DAILY_PLAY_LIMIT = 999; // pas de limite quotidienne
           const gamePlaysToday = st.gamePlaysToday || {};
           const getDailyCount = (game, who) => {
             const v = (gamePlaysToday[game]||{})[who];
@@ -9156,7 +9158,7 @@ export default function App() {
                       const atLimit = playedToday >= DAILY_PLAY_LIMIT;
                       return (
                         <div style={{fontSize:9,color:atLimit?RED:MUTED,marginTop:3}}>
-                          {atLimit ? "⏳ Limite quotidienne atteinte (3/3 jouées)" : `🎯 ${playedToday}/${DAILY_PLAY_LIMIT} partie${playedToday>1?"s":""} jouée${playedToday>1?"s":""} aujourd'hui`}
+                          {atLimit ? "⏳ Limite quotidienne atteinte" : `🎯 ${playedToday}/${DAILY_PLAY_LIMIT} partie${playedToday>1?"s":""} jouée${playedToday>1?"s":""} aujourd'hui`}
                         </div>
                       );
                     })()}
@@ -10280,6 +10282,7 @@ export default function App() {
 
       {/* ── MODALE RAPPEL PRONOSTIC ÉLIM ── */}
       {pronoReminder && (()=>{
+        void tick; // force re-render pour le compte à rebours
         const reminder = ELIM_REMINDERS.find(r=>r.phase===pronoReminder);
         if (!reminder) return null;
         const now = new Date();
