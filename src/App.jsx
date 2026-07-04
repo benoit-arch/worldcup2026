@@ -9925,11 +9925,15 @@ export default function App() {
             if(!penChallengeId||!currentChallenge){
               const activeOnes=Object.entries(challenges).filter(([,c])=>{
                 if (c.game!=="penalty" || c.status==="done") return false;
-                if (!((c.from===user)||(c.to===user&&c.status==="active"))) return false;
+                // Inclure TOUS les défis (émis ou reçus) où je suis partie prenante,
+                // quel que soit le statut exact — y compris les anciens défis bloqués
+                // au format obsolète (shotFrom/shotTo), pour que je puisse toujours
+                // les voir et les supprimer, même si je suis le destinataire.
+                if (!(c.from===user || c.to===user)) return false;
                 // Exclure les défis inter-groupes (l'adversaire doit être dans le même groupe)
                 const opp = c.from===user ? c.to : c.from;
                 const oppRole = (st.users[opp]||{}).role;
-                return isAdmin || oppRole===role;
+                return isAdmin || !role || !oppRole || oppRole===role;
               });
               return (
                 <div style={t.sec}>
@@ -9952,13 +9956,16 @@ export default function App() {
                         const opp=c.from===user?c.to:c.from;
                         const kicks=c.kicks||[];
                         const myPick=(c.pick||{})[user];
-                        const statusLabel = c.status==="pending"
+                        const isOldFormat = c.shotFrom !== undefined;
+                        const statusLabel = isOldFormat
+                          ? "⚠️ Ancien format — à supprimer"
+                          : c.status==="pending"
                           ? (c.to===user ? "⏳ À accepter/refuser" : "⏳ En attente d'acceptation")
                           : kicks.length===0?"Tir 1/6 — début":myPick?`Tir ${kicks.length+1}/6 — ⏳ tu as joué`:`Tir ${kicks.length+1}/6 — 🎯 à toi`;
                         return (
-                          <button key={id} onClick={()=>setPenChallengeId(id)} style={{display:"flex",justifyContent:"space-between",alignItems:"center",width:"100%",marginBottom:6,padding:"10px 12px",borderRadius:10,border:`1px solid ${AMB}`,background:"rgba(245,158,11,.08)",color:TXT,cursor:"pointer",fontFamily:"inherit"}}>
+                          <button key={id} onClick={()=>setPenChallengeId(id)} style={{display:"flex",justifyContent:"space-between",alignItems:"center",width:"100%",marginBottom:6,padding:"10px 12px",borderRadius:10,border:`1px solid ${isOldFormat?RED:AMB}`,background:isOldFormat?"rgba(239,68,68,.08)":"rgba(245,158,11,.08)",color:TXT,cursor:"pointer",fontFamily:"inherit"}}>
                             <span style={{fontSize:12,fontWeight:700}}>vs {opp?.toUpperCase?.()}</span>
-                            <span style={{fontSize:11,color:AMB,fontWeight:700}}>{statusLabel} →</span>
+                            <span style={{fontSize:11,color:isOldFormat?RED:AMB,fontWeight:700}}>{statusLabel} →</span>
                           </button>
                         );
                       })}
@@ -10011,8 +10018,15 @@ export default function App() {
                     <div style={{fontSize:13,color:TXT,fontWeight:700,marginBottom:6}}>Défi dans l'ancien format</div>
                     <div style={{fontSize:11,color:MUTED,marginBottom:16}}>Ce défi ne peut plus être joué. Supprime-le pour en lancer un nouveau avec {ch.from===user?ch.to:ch.from}.</div>
                     <button onClick={()=>{
-                      const ns={...challenges}; delete ns[penChallengeId];
-                      save({...st,challenges:ns}); setPenChallengeId(null);
+                      setSt(prev => {
+                        const ns = {...(prev.challenges||{})};
+                        delete ns[penChallengeId];
+                        const ns2 = {...prev, challenges: ns};
+                        persistFirebase(ns2);
+                        try { localStorage.setItem(KEY, JSON.stringify(ns2)); } catch(e) {}
+                        return ns2;
+                      });
+                      setPenChallengeId(null);
                       showNotif("info","Ancien défi supprimé — tu peux maintenant en lancer un nouveau !");
                     }} style={{padding:"10px 20px",borderRadius:10,border:"none",background:RED,color:"#fff",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
                       🗑️ Supprimer ce défi
