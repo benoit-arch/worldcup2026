@@ -8611,7 +8611,7 @@ export default function App() {
           // ── Plafond quotidien sur les INVITATIONS ENVOYÉES (distinct des parties jouées) :
           // max 3 défis envoyés par jour, par jeu, par joueur — même si certains sont
           // refusés ou jamais terminés, pour empêcher le spam d'invitations ──
-          const DAILY_CHALLENGE_SEND_LIMIT = 3;
+          const DAILY_CHALLENGE_SEND_LIMIT = 999; // pas de limite d'envoi de défis
           const challengesSentToday = st.challenges
             ? Object.values(st.challenges).filter(c =>
                 c.from===user && new Date(c.ts).toDateString()===new Date().toDateString()
@@ -10043,7 +10043,9 @@ export default function App() {
                   <div style={{fontSize:10,color:MUTED,marginBottom:6,fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>Nouveau défi</div>
                   {players.length===0&&<div style={t.empty}>Aucun autre joueur disponible</div>}
                   {players.map(p=>{
-                    const ex=Object.values(challenges).find(c=>c.game==="penalty"&&c.status!=="done"&&((c.from===user&&c.to===p)||(c.from===p&&c.to===user)));
+                    const exEntry=Object.entries(challenges).find(([,c])=>c.game==="penalty"&&c.status!=="done"&&((c.from===user&&c.to===p)||(c.from===p&&c.to===user)));
+                    const ex = exEntry ? exEntry[1] : null;
+                    const exId = exEntry ? exEntry[0] : null;
                     return (
                       <div key={p} style={{...t.card,marginBottom:8,display:"flex",alignItems:"center",gap:12}}>
                         <div style={{flex:1}}>
@@ -10051,7 +10053,9 @@ export default function App() {
                           <div style={{fontSize:10,color:MUTED}}>{scores[p]||0} pts</div>
                         </div>
                         {ex?(
-                          <span style={{fontSize:10,color:MUTED,fontStyle:"italic"}}>Défi en cours</span>
+                          <button onClick={()=>setPenChallengeId(exId)} style={{padding:"8px 12px",borderRadius:8,border:`1px solid ${AMB}`,background:"rgba(245,158,11,.1)",color:AMB,fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"inherit",fontStyle:"italic"}}>
+                            ⏳ Défi en cours — voir →
+                          </button>
                         ):(
                           <button onClick={()=>{
                             const id=`pen_${user}_${p}_${Date.now()}`;
