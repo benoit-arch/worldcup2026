@@ -3692,6 +3692,12 @@ export default function App() {
   const seen = useRef(new Set());
   const fbListenerRef = useRef(null);
   const presenceRef = useRef(null);   // ← intervalle du heartbeat présence
+  // Mémoire courte des défis (challenges) tout juste créés/modifiés localement.
+  // Sert à protéger ces écritures d'un écrasement par un retour Firebase encore
+  // en retard (onValue peut renvoyer un snapshot légèrement périmé juste après
+  // notre propre écriture) — sans ça, un nouveau défi pouvait disparaître
+  // instantanément, redirigeant l'utilisateur vers l'écran précédent.
+  const recentChallengeWritesRef = useRef({}); // {challengeId: {data, ts}}
   const [fbStatus, setFbStatus] = useState(FB_ENABLED ? "connecting" : "offline");
 
   // ── Firebase init + écoute temps réel ──────────────────────────────
@@ -3746,6 +3752,21 @@ export default function App() {
           chat:          normalizeChat(val.chat),
           matchComments: normalizeComments(val.matchComments),
         };
+        // ── Protection anti-écrasement : réinjecter les défis créés/modifiés
+        // localement il y a moins de 6s si le snapshot Firebase ne les a pas
+        // encore (retour en retard) ──
+        const now = Date.now();
+        const recentWrites = recentChallengeWritesRef.current;
+        const mergedChallenges = {...(normalized.challenges||{})};
+        Object.keys(recentWrites).forEach(id => {
+          const entry = recentWrites[id];
+          if (now - entry.ts > 6000) { delete recentWrites[id]; return; } // expiré
+          // Toujours prioriser notre écriture locale récente (même si Firebase
+          // a déjà une entrée pour cet id — elle peut être une version périmée
+          // reçue juste avant que notre update ne soit pris en compte)
+          mergedChallenges[id] = entry.data;
+        });
+        normalized.challenges = mergedChallenges;
         setSt(normalized);
         persist(normalized);
       }, err => {
@@ -8913,10 +8934,15 @@ export default function App() {
                 {/* Défi */}
                 {gInfo.canDefi && players.length > 0 && (
                   <button onClick={()=>{
-                    setGameMode("defi");
-                    if (blockIfDailyLimitReached(activeGame, user)) { setGamePhase("menu"); setActiveGame(null); return; }
-                    if (activeGame === "penalty") { startGame("penalty", 0, "defi"); return; }
-                    setChallengePicker(activeGame);
+                    try {
+                      setGameMode("defi");
+                      if (blockIfDailyLimitReached(activeGame, user)) { setGamePhase("menu"); setActiveGame(null); return; }
+                      if (activeGame === "penalty") { startGame("penalty", 0, "defi"); return; }
+                      setChallengePicker(activeGame);
+                    } catch(err) {
+                      console.error("Erreur lancement défi:", err);
+                      showNotif("error", "❌ Erreur — réessaie ou contacte l'admin");
+                    }
                   }} style={{
                     display:"block",width:"100%",marginBottom:12,padding:"18px 14px",
                     borderRadius:14,border:`2px solid ${AMB}`,background:"rgba(245,158,11,.06)",
@@ -9064,8 +9090,10 @@ export default function App() {
                     <button onClick={()=>{
                         if(blockIfDailyLimitReached("penalty",user))return;
                         const firstTireur=Math.random()<.5?ch.from:ch.to;
+                        const updated = {...ch,status:"active",tireur:firstTireur};
+                        recentChallengeWritesRef.current[id] = { data: updated, ts: Date.now() };
                         setSt(prev => {
-                          const ns = {...prev, challenges:{...(prev.challenges||{}),[id]:{...ch,status:"active",tireur:firstTireur}}};
+                          const ns = {...prev, challenges:{...(prev.challenges||{}),[id]:updated}};
                           persistFirebase(ns);
                           try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
                           return ns;
@@ -10058,22 +10086,28 @@ export default function App() {
                           </button>
                         ):(
                           <button onClick={()=>{
-                            const id=`pen_${user}_${p}_${Date.now()}`;
-                            const newChallenge = {
-                              game:"penalty",from:user,to:p,
-                              kicks:[],pick:{},
-                              tireur:null,             // assigné à l'acceptation seulement
-                              fromGoals:0,toGoals:0,
-                              status:"pending",          // ⬅️ attend l'acceptation de l'adversaire
-                              winner:null,ts:Date.now(),
-                            };
-                            setSt(prev => {
-                              const ns = {...prev, challenges:{...(prev.challenges||{}), [id]: newChallenge}};
-                              persistFirebase(ns);
-                              try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
-                              return ns;
-                            });
-                            setPenChallengeId(id);
+                            try {
+                              const id=`pen_${user}_${p}_${Date.now()}`;
+                              const newChallenge = {
+                                game:"penalty",from:user,to:p,
+                                kicks:[],pick:{},
+                                tireur:null,             // assigné à l'acceptation seulement
+                                fromGoals:0,toGoals:0,
+                                status:"pending",          // ⬅️ attend l'acceptation de l'adversaire
+                                winner:null,ts:Date.now(),
+                              };
+                              recentChallengeWritesRef.current[id] = { data: newChallenge, ts: Date.now() };
+                              setSt(prev => {
+                                const ns = {...prev, challenges:{...(prev.challenges||{}), [id]: newChallenge}};
+                                persistFirebase(ns);
+                                try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
+                                return ns;
+                              });
+                              setPenChallengeId(id);
+                            } catch(err) {
+                              console.error("Erreur création défi penalty:", err);
+                              showNotif("error", "❌ Erreur lors de la création du défi — réessaie ou contacte l'admin");
+                            }
                           }} style={{padding:"8px 12px",borderRadius:8,border:"none",background:GOLD,color:"#0a0e1a",fontSize:11,fontWeight:700,cursor:"pointer"}}>⚔️ Défier</button>
                         )}
                       </div>
@@ -10124,8 +10158,10 @@ export default function App() {
               const acceptPenalty = () => {
                 if (blockIfDailyLimitReached("penalty", user)) return;
                 const firstTireur = Math.random()<.5 ? ch.from : ch.to;
+                const updated = {...ch,status:"active",tireur:firstTireur};
+                recentChallengeWritesRef.current[penChallengeId] = { data: updated, ts: Date.now() };
                 setSt(prev => {
-                  const ns = {...prev, challenges:{...(prev.challenges||{}),[penChallengeId]:{...ch,status:"active",tireur:firstTireur}}};
+                  const ns = {...prev, challenges:{...(prev.challenges||{}),[penChallengeId]:updated}};
                   persistFirebase(ns);
                   try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
                   return ns;
@@ -10182,8 +10218,10 @@ export default function App() {
 
             const submitPick=(zone)=>{
               if(myPick)return;
+              const updated = {...ch,pick:{...(ch.pick||{}),[user]:zone}};
+              recentChallengeWritesRef.current[penChallengeId] = { data: updated, ts: Date.now() };
               setSt(prev => {
-                const ns = {...prev, challenges:{...(prev.challenges||{}),[penChallengeId]:{...ch,pick:{...(ch.pick||{}),[user]:zone}}}};
+                const ns = {...prev, challenges:{...(prev.challenges||{}),[penChallengeId]:updated}};
                 persistFirebase(ns);
                 try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
                 return ns;
