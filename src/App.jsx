@@ -3872,28 +3872,40 @@ export default function App() {
     const winner = done ? (fromGoals>toGoals?ch.from:fromGoals<toGoals?ch.to:null) : null;
     const newCh = {...ch, kicks, pick:{}, tireur:nextTireur, fromGoals, toGoals, status:done?"done":"active", winner};
     if (done) {
-      const gs=st.gameScores||{}, gst=st.gameScoresTotal||{};
-      const pp=gs.penalty||{}, ppt=gst.penalty||{};
-      const gh=st.gameHistory||{}, ts=Date.now();
-      const DAILY_LIMIT_LOCAL = 3;
-      const gptl = st.gamePlaysToday || {};
-      const wdc = winner ? (((gptl.penalty||{})[winner]?.date===todayKey()) ? (gptl.penalty[winner].count||0) : 0) : 0;
-      const winCapped = winner ? wdc >= DAILY_LIMIT_LOCAL : false;
-      const newPlaysToday = winner ? {...gptl, penalty:{...(gptl.penalty||{}),[winner]:{date:todayKey(),count:wdc+1}}} : st.gamePlaysToday;
-      const mkE=(won,opp)=>({game:"penalty",score:won?1:0,mode:"defi",opponent:opp,won:won?"win":"loss",ts});
-      save({...st,
-        gamePlaysToday: newPlaysToday,
-        challenges:{...(st.challenges||{}),[penChallengeId]:newCh},
-        gameScores:    (winner&&!winCapped)?{...gs,penalty:{...pp,[winner]:(pp[winner]||0)+1}}:gs,
-        gameScoresTotal:(winner&&!winCapped)?{...gst,penalty:{...ppt,[winner]:(ppt[winner]||0)+1}}:gst,
-        gameHistory:{...gh,
-          [ch.from]:[...(gh[ch.from]||[]),mkE(winner===ch.from,ch.to)].slice(-50),
-          [ch.to]:  [...(gh[ch.to]  ||[]),mkE(winner===ch.to,  ch.from)].slice(-50),
-        },
+      const DAILY_LIMIT_LOCAL = 999; // pas de limite quotidienne
+      const gptl0 = st.gamePlaysToday || {};
+      const wdc0 = winner ? (((gptl0.penalty||{})[winner]?.date===todayKey()) ? (gptl0.penalty[winner].count||0) : 0) : 0;
+      const winCapped = winner ? wdc0 >= DAILY_LIMIT_LOCAL : false;
+      setSt(prev => {
+        const gs=prev.gameScores||{}, gst=prev.gameScoresTotal||{};
+        const pp=gs.penalty||{}, ppt=gst.penalty||{};
+        const gh=prev.gameHistory||{}, ts=Date.now();
+        const gptl = prev.gamePlaysToday || {};
+        const wdc = winner ? (((gptl.penalty||{})[winner]?.date===todayKey()) ? (gptl.penalty[winner].count||0) : 0) : 0;
+        const newPlaysToday = winner ? {...gptl, penalty:{...(gptl.penalty||{}),[winner]:{date:todayKey(),count:wdc+1}}} : prev.gamePlaysToday;
+        const mkE=(won,opp)=>({game:"penalty",score:won?1:0,mode:"defi",opponent:opp,won:won?"win":"loss",ts});
+        const ns = {...prev,
+          gamePlaysToday: newPlaysToday,
+          challenges:{...(prev.challenges||{}),[penChallengeId]:newCh},
+          gameScores:    (winner&&!winCapped)?{...gs,penalty:{...pp,[winner]:(pp[winner]||0)+1}}:gs,
+          gameScoresTotal:(winner&&!winCapped)?{...gst,penalty:{...ppt,[winner]:(ppt[winner]||0)+1}}:gst,
+          gameHistory:{...gh,
+            [ch.from]:[...(gh[ch.from]||[]),mkE(winner===ch.from,ch.to)].slice(-50),
+            [ch.to]:  [...(gh[ch.to]  ||[]),mkE(winner===ch.to,  ch.from)].slice(-50),
+          },
+        };
+        persistFirebase(ns);
+        try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
+        return ns;
       });
       if (winner===user&&winCapped) showNotif("info","⏳ Limite quotidienne atteinte — victoire non comptabilisée.");
     } else {
-      save({...st, challenges:{...(st.challenges||{}),[penChallengeId]:newCh}});
+      setSt(prev => {
+        const ns = {...prev, challenges:{...(prev.challenges||{}),[penChallengeId]:newCh}};
+        persistFirebase(ns);
+        try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
+        return ns;
+      });
     }
   }, [penChallengeId, st.challenges]);
 
@@ -4460,8 +4472,13 @@ export default function App() {
   function pick(id, val) {
     if (locked) return;
     soundClick();
-    const ns = {...st, predictions:{...st.predictions, [user]:{...preds, [id]:val}}};
-    save(ns);
+    setSt(prev => {
+      const prevPreds = prev.predictions?.[user] || {};
+      const ns = {...prev, predictions:{...prev.predictions, [user]:{...prevPreds, [id]:val}}};
+      persistFirebase(ns);
+      try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
+      return ns;
+    });
   }
 
   // ── ADMIN: modifier les pronos d'un joueur ──
@@ -4504,14 +4521,19 @@ export default function App() {
   // ── 3e ÉQUIPE (sélection du groupe pour les seizièmes) ──
   function pickThird(matchId, side, group) {
     if (locked) return;
-    const ns = {
-      ...st,
-      thirdPicks: {
-        ...(st.thirdPicks||{}),
-        [user]: { ...((st.thirdPicks||{})[user]||{}), [matchId+"_"+side]: group }
-      }
-    };
-    save(ns);
+    setSt(prev => {
+      const prevUserThirds = (prev.thirdPicks||{})[user] || {};
+      const ns = {
+        ...prev,
+        thirdPicks: {
+          ...(prev.thirdPicks||{}),
+          [user]: { ...prevUserThirds, [matchId+"_"+side]: group }
+        }
+      };
+      persistFirebase(ns);
+      try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
+      return ns;
+    });
   }
   function setOfficialThird(matchId, side, group) {
     // Vérifier que ce groupe n'est pas déjà utilisé ailleurs dans les seizièmes
@@ -4536,10 +4558,17 @@ export default function App() {
 
   // ── VALIDATE GROUP ──
   function valGroup(g) {
-    const prev = st.validatedGroups[user]||[];
-    if (prev.includes(g)) return;
-    const ns = {...st, validatedGroups:{...st.validatedGroups, [user]:[...prev,g]}};
-    soundValidate(); save(ns); celebrate("poules");
+    let alreadyDone = false;
+    setSt(prev => {
+      const prevVal = prev.validatedGroups?.[user] || [];
+      if (prevVal.includes(g)) { alreadyDone = true; return prev; }
+      const ns = {...prev, validatedGroups:{...prev.validatedGroups, [user]:[...prevVal,g]}};
+      persistFirebase(ns);
+      try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
+      return ns;
+    });
+    if (alreadyDone) return;
+    soundValidate(); celebrate("poules");
     showNotif("success", `✅ Groupe ${g} validé !`);
     // Auto-navigate to next group
     const idx = GROUPS.indexOf(g);
@@ -4550,20 +4579,26 @@ export default function App() {
   }
 
   function unvalGroup(g) {
-    const prev = st.validatedGroups[user]||[];
-    const ns = {...st, validatedGroups:{...st.validatedGroups, [user]: prev.filter(x=>x!==g)}};
-    save(ns);
+    setSt(prev => {
+      const prevVal = prev.validatedGroups?.[user] || [];
+      const ns = {...prev, validatedGroups:{...prev.validatedGroups, [user]: prevVal.filter(x=>x!==g)}};
+      persistFirebase(ns);
+      try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
+      return ns;
+    });
     showNotif("info", `✏️ Groupe ${g} déverrouillé — tu peux modifier tes pronos`);
   }
   // ── FINAL LOCK ──
   function doLock() {
     // On pose uniquement le verrou — validatedGroups reste intact (ce que le joueur a vraiment validé)
     // La navigation en lecture seule fonctionne via le bypass "locked || isPhaseUnlocked"
-    const ns = {
-      ...st,
-      finalLock: {...st.finalLock, [user]: true},
-    };
-    soundLock(); save(ns); setModal(false); celebrate("finale");
+    setSt(prev => {
+      const ns = { ...prev, finalLock: {...prev.finalLock, [user]: true} };
+      persistFirebase(ns);
+      try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
+      return ns;
+    });
+    soundLock(); setModal(false); celebrate("finale");
   }
 
   // ── ADMIN ──
@@ -6143,10 +6178,17 @@ export default function App() {
           </div>
           <div style={{...t.sec,animation:"waveIn .25s ease"}}>
             <GroupStandings g={grp}/>
-            {MATCHES.filter(m=>m.group===grp&&m.phase==="poules").map(m=>(
-              <MatchCard key={m.id} m={m} pred={preds[m.id]} official={(st.results||{})[m.id]} score={(st.scores||{})[m.id]}
-                locked={locked} onPick={pick} results={st.results||{}} officialThirds={st.officialThirds||{}} userThirds={userThirds} userRole={role} />
-            ))}
+            {(()=>{
+              // Un groupe déjà validé par le joueur doit rester verrouillé (non modifiable)
+              // tant qu'il n'a pas cliqué "Modifier" pour le déverrouiller explicitement,
+              // indépendamment du verrou global finalLock et des phases élim déverrouillées.
+              const groupValidated = (st.validatedGroups[user]||[]).includes(grp);
+              const groupLocked = locked || groupValidated;
+              return MATCHES.filter(m=>m.group===grp&&m.phase==="poules").map(m=>(
+                <MatchCard key={m.id} m={m} pred={preds[m.id]} official={(st.results||{})[m.id]} score={(st.scores||{})[m.id]}
+                  locked={groupLocked} onPick={pick} results={st.results||{}} officialThirds={st.officialThirds||{}} userThirds={userThirds} userRole={role} />
+              ));
+            })()}
             <ValidationBox g={grp}/>
             <div style={{height:16}}/>
           </div>
@@ -8588,37 +8630,50 @@ export default function App() {
             const isNumeric = typeof score === "number";
             if (!isNumeric) {
               // Cas "buteur" : score = nom du gagnant choisi
-              save({ ...st, gameScores: { ...gameScores, [game]: { ...(gameScores[game]||{}), [user]: score } } });
+              setSt(prev => {
+                const ns = { ...prev, gameScores: { ...(prev.gameScores||{}), [game]: { ...((prev.gameScores||{})[game]||{}), [user]: score } } };
+                persistFirebase(ns);
+                try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
+                return ns;
+              });
               return;
             }
-
-            // ── Historique : enregistrer la partie ──
-            const gameHistoryAll = st.gameHistory || {};
-            const userHistory = (gameHistoryAll[user] || []);
-            const newEntry = { game, score, mode, opponent, won, ts: Date.now() };
-            const cappedHistory = [...userHistory, newEntry].slice(-50); // max 50 entrées
 
             const currentCount = getDailyCount(game, user);
             const capped = currentCount >= DAILY_PLAY_LIMIT;
-            const newPlaysToday = bumpDailyCount(game, user);
+
+            setSt(prev => {
+              const gameHistoryAll = prev.gameHistory || {};
+              const userHistory = (gameHistoryAll[user] || []);
+              const newEntry = { game, score, mode, opponent, won, ts: Date.now() };
+              const cappedHistory = [...userHistory, newEntry].slice(-50); // max 50 entrées
+              const newPlaysToday = bumpDailyCount(game, user);
+
+              let ns;
+              if (capped) {
+                ns = { ...prev, gamePlaysToday: newPlaysToday, gameHistory: { ...gameHistoryAll, [user]: cappedHistory } };
+              } else {
+                const gs = prev.gameScores || {};
+                const gst = prev.gameScoresTotal || {};
+                const prevBest  = (gs[game] || {})[user];
+                const prevTotal = (gst[game] || {})[user] || 0;
+                const newBest = (typeof prevBest === "number" && prevBest > score) ? prevBest : score;
+                ns = {
+                  ...prev,
+                  gamePlaysToday:  newPlaysToday,
+                  gameScores:      { ...gs,  [game]: { ...(gs[game]||{}),  [user]: newBest } },
+                  gameScoresTotal: { ...gst, [game]: { ...(gst[game]||{}), [user]: prevTotal + score } },
+                  gameHistory:     { ...gameHistoryAll, [user]: cappedHistory },
+                };
+              }
+              persistFirebase(ns);
+              try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
+              return ns;
+            });
 
             if (capped) {
-              save({ ...st, gamePlaysToday: newPlaysToday, gameHistory: { ...gameHistoryAll, [user]: cappedHistory } });
               showNotif("info", `⏳ Limite quotidienne atteinte (${DAILY_PLAY_LIMIT}/${DAILY_PLAY_LIMIT}) pour ce jeu — cette partie ne compte pas dans ton score.`);
-              return;
-            }
-
-            const prevBest  = (gameScores[game] || {})[user];
-            const prevTotal = (gameScoresTotal[game] || {})[user] || 0;
-            const newBest = (typeof prevBest === "number" && prevBest > score) ? prevBest : score;
-            save({
-              ...st,
-              gamePlaysToday:  newPlaysToday,
-              gameScores:      { ...gameScores,      [game]: { ...(gameScores[game]||{}),      [user]: newBest } },
-              gameScoresTotal: { ...gameScoresTotal, [game]: { ...(gameScoresTotal[game]||{}), [user]: prevTotal + score } },
-              gameHistory:     { ...gameHistoryAll, [user]: cappedHistory },
-            });
-            if (currentCount + 1 === DAILY_PLAY_LIMIT) {
+            } else if (currentCount + 1 === DAILY_PLAY_LIMIT) {
               showNotif("info", `ℹ️ Dernière partie comptée aujourd'hui pour ce jeu (${DAILY_PLAY_LIMIT}/${DAILY_PLAY_LIMIT})`);
             }
           };
@@ -9009,10 +9064,24 @@ export default function App() {
                     <button onClick={()=>{
                         if(blockIfDailyLimitReached("penalty",user))return;
                         const firstTireur=Math.random()<.5?ch.from:ch.to;
-                        save({...st,challenges:{...challenges,[id]:{...ch,status:"active",tireur:firstTireur}}});
+                        setSt(prev => {
+                          const ns = {...prev, challenges:{...(prev.challenges||{}),[id]:{...ch,status:"active",tireur:firstTireur}}};
+                          persistFirebase(ns);
+                          try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
+                          return ns;
+                        });
                         setActiveGame("penalty");setGamePhase("playing");resetGame();playGameMusic("penalty");soundWhistle();setPenChallengeId(id);
                       }} style={{flex:2,padding:"8px",borderRadius:8,border:"none",background:AMB,color:"#000",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>✅ Accepter →</button>
-                    <button onClick={()=>{ const ns={...challenges};delete ns[id];save({...st,challenges:ns});showNotif("info",`Défi de ${ch.from?.toUpperCase?.()||ch.from} refusé`); }}
+                    <button onClick={()=>{
+                        setSt(prev => {
+                          const ns2 = {...(prev.challenges||{})}; delete ns2[id];
+                          const ns = {...prev, challenges: ns2};
+                          persistFirebase(ns);
+                          try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
+                          return ns;
+                        });
+                        showNotif("info",`Défi de ${ch.from?.toUpperCase?.()||ch.from} refusé`);
+                      }}
                       style={{flex:1,padding:"8px",borderRadius:8,border:"1px solid rgba(239,68,68,.4)",background:"rgba(239,68,68,.1)",color:RED,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>✗ Refuser</button>
                   </div>
                 </div>
@@ -9986,14 +10055,20 @@ export default function App() {
                         ):(
                           <button onClick={()=>{
                             const id=`pen_${user}_${p}_${Date.now()}`;
-                            save({...st,challenges:{...challenges,[id]:{
+                            const newChallenge = {
                               game:"penalty",from:user,to:p,
                               kicks:[],pick:{},
                               tireur:null,             // assigné à l'acceptation seulement
                               fromGoals:0,toGoals:0,
                               status:"pending",          // ⬅️ attend l'acceptation de l'adversaire
                               winner:null,ts:Date.now(),
-                            }}});
+                            };
+                            setSt(prev => {
+                              const ns = {...prev, challenges:{...(prev.challenges||{}), [id]: newChallenge}};
+                              persistFirebase(ns);
+                              try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
+                              return ns;
+                            });
                             setPenChallengeId(id);
                           }} style={{padding:"8px 12px",borderRadius:8,border:"none",background:GOLD,color:"#0a0e1a",fontSize:11,fontWeight:700,cursor:"pointer"}}>⚔️ Défier</button>
                         )}
@@ -10045,11 +10120,21 @@ export default function App() {
               const acceptPenalty = () => {
                 if (blockIfDailyLimitReached("penalty", user)) return;
                 const firstTireur = Math.random()<.5 ? ch.from : ch.to;
-                save({...st,challenges:{...challenges,[penChallengeId]:{...ch,status:"active",tireur:firstTireur}}});
+                setSt(prev => {
+                  const ns = {...prev, challenges:{...(prev.challenges||{}),[penChallengeId]:{...ch,status:"active",tireur:firstTireur}}};
+                  persistFirebase(ns);
+                  try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
+                  return ns;
+                });
               };
               const declinePenalty = () => {
-                const ns={...challenges}; delete ns[penChallengeId];
-                save({...st,challenges:ns});
+                setSt(prev => {
+                  const ns2 = {...(prev.challenges||{})}; delete ns2[penChallengeId];
+                  const ns = {...prev, challenges: ns2};
+                  persistFirebase(ns);
+                  try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
+                  return ns;
+                });
                 showNotif("info",`Défi de ${ch.from?.toUpperCase?.()} refusé`);
                 setPenChallengeId(null);
               };
@@ -10093,7 +10178,12 @@ export default function App() {
 
             const submitPick=(zone)=>{
               if(myPick)return;
-              save({...st,challenges:{...challenges,[penChallengeId]:{...ch,pick:{...(ch.pick||{}),[user]:zone}}}});
+              setSt(prev => {
+                const ns = {...prev, challenges:{...(prev.challenges||{}),[penChallengeId]:{...ch,pick:{...(ch.pick||{}),[user]:zone}}}};
+                persistFirebase(ns);
+                try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
+                return ns;
+              });
             };
 
             // ── Résultat final ──
