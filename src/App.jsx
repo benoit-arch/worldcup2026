@@ -971,8 +971,93 @@ async function celebrate(phase) {
 }
 
 // ══════════════════════════════════════════
-// STREAM LINKS
+// CONSOLATION — affichée quand le pronostic finale (vainqueur/déroulé) est faux
 // ══════════════════════════════════════════
+function ConsolationOverlay({ onClose, winnerName, modeLabel }) {
+  return (
+    <div style={{
+      position:"fixed",inset:0,zIndex:2000,
+      background:"radial-gradient(ellipse at center, #1a1f2e 0%, #0d1119 50%, #060809 100%)",
+      display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
+      animation:"waveIn .4s ease",
+    }}>
+      <div style={{
+        position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",
+        width:280,height:280,borderRadius:"50%",
+        background:"radial-gradient(circle, rgba(96,165,250,.18) 0%, rgba(96,165,250,.06) 40%, transparent 70%)",
+        pointerEvents:"none"
+      }}/>
+      <div style={{fontSize:64,marginBottom:18,animation:"scorePop .5s ease"}}>😔</div>
+      <div style={{textAlign:"center",padding:"0 24px"}}>
+        <div style={{fontSize:13,fontWeight:700,color:"rgba(148,163,184,.7)",letterSpacing:3,textTransform:"uppercase",marginBottom:8}}>Pas cette fois</div>
+        <div style={{fontSize:22,fontWeight:900,color:"#94a3b8",marginBottom:14}}>Pronostic finale manqué</div>
+        {winnerName && (
+          <div style={{fontSize:14,color:"rgba(226,232,240,.8)",marginBottom:6}}>
+            🏆 Vrai vainqueur : <strong style={{color:"#e2e8f0"}}>{winnerName}</strong>{modeLabel?` (${modeLabel})`:""}
+          </div>
+        )}
+        <div style={{fontSize:12,color:"rgba(148,163,184,.6)",marginTop:10}}>Il reste les bonus score exact et buteurs à vérifier !</div>
+      </div>
+      <div style={{position:"absolute",bottom:60}}>
+        <button onClick={onClose} style={{
+          background:"rgba(148,163,184,.12)",border:"1px solid rgba(148,163,184,.3)",
+          color:"#cbd5e1",borderRadius:14,padding:"12px 32px",fontSize:15,fontWeight:700,
+          cursor:"pointer",fontFamily:"inherit",backdropFilter:"blur(8px)"
+        }}>Fermer</button>
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════
+// MEILLEUR PRONOSTIQUEUR — badge doré + confettis pour le meilleur score du groupe
+// ══════════════════════════════════════════
+function BestPredictorOverlay({ onClose, totalPts, groupLabel }) {
+  useEffect(() => {
+    loadConfetti().then(() => {
+      const shoot = o => window.confetti(o);
+      const end = Date.now() + 3000;
+      const frame = () => {
+        shoot({ particleCount:8, angle:60,  spread:60, origin:{x:0}, colors:["#F5C842","#fff","#22c55e"] });
+        shoot({ particleCount:8, angle:120, spread:60, origin:{x:1}, colors:["#F5C842","#fff","#22c55e"] });
+        if (Date.now() < end) requestAnimationFrame(frame);
+      };
+      frame();
+    });
+  }, []);
+  return (
+    <div style={{
+      position:"fixed",inset:0,zIndex:2000,
+      background:"radial-gradient(ellipse at center, #2d2400 0%, #1a1400 50%, #0a0800 100%)",
+      display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
+      animation:"waveIn .4s ease",
+    }}>
+      <div style={{
+        position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",
+        width:320,height:320,borderRadius:"50%",
+        background:"radial-gradient(circle, rgba(245,200,66,.4) 0%, rgba(245,150,30,.15) 40%, transparent 70%)",
+        pointerEvents:"none"
+      }}/>
+      <div style={{fontSize:80,marginBottom:14,animation:"scorePop .6s ease, glowPulse 2s ease infinite"}}>🏅</div>
+      <div style={{textAlign:"center",padding:"0 24px"}}>
+        <div style={{fontSize:13,fontWeight:700,color:"rgba(245,200,66,.75)",letterSpacing:3,textTransform:"uppercase",marginBottom:8}}>Classement final {groupLabel?`— ${groupLabel}`:""}</div>
+        <div style={{fontSize:28,fontWeight:900,color:"#F5C842",textShadow:"0 0 20px rgba(245,200,66,.8)",marginBottom:10}}>👑 Meilleur Pronostiqueur !</div>
+        {totalPts != null && (
+          <div style={{fontSize:16,color:"rgba(255,255,255,.85)"}}>Score final : <strong style={{color:"#F5C842"}}>{totalPts} pts</strong></div>
+        )}
+      </div>
+      <div style={{position:"absolute",bottom:60}}>
+        <button onClick={onClose} style={{
+          background:"rgba(245,200,66,.15)",border:"1px solid rgba(245,200,66,.4)",
+          color:"#F5C842",borderRadius:14,padding:"12px 32px",fontSize:15,fontWeight:700,
+          cursor:"pointer",fontFamily:"inherit",backdropFilter:"blur(8px)"
+        }}>Fermer 🏅</button>
+      </div>
+    </div>
+  );
+}
+
+
 // Retourne { badges: [], links: [] }
 // badges = chaînes sans lien (beIN)
 // links  = chaînes avec lien cliquable (M6)
@@ -3568,6 +3653,8 @@ export default function App() {
   const quizTimerRef = useRef(null); // permet d'annuler l'auto-avance si le joueur clique "Suivant"
   const [tick, setTick] = useState(0);
   const [pronoReminder, setPronoReminder] = useState(null); // clé de phase affichée dans la modale de rappel
+  const [showConsolation, setShowConsolation] = useState(null); // {winnerName, modeLabel} | null — pronostic finale manqué
+  const [showBestPredictor, setShowBestPredictor] = useState(null); // {totalPts, groupLabel} | null — meilleur score du groupe
   const [resultsScreen, setResultsScreen] = useState(null);
   const [notification, setNotification] = useState(null);
   
@@ -3916,6 +4003,7 @@ export default function App() {
           },
         };
         persistFirebase(ns);
+        if (_fbReady) _fbUpdate(`/challenges/${penChallengeId}`, newCh); // protection scopée anti-écrasement
         try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
         return ns;
       });
@@ -3924,6 +4012,7 @@ export default function App() {
       setSt(prev => {
         const ns = {...prev, challenges:{...(prev.challenges||{}),[penChallengeId]:newCh}};
         persistFirebase(ns);
+        if (_fbReady) _fbUpdate(`/challenges/${penChallengeId}`, newCh); // protection scopée anti-écrasement
         try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
         return ns;
       });
@@ -4010,12 +4099,14 @@ export default function App() {
       }
     }
 
+    recentChallengeWritesRef.current[activeChallengeId] = { data: updated, ts: Date.now() };
     setSt(prev => {
       const ns = {...prev,
         challenges:{...(prev.challenges||{}), [activeChallengeId]: updated},
         gameHistory: updatedGameHistory,
       };
       persistFirebase(ns);
+      if (_fbReady) _fbUpdate(`/challenges/${activeChallengeId}`, updated); // protection scopée anti-écrasement
       try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
       return ns;
     });
@@ -4384,10 +4475,19 @@ export default function App() {
       if (pw !== (login.pwConfirm||"")) { showNotif("error", "❌ Les mots de passe ne correspondent pas"); return; }
       if (!fname.trim()) { showNotif("error", "❌ Ton prénom est obligatoire"); return; }
       if (!lname.trim()) { showNotif("error", "❌ Ton nom est obligatoire"); return; }
-      const ns = {...st, users:{...st.users, [u]:{role:"waiting", pw, fname, lname}}};
-      save(ns); localStorage.setItem("APP_VERSION", APP_VERSION); setUser(u);
+      const newUserData = {role:"waiting", pw, fname, lname};
+      setSt(prev => {
+        const ns = {...prev, users:{...prev.users, [u]: newUserData}};
+        try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
+        return ns;
+      });
+      // Écriture scopée sur ce seul nouveau compte : ne touche jamais aux
+      // comptes des autres joueurs, même si un autre événement (approbation
+      // admin d'un autre joueur, etc.) survient au même instant.
+      if (_fbReady) _fbUpdate(`/users/${u}`, newUserData);
+      localStorage.setItem("APP_VERSION", APP_VERSION); setUser(u);
       soundLogin(); stopLoginMusic();
-      seen.current = new Set(Object.keys(ns.seenAnim||{}));
+      seen.current = new Set(Object.keys(st.seenAnim||{}));
       setLogin({uname: "", pw: "", pwConfirm: "", fname: "", lname: ""}); // Reset fields
       setScr("waiting");
       showNotif("info", "⏳ Compte créé ! En attente d'assignation par l'admin");
@@ -4402,13 +4502,21 @@ export default function App() {
       if (pw !== (login.pwConfirm||"")) { showNotif("error", "❌ Les mots de passe ne correspondent pas"); return; }
       if (!fname.trim() && !existingUser.fname) { showNotif("error", "❌ Ton prénom est obligatoire"); return; }
       if (!lname.trim() && !existingUser.lname) { showNotif("error", "❌ Ton nom est obligatoire"); return; }
-      const ns = {...st, users:{...st.users, [u]:{...existingUser, pw, fname: fname || existingUser.fname, lname: lname || existingUser.lname}}};
-      save(ns); localStorage.setItem("APP_VERSION", APP_VERSION); setUser(u);
+      const updatedUserData = {...existingUser, pw, fname: fname || existingUser.fname, lname: lname || existingUser.lname};
+      setSt(prev => {
+        const prevExisting = prev.users[u] || existingUser;
+        const merged = {...prevExisting, pw, fname: fname || prevExisting.fname, lname: lname || prevExisting.lname};
+        const ns = {...prev, users:{...prev.users, [u]: merged}};
+        try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
+        return ns;
+      });
+      if (_fbReady) _fbUpdate(`/users/${u}`, updatedUserData);
+      localStorage.setItem("APP_VERSION", APP_VERSION); setUser(u);
       soundLogin(); stopLoginMusic();
-      seen.current = new Set(Object.keys(ns.seenAnim||{}));
+      seen.current = new Set(Object.keys(st.seenAnim||{}));
       setLogin({uname: "", pw: "", pwConfirm: "", fname: "", lname: ""}); // Reset fields
       showNotif("success", "✅ Mot de passe créé !");
-      if (ns.users[u].role === "waiting") { setScr("waiting"); return; }
+      if (updatedUserData.role === "waiting") { setScr("waiting"); return; }
       setTab("home"); setScr("app"); return;
     }
 
@@ -4504,19 +4612,43 @@ export default function App() {
 
   // ── ADMIN: modifier les pronos d'un joueur ──
   function adminEditPred(targetUser, matchId, value) {
-    const currentPreds = st.predictions[targetUser] || {};
-    const ns = {
-      ...st,
-      predictions: {
-        ...st.predictions,
-        [targetUser]: { ...currentPreds, [matchId]: value }
-      }
-    };
-    save(ns);
+    setSt(prev => {
+      const currentPreds = (prev.predictions||{})[targetUser] || {};
+      const updatedUserPreds = { ...currentPreds, [matchId]: value };
+      const ns = {
+        ...prev,
+        predictions: { ...(prev.predictions||{}), [targetUser]: updatedUserPreds },
+      };
+      // Écriture scopée sur ce seul joueur : ne touche jamais aux pronostics
+      // des autres joueurs, même si l'état admin local est momentanément
+      // en retard par rapport à une validation concurrente d'un autre joueur.
+      if (_fbReady) _fbUpdate(`/predictions/${targetUser}`, updatedUserPreds);
+      try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
+      return ns;
+    });
     showNotif("success", `✅ Prono de ${targetUser.toUpperCase()} modifié`);
   }
 
-  // ── ADMIN: modifier le choix du meilleur 3e d'un joueur ──
+  // ── ADMIN: modifier le pronostic FINALE d'un joueur (vainqueur/mode/score/buteurs) ──
+  function adminEditFinalePrediction(targetUser, partial) {
+    setSt(prev => {
+      const prevAllPreds = prev.finaleData?.predictions || {};
+      const prevUserPred = prevAllPreds[targetUser] || {};
+      const updatedUserPred = { ...prevUserPred, ...partial };
+      const ns = {
+        ...prev,
+        finaleData: { ...(prev.finaleData||{}), predictions: { ...prevAllPreds, [targetUser]: updatedUserPred } },
+      };
+      // Écriture scopée sur ce seul joueur : ne touche jamais aux pronostics
+      // finale des autres joueurs.
+      if (_fbReady) _fbUpdate(`/finaleData/predictions/${targetUser}`, updatedUserPred);
+      try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
+      return ns;
+    });
+    showNotif("success", `✅ Prono finale de ${targetUser.toUpperCase()} modifié`);
+  }
+
+
   function adminEditThird(targetUser, matchId, side, group) {
     const userThirds = (st.thirdPicks||{})[targetUser] || {};
     // Vérifier qu'un autre match n'a pas déjà ce groupe pour ce joueur
@@ -4528,14 +4660,17 @@ export default function App() {
       showNotif("error", `❌ Le groupe ${group} est déjà utilisé dans un autre match pour ${targetUser.toUpperCase()}`);
       return;
     }
-    const ns = {
-      ...st,
-      thirdPicks: {
-        ...(st.thirdPicks||{}),
-        [targetUser]: { ...userThirds, [matchId+"_"+side]: group }
-      }
-    };
-    save(ns);
+    setSt(prev => {
+      const prevUserThirds = (prev.thirdPicks||{})[targetUser] || {};
+      const updatedUserThirds = { ...prevUserThirds, [matchId+"_"+side]: group };
+      const ns = {
+        ...prev,
+        thirdPicks: { ...(prev.thirdPicks||{}), [targetUser]: updatedUserThirds },
+      };
+      if (_fbReady) _fbUpdate(`/thirdPicks/${targetUser}`, updatedUserThirds);
+      try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
+      return ns;
+    });
     showNotif("success", `✅ 3e du groupe ${group} assigné à ${targetUser.toUpperCase()}`);
   }
 
@@ -4737,11 +4872,25 @@ export default function App() {
     if (!user || !st.results) return;
 
     // Collecter les nouvelles animations à déclencher (pas encore vues)
-    const toAnimate = [];
+    const toAnimate = [];   // résultats corrects → confettis/trophée
+    const toConsole = [];   // finale ratée → animation "dommage"
     Object.keys(st.results).forEach(id => {
       const key = `${user}_${id}`;
       if (seen.current.has(key)) return;          // déjà vu → skip
-      if ((preds[id]) === st.results[id]) {
+
+      if (id === "FIN") {
+        // ── Finale : on exige vainqueur ET déroulé corrects (90min/prolong/TAB) ──
+        const finOfficial = st.finaleData?.official;
+        const finMine = st.finaleData?.predictions?.[user];
+        if (!finOfficial?.winner) return; // pas encore de résultat officiel complet
+        if (!finMine?.winner) { seen.current.add(key); return; } // le joueur n'a rien pronostiqué
+        const winnerModeOk = finOfficial.winner === finMine.winner && finOfficial.mode === finMine.mode;
+        if (winnerModeOk) {
+          toAnimate.push({ key, id });
+        } else {
+          toConsole.push({ key, id });
+        }
+      } else if ((preds[id]) === st.results[id]) {
         toAnimate.push({ key, id });
       } else {
         // Résultat connu mais mauvais prono → marquer comme vu sans animer
@@ -4749,14 +4898,14 @@ export default function App() {
       }
     });
 
-    if (toAnimate.length === 0) return;
+    if (toAnimate.length === 0 && toConsole.length === 0) return;
 
     // Marquer tout comme vu immédiatement (évite double-déclenchement)
-    toAnimate.forEach(({ key }) => seen.current.add(key));
+    [...toAnimate, ...toConsole].forEach(({ key }) => seen.current.add(key));
 
     // Persister dans seenAnim pour survivre aux rechargements
     const newSeen = { ...(st.seenAnim || {}) };
-    toAnimate.forEach(({ key }) => { newSeen[key] = true; });
+    [...toAnimate, ...toConsole].forEach(({ key }) => { newSeen[key] = true; });
     // Mise à jour silencieuse (sans re-render inutile)
     const ns = { ...st, seenAnim: newSeen };
     persist(ns); // fallback local si Firebase offline
@@ -4769,8 +4918,18 @@ export default function App() {
     // "fantôme" pouvait effacer le score suivant tout juste saisi par l'admin.
     if (FB_ENABLED && _fbReady) {
       const seenAnimUpdates = {};
-      toAnimate.forEach(({ key }) => { seenAnimUpdates[`seenAnim/${key}`] = true; });
+      [...toAnimate, ...toConsole].forEach(({ key }) => { seenAnimUpdates[`seenAnim/${key}`] = true; });
       _fbUpdate("/", seenAnimUpdates).catch(e => console.warn("seenAnim Firebase write error:", e));
+    }
+
+    // ── Animation "dommage" si la finale est ratée (vainqueur ou déroulé faux) ──
+    if (toConsole.some(a => a.id === "FIN")) {
+      const finOfficial = st.finaleData?.official;
+      const homeR = resolveTeamWithPredictions(MATCHES.find(m=>m.id==="FIN")?.home, st.results||{}, {}, {}, st.officialThirds||{}, {});
+      const awayR = resolveTeamWithPredictions(MATCHES.find(m=>m.id==="FIN")?.away, st.results||{}, {}, {}, st.officialThirds||{}, {});
+      const winnerName = finOfficial.winner === "home" ? homeR : awayR;
+      const modeLabel = finOfficial.mode==="reg" ? "temps réglementaire" : finOfficial.mode==="prolong" ? "prolongation" : finOfficial.mode==="tab" ? "tirs au but" : "";
+      setTimeout(() => { soundValidate(); setShowConsolation({ winnerName, modeLabel }); }, 400);
     }
 
     // Déclencher les animations avec stagger si plusieurs nouveaux résultats
@@ -4793,6 +4952,29 @@ export default function App() {
       }, 400 + i * 800); // stagger 800ms entre chaque
     });
   }, [st.results, user]);
+
+  // ── MEILLEUR PRONOSTIQUEUR : une fois la finale jouée, si ce joueur a le
+  // meilleur score de son groupe, afficher un badge dédié (une seule fois) ──
+  useEffect(() => {
+    if (!user || isAdmin || !st.finaleData?.official?.winner) return;
+    const key = `${user}_bestpredictor`;
+    if ((st.seenAnim||{})[key]) return; // déjà vu
+    const scores = calcScores(st);
+    const peers = Object.keys(st.users).filter(u => u!=="admin" && (st.users[u]||{}).role===role);
+    if (peers.length < 2) return; // pas assez de monde pour que ce soit significatif
+    const myScore = scores[user] || 0;
+    const isTopScorer = myScore > 0 && peers.every(p => (scores[p]||0) <= myScore) && peers.some(p=>p!==user);
+    if (!isTopScorer) return;
+    // Marquer comme vu (une seule fois, persisté)
+    setSt(prev => {
+      const ns = { ...prev, seenAnim: { ...(prev.seenAnim||{}), [key]: true } };
+      persist(ns);
+      if (_fbReady) _fbUpdate("/", { [`seenAnim/${key}`]: true }).catch(()=>{});
+      return ns;
+    });
+    const groupLabel = role==="famille" ? "Famille" : role==="collegues" ? "Collègues" : "Ton groupe";
+    setTimeout(() => setShowBestPredictor({ totalPts: myScore, groupLabel }), 600);
+  }, [st.finaleData?.official?.winner, st.results, user]);
 
   // Auto-play login music when entering or unmuting on login screen
   useEffect(() => {
@@ -6901,6 +7083,45 @@ export default function App() {
                   <div key={ph.k} style={{marginBottom:10}}>
                     <div style={{fontSize:11,fontWeight:800,color:GOLD,marginBottom:4}}>{ph.l}</div>
                     {pm.map(m=>{
+                      // ── FINALE : affichage enrichi (déroulé, score, buteurs) ──
+                      if (m.id === "FIN") {
+                        const finPred = st.finaleData?.predictions?.[selected];
+                        if (!finPred || !finPred.winner) return null;
+                        const finOfficial = st.finaleData?.official;
+                        const homeR = resolve(m.home, m.id, "home");
+                        const awayR = resolve(m.away, m.id, "away");
+                        const winnerName = finPred.winner==="home" ? homeR : awayR;
+                        const modeLabel = finPred.mode==="reg" ? "temps réglementaire"
+                          : finPred.mode==="prolong" ? "après prolongation"
+                          : finPred.mode==="tab" ? "aux tirs au but" : "";
+                        const winnerModeOk = finOfficial?.winner && finOfficial.winner===finPred.winner && finOfficial.mode===finPred.mode;
+                        const scoreOk = winnerModeOk && finOfficial.scoreH!=null && finOfficial.scoreA!=null
+                          && finPred.scoreH!=null && finPred.scoreA!=null
+                          && Number(finOfficial.scoreH)===Number(finPred.scoreH) && Number(finOfficial.scoreA)===Number(finPred.scoreA);
+                        const hasResult = !!(finOfficial && finOfficial.winner);
+                        return (
+                          <div key={m.id} style={{padding:"10px 12px",borderRadius:8,marginBottom:4,fontSize:12,
+                            background:hasResult?(winnerModeOk?"rgba(46,204,113,.1)":"rgba(231,76,60,.08)"):"rgba(255,255,255,.04)"}}>
+                            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                              <span>{F(homeR)} {homeR} - {awayR} {F(awayR)}</span>
+                              <span style={{fontWeight:700,color:hasResult?(winnerModeOk?GREEN:"#e74c3c"):TXT}}>
+                                {F(winnerName)} {winnerName}{hasResult?(winnerModeOk?" ✓":" ✗"):""}
+                              </span>
+                            </div>
+                            <div style={{fontSize:11,color:MUTED}}>🏆 Vainqueur {modeLabel}</div>
+                            {finPred.scoreH!=null && finPred.scoreA!=null && (
+                              <div style={{fontSize:11,color:hasResult?(scoreOk?GREEN:MUTED):MUTED,marginTop:2}}>
+                                📊 Score pronostiqué : {finPred.scoreH} – {finPred.scoreA}{hasResult&&scoreOk?" ✓":""}
+                              </div>
+                            )}
+                            {finPred.buteurs && finPred.buteurs.length>0 && (
+                              <div style={{fontSize:11,color:MUTED,marginTop:2}}>
+                                ⚽ Buteur{finPred.buteurs.length>1?"s":""} pronostiqué{finPred.buteurs.length>1?"s":""} : {finPred.buteurs.join(", ")}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      }
                       const p = uPreds[m.id];
                       if (!p) return null;
                       const homeR = resolve(m.home, m.id, "home");
@@ -7540,10 +7761,24 @@ export default function App() {
                               {matchList.length===0 && <div style={t.empty}>Aucun match dans cette phase</div>}
                               <div style={{display:"flex",flexDirection:"column",gap:8}}>
                                 {matchList.map(m=>{
-                                  const cur = uPreds[m.id];
-                                  const off = (st.results||{})[m.id];
                                   const rH = resolveForPlayer(m.home, m.id, "home");
                                   const rA = resolveForPlayer(m.away, m.id, "away");
+
+                                  // ── FINALE : panneau spécial admin — voir/modifier le pronostic complet du joueur ──
+                                  if (m.id === "FIN") {
+                                    const finMine = st.finaleData?.predictions?.[adminPronoPlayer];
+                                    const finOfficial = st.finaleData?.official;
+                                    return (
+                                      <FinalePanel key={m.id} m={m} isAdmin={false} homeT={rH} awayT={rA}
+                                        official={finOfficial} myPick={finMine}
+                                        onSave={(partial)=>adminEditFinalePrediction(adminPronoPlayer, partial)}
+                                        locked={false}
+                                        officialButeurs={finOfficial?.buteurs}/>
+                                    );
+                                  }
+
+                                  const cur = uPreds[m.id];
+                                  const off = (st.results||{})[m.id];
                                   const btns = m.phase==="poules" ? ["1","N","2"] : ["1","2"];
                                   const lbls = {
                                     "1": `${FLAGS[rH]||"❓"} ${rH}`,
@@ -8760,12 +8995,15 @@ export default function App() {
             const id = `chal_${user}_${toUser}_${game}_${Date.now()}`;
             const qSet = buildQuestionSet(game);
             const chData = {from:user,to:toUser,game,status:"pending",questionSet:qSet,fromScore:null,toScore:null,ts:Date.now()};
+            recentChallengeWritesRef.current[id] = { data: chData, ts: Date.now() };
             setSt(prev => {
               const ns = {...prev, challenges:{...(prev.challenges||{}),[id]:chData}};
-              persistFirebase(ns);
               try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
               return ns;
             });
+            // Écriture scopée : ne touche qu'à ce défi précis, protège les autres
+            // défis (potentiellement créés/modifiés au même instant) contre un écrasement.
+            if (_fbReady) _fbUpdate(`/challenges/${id}`, chData);
             setChallengePicker(null);
             showNotif("success",`⚔️ Défi envoyé à ${toUser.toUpperCase()} ! À toi de jouer en premier.`);
             launchChallengeGame(id, chData);
@@ -8773,22 +9011,26 @@ export default function App() {
           const acceptChallenge = (id) => {
             const ch = challenges[id];
             if (ch && blockIfDailyLimitReached(ch.game, user)) return;
+            const updated = {...ch, status:"accepted"};
+            recentChallengeWritesRef.current[id] = { data: updated, ts: Date.now() };
             setSt(prev => {
-              const ns = {...prev, challenges:{...(prev.challenges||{}),[id]:{...(prev.challenges||{})[id],status:"accepted"}}};
-              persistFirebase(ns);
+              const ns = {...prev, challenges:{...(prev.challenges||{}),[id]:updated}};
               try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
               return ns;
             });
+            if (_fbReady) _fbUpdate(`/challenges/${id}`, updated);
             launchChallengeGame(id);
           };
           const declineChallenge = (id) => {
             const ch=challenges[id];
+            const updated = {...ch, status:"declined"};
+            recentChallengeWritesRef.current[id] = { data: updated, ts: Date.now() };
             setSt(prev => {
-              const ns = {...prev, challenges:{...(prev.challenges||{}),[id]:{...ch,status:"declined"}}};
-              persistFirebase(ns);
+              const ns = {...prev, challenges:{...(prev.challenges||{}),[id]:updated}};
               try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
               return ns;
             });
+            if (_fbReady) _fbUpdate(`/challenges/${id}`, updated);
             showNotif("info",`Défi de ${ch.from?.toUpperCase?.()||ch.from||"?"} refusé`);
           };
           // Une fois "accepted", le challenger (from) doit aussi jouer son tour
@@ -9094,20 +9336,21 @@ export default function App() {
                         recentChallengeWritesRef.current[id] = { data: updated, ts: Date.now() };
                         setSt(prev => {
                           const ns = {...prev, challenges:{...(prev.challenges||{}),[id]:updated}};
-                          persistFirebase(ns);
                           try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
                           return ns;
                         });
+                        if (_fbReady) _fbUpdate(`/challenges/${id}`, updated);
                         setActiveGame("penalty");setGamePhase("playing");resetGame();playGameMusic("penalty");soundWhistle();setPenChallengeId(id);
                       }} style={{flex:2,padding:"8px",borderRadius:8,border:"none",background:AMB,color:"#000",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>✅ Accepter →</button>
                     <button onClick={()=>{
                         setSt(prev => {
                           const ns2 = {...(prev.challenges||{})}; delete ns2[id];
                           const ns = {...prev, challenges: ns2};
-                          persistFirebase(ns);
                           try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
                           return ns;
                         });
+                        // Suppression scopée : ne touche qu'à ce défi précis, jamais aux autres
+                        if (_fbReady) _fbUpdate(`/challenges/${id}`, null);
                         showNotif("info",`Défi de ${ch.from?.toUpperCase?.()||ch.from} refusé`);
                       }}
                       style={{flex:1,padding:"8px",borderRadius:8,border:"1px solid rgba(239,68,68,.4)",background:"rgba(239,68,68,.1)",color:RED,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>✗ Refuser</button>
@@ -10099,10 +10342,14 @@ export default function App() {
                               recentChallengeWritesRef.current[id] = { data: newChallenge, ts: Date.now() };
                               setSt(prev => {
                                 const ns = {...prev, challenges:{...(prev.challenges||{}), [id]: newChallenge}};
-                                persistFirebase(ns);
                                 try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
                                 return ns;
                               });
+                              // Écriture Firebase scopée sur ce seul défi : ne touche jamais aux
+                              // autres défis existants, même si l'état local est momentanément
+                              // en retard par rapport au serveur (protège contre la perte d'un
+                              // défi précédent lors de la création rapide d'un nouveau défi).
+                              if (_fbReady) _fbUpdate(`/challenges/${id}`, newChallenge);
                               setPenChallengeId(id);
                             } catch(err) {
                               console.error("Erreur création défi penalty:", err);
@@ -10135,10 +10382,10 @@ export default function App() {
                         const ns = {...(prev.challenges||{})};
                         delete ns[penChallengeId];
                         const ns2 = {...prev, challenges: ns};
-                        persistFirebase(ns2);
                         try { localStorage.setItem(KEY, JSON.stringify(ns2)); } catch(e) {}
                         return ns2;
                       });
+                      if (_fbReady) _fbUpdate(`/challenges/${penChallengeId}`, null);
                       setPenChallengeId(null);
                       showNotif("info","Ancien défi supprimé — tu peux maintenant en lancer un nouveau !");
                     }} style={{padding:"10px 20px",borderRadius:10,border:"none",background:RED,color:"#fff",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
@@ -10162,19 +10409,19 @@ export default function App() {
                 recentChallengeWritesRef.current[penChallengeId] = { data: updated, ts: Date.now() };
                 setSt(prev => {
                   const ns = {...prev, challenges:{...(prev.challenges||{}),[penChallengeId]:updated}};
-                  persistFirebase(ns);
                   try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
                   return ns;
                 });
+                if (_fbReady) _fbUpdate(`/challenges/${penChallengeId}`, updated);
               };
               const declinePenalty = () => {
                 setSt(prev => {
                   const ns2 = {...(prev.challenges||{})}; delete ns2[penChallengeId];
                   const ns = {...prev, challenges: ns2};
-                  persistFirebase(ns);
                   try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
                   return ns;
                 });
+                if (_fbReady) _fbUpdate(`/challenges/${penChallengeId}`, null);
                 showNotif("info",`Défi de ${ch.from?.toUpperCase?.()} refusé`);
                 setPenChallengeId(null);
               };
@@ -10222,10 +10469,10 @@ export default function App() {
               recentChallengeWritesRef.current[penChallengeId] = { data: updated, ts: Date.now() };
               setSt(prev => {
                 const ns = {...prev, challenges:{...(prev.challenges||{}),[penChallengeId]:updated}};
-                persistFirebase(ns);
                 try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
                 return ns;
               });
+              if (_fbReady) _fbUpdate(`/challenges/${penChallengeId}`, updated);
             };
 
             // ── Résultat final ──
@@ -10650,6 +10897,8 @@ export default function App() {
 
       {/* TROPHY 3D */}
       {showTrophy && <Trophy3D onClose={()=>setShowTrophy(false)} />}
+      {showConsolation && <ConsolationOverlay onClose={()=>setShowConsolation(null)} winnerName={showConsolation.winnerName} modeLabel={showConsolation.modeLabel} />}
+      {showBestPredictor && <BestPredictorOverlay onClose={()=>setShowBestPredictor(null)} totalPts={showBestPredictor.totalPts} groupLabel={showBestPredictor.groupLabel} />}
 
       {/* EASTER EGG MODAL — En-dehors du conteneur home pour s'afficher immédiatement */}
       {eggActive && (
