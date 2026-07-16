@@ -2640,7 +2640,6 @@ function persist(s) { try { localStorage.setItem(KEY, JSON.stringify(s)); } catc
 async function persistFirebase(ns) {
   if (FB_ENABLED && _fbReady) {
     // 🛡️ PROTECTION CRITIQUE : ne jamais écrire si l'état est vide/blank
-    // Sans ça, un redéploiement ou un chargement partiel efface TOUT Firebase
     const hasUsers = ns.users && Object.keys(ns.users).length > 0;
     if (!hasUsers) {
       console.warn("[persistFirebase] Bloqué : état vide détecté, Firebase protégé");
@@ -2648,13 +2647,14 @@ async function persistFirebase(ns) {
       return;
     }
     try {
-      // Écriture sélective : on ne touche qu'aux champs réellement renseignés
-      // Cela évite d'écraser des champs vides par accident
+      // ⚠️ RÈGLE ABSOLUE : users / predictions / results / scores ne sont JAMAIS
+      // écrits ici en masse. Chacun est géré par une écriture atomique scopée dans
+      // la fonction métier qui le modifie (pick, setScore, setRole, doRegister…).
+      // Les écrire ici en masse crée des race conditions : l'état local d'un client
+      // peut être légèrement périmé, donc un full-overwrite peut effacer les pronos
+      // d'un autre joueur, supprimer un compte récemment créé, ou annuler un résultat
+      // que l'admin vient d'entrer.
       const updates = {
-        users:             ns.users,
-        predictions:       ns.predictions     || {},
-        results:           ns.results         || {},
-        scores:            ns.scores          || {},
         validatedGroups:   ns.validatedGroups || {},
         finalLock:         ns.finalLock       || {},
         seenAnim:          ns.seenAnim        || {},
@@ -2675,20 +2675,12 @@ async function persistFirebase(ns) {
         presence:          ns.presence        || {},
         finaleData:        ns.finaleData      || { official:null, predictions:{} },
       };
-      // ⚠️ Le chat ET les commentaires par match ne sont PAS inclus ici —
-      // ils sont gérés via des écritures atomiques (sendChat/addReaction)
-      // pour éviter les race conditions (écrasement mutuel de messages
-      // quand une autre action quelconque appelle save() avec un état local périmé)
+      // Chat / matchComments : jamais réécrits en masse non plus
       const chatHasContent =
         (ns.chat?.famille?.length  || 0) > 0 ||
         (ns.chat?.collegues?.length || 0) > 0 ||
         (ns.chat?.externe?.length  || 0) > 0;
-      if (!chatHasContent) {
-        // Première fois ou chat vide → initialiser la structure
-        updates.chat = { famille: [], collegues: [], externe: [] };
-      }
-      // matchComments : jamais réécrit en entier ici (uniquement via écritures
-      // atomiques) — sauf s'il n'existe pas encore du tout côté local (init)
+      if (!chatHasContent) updates.chat = { famille: [], collegues: [], externe: [] };
       if (!ns.matchComments || Object.keys(ns.matchComments).length === 0) {
         updates.matchComments = {};
       }
@@ -4520,9 +4512,17 @@ export default function App() {
     if (!u) { showNotif("error", "❌ Entre ton pseudo"); return; }
     if (u === "admin") {
       if (pw !== "2026") { showNotif("error", "❌ Mot de passe incorrect"); return; }
-      let ns = {...st, users:{...st.users, admin:{role:"admin"}}};
-      soundLogin(); stopLoginMusic(); save(ns); localStorage.setItem("APP_VERSION", APP_VERSION); setUser("admin");
-      seen.current = new Set(Object.keys(ns.seenAnim||{}));
+      const adminData = { role: "admin" };
+      setSt(prev => {
+        const ns = {...prev, users:{...prev.users, admin: adminData}};
+        try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
+        return ns;
+      });
+      // Écriture scopée : ne touche qu'au compte admin, jamais aux autres
+      if (_fbReady) { _fbUpdate("/users", { admin: adminData }); trackWrite("users.admin", adminData); }
+      localStorage.setItem("APP_VERSION", APP_VERSION); setUser("admin");
+      soundLogin(); stopLoginMusic();
+      seen.current = new Set(Object.keys(st.seenAnim||{}));
       showNotif("success", "✅ Connecté en tant qu'Admin");
       setTab("home"); setScr("app"); return;
     }
@@ -4585,8 +4585,12 @@ export default function App() {
     if (!pw) { showNotif("error", "❌ Entre ton mot de passe"); return; }
     if (pw !== existingUser.pw) { showNotif("error", "❌ Mot de passe incorrect"); return; }
 
+    // Pas besoin d'écrire en Firebase : les données sont déjà là.
+    // On met juste à jour l'état local et localStorage.
     const ns = {...st};
-    save(ns); localStorage.setItem("APP_VERSION", APP_VERSION); setUser(u);
+    setSt(ns);
+    persist(ns);
+    localStorage.setItem("APP_VERSION", APP_VERSION); setUser(u);
     soundLogin(); stopLoginMusic();
     seen.current = new Set(Object.keys(ns.seenAnim||{}));
     // Mémoriser les identifiants si demandé
@@ -4764,23 +4768,23 @@ export default function App() {
     if (_fbReady) { _fbUpdate(`/thirdPicks/${user}`, scopedThirds); trackWrite(`thirdPicks.${user}`, scopedThirds); }
   }
   function setOfficialThird(matchId, side, group) {
-    // Vérifier que ce groupe n'est pas déjà utilisé ailleurs dans les seizièmes
-    const officialThirds = st.officialThirds || {};
-    const alreadyUsed = Object.entries(officialThirds).some(([key, val]) => {
+    const officialThirdsNow = st.officialThirds || {};
+    const alreadyUsed = Object.entries(officialThirdsNow).some(([key, val]) => {
       const [mId] = key.split("_");
       return mId !== matchId && val === group;
     });
-    
     if (alreadyUsed) {
       showNotif("error", `❌ Le groupe ${group} est déjà utilisé dans un autre match !`);
       return;
     }
-    
-    const ns = {
-      ...st,
-      officialThirds: { ...(st.officialThirds||{}), [matchId+"_"+side]: group }
-    };
-    save(ns);
+    const newKey = matchId + "_" + side;
+    setSt(prev => {
+      const ns = {...prev, officialThirds: {...(prev.officialThirds||{}), [newKey]: group}};
+      try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
+      return ns;
+    });
+    // Écriture scopée : ne touche qu'à cette clé, jamais aux users/predictions/results
+    if (_fbReady) { _fbUpdate("/officialThirds", { [newKey]: group }); trackWrite(`officialThirds.${newKey}`, group); }
     showNotif("success", `✅ Groupe ${group} assigné`);
   }
 
@@ -4890,6 +4894,9 @@ export default function App() {
       if (resultDeleted) { updates[`results/${id}`] = null; updates[`resultTs/${id}`] = null; }
       else { updates[`results/${id}`] = scopedResult; updates[`resultTs/${id}`] = scopedResultTs; }
       _fbUpdate("/", updates);
+      // Mémoriser pour protéger contre un snapshot Firebase en retard
+      if (resultDeleted) { trackDelete(`results.${id}`); trackDelete(`scores.${id}`); }
+      else { trackWrite(`results.${id}`, scopedResult); trackWrite(`scores.${id}`, scopedScore); }
     }
   }
 
@@ -5845,7 +5852,34 @@ export default function App() {
     </div>
   );
 
+  // 🛡️ Garde de sécurité : si user est défini mais a disparu de Firebase
+  // (ex: snapshot périmé reçu juste après une écriture), on attend le prochain
+  // onValue plutôt que de crasher le render et d'afficher un écran blanc
+  if (user && !st.users[user]) return (
+    <div style={t.root}>
+      <div style={{...t.loginWrap,gap:16,textAlign:"center"}}>
+        <div style={{fontSize:48}}>🔄</div>
+        <div style={{fontSize:15,color:MUTED}}>Synchronisation en cours…</div>
+        <button style={{...t.btnXS,marginTop:8}} onClick={doLogout}>Retour à l'accueil</button>
+      </div>
+    </div>
+  );
+
   // ─── APP ───
+  // Garde de sécurité : si le compte a disparu de Firebase (suppression ou
+  // race condition), on reste sur l'écran d'attente plutôt que de crasher.
+  if (scr === "app" && user && !st.users[user]) {
+    return (
+      <div style={t.root}>
+        <div style={{...t.loginWrap,gap:16,textAlign:"center"}}>
+          <div style={{fontSize:48}}>🔄</div>
+          <div style={{fontSize:16,fontWeight:700,color:GOLD}}>Synchronisation…</div>
+          <div style={{fontSize:12,color:MUTED}}>Tes données arrivent dans un instant.</div>
+          <button style={{...t.btnXS,marginTop:8}} onClick={doLogout}>Retour à l'accueil</button>
+        </div>
+      </div>
+    );
+  }
   const isAdmin = role==="admin";
   const myValidated = st.validatedGroups[user] || [];
   const iFullyValidated = allPhasesValidated(myValidated) || locked;
@@ -7737,7 +7771,9 @@ export default function App() {
                         style={{flex:1,background:"rgba(239,68,68,.8)",border:"none",color:"#fff",borderRadius:8,padding:"8px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}
                         onClick={()=>{
                           const ns={...st, predictions:{}, results:{}, scores:{}, validatedGroups:{}, finalLock:{}, seenAnim:{}};
-                          save(ns);
+                          setSt(ns); persist(ns);
+                          // Reset complet intentionnel via écritures scopées
+                          if (_fbReady) _fbUpdate("/", { predictions:{}, results:{}, scores:{}, validatedGroups:{}, finalLock:{}, seenAnim:{} });
                           setConfirmReset(false);
                         }}>Confirmer</button>
                       <button
