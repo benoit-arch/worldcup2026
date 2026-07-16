@@ -3287,15 +3287,41 @@ function FinalePanel({ m, isAdmin, homeT, awayT, official, myPick, onSave, locke
   const inDrawContext = data.mode === "draw" || data.mode === "prolong" || data.mode === "tab";
   const isReg = data.mode === "reg" && data.winner;
 
+  // ── Équipe pas encore déterminée (demi-finales pas encore jouées/saisies) ──
+  // Plutôt qu'un drapeau blanc + texte technique brut ("Vainqueur SF1"), on
+  // affiche un message clair pour que ce ne soit pas pris pour un bug.
+  const isUnresolved = (team) => !team || /^(Vainqueur|Perdant|V\.|1er |2e |3e )/i.test(team.trim());
+  const renderTeam = (team) => {
+    if (isUnresolved(team)) {
+      return (
+        <>
+          <div style={{fontSize:26}}>⏳</div>
+          <div style={{fontSize:11,fontWeight:600,color:MUTED}}>En attente</div>
+        </>
+      );
+    }
+    return (
+      <>
+        <div style={{fontSize:26}}>{F(team)}</div>
+        <div style={{fontSize:12,fontWeight:700}}>{team}</div>
+      </>
+    );
+  };
+
   return (
     <div style={{...t.card, border:`2px solid ${GOLD}`, background:"linear-gradient(135deg,rgba(245,200,66,.1),rgba(245,200,66,.03))"}}>
       <div style={{textAlign:"center",marginBottom:10}}>
         <div style={{fontSize:11,color:GOLD,fontWeight:800,textTransform:"uppercase",letterSpacing:1}}>🏆 Finale de la Coupe du Monde</div>
         <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,marginTop:8}}>
-          <div style={{textAlign:"center"}}><div style={{fontSize:26}}>{F(homeT)}</div><div style={{fontSize:12,fontWeight:700}}>{homeT}</div></div>
+          <div style={{textAlign:"center"}}>{renderTeam(homeT)}</div>
           <span style={{fontSize:14,color:MUTED,fontWeight:700}}>VS</span>
-          <div style={{textAlign:"center"}}><div style={{fontSize:26}}>{F(awayT)}</div><div style={{fontSize:12,fontWeight:700}}>{awayT}</div></div>
+          <div style={{textAlign:"center"}}>{renderTeam(awayT)}</div>
         </div>
+        {(isUnresolved(homeT) || isUnresolved(awayT)) && (
+          <div style={{fontSize:10,color:MUTED,marginTop:6,fontStyle:"italic"}}>
+            Les finalistes seront connus après les demi-finales
+          </div>
+        )}
       </div>
 
       {/* ── Explication du barème (toujours visible, joueur et admin) ── */}
@@ -3785,6 +3811,29 @@ export default function App() {
   // notre propre écriture) — sans ça, un nouveau défi pouvait disparaître
   // instantanément, redirigeant l'utilisateur vers l'écran précédent.
   const recentChallengeWritesRef = useRef({}); // {challengeId: {data, ts}}
+  // ── Protection anti-écrasement GÉNÉRIQUE (toutes les données hors challenges) ──
+  // Même principe que recentChallengeWritesRef mais pour predictions, results,
+  // scores, validatedGroups, finalLock, thirdPicks, elimRealTeams, elimUnlocked,
+  // users, finaleData, etc. Sans ça, un retour Firebase légèrement en retard
+  // juste après notre propre écriture pouvait effacer localement ce qu'on venait
+  // tout juste de saisir (un pronostic, un score officiel...).
+  const recentWritesRef = useRef({}); // {"path.to.key": {value, ts}} — value === DELETE_MARK signifie "supprimer cette clé"
+  const DELETE_MARK = "__DELETE__";
+  const trackWrite = (path, value) => { recentWritesRef.current[path] = { value, ts: Date.now() }; };
+  const trackDelete = (path) => { recentWritesRef.current[path] = { value: DELETE_MARK, ts: Date.now() }; };
+  const setPathValue = (obj, path, value) => {
+    const parts = path.split(".");
+    let cur = obj;
+    for (let i = 0; i < parts.length - 1; i++) {
+      const p = parts[i];
+      if (typeof cur[p] !== "object" || cur[p] === null) cur[p] = {};
+      else cur[p] = { ...cur[p] }; // éviter de muter l'original
+      cur = cur[p];
+    }
+    const lastKey = parts[parts.length - 1];
+    if (value === DELETE_MARK) delete cur[lastKey];
+    else cur[lastKey] = value;
+  };
   const [fbStatus, setFbStatus] = useState(FB_ENABLED ? "connecting" : "offline");
 
   // ── Firebase init + écoute temps réel ──────────────────────────────
@@ -3854,6 +3903,18 @@ export default function App() {
           mergedChallenges[id] = entry.data;
         });
         normalized.challenges = mergedChallenges;
+
+        // ── Protection anti-écrasement GÉNÉRIQUE : réinjecter toute donnée
+        // écrite localement il y a moins de 6s si Firebase ne l'a pas encore
+        // (retour en retard). Couvre predictions, results, scores, validatedGroups,
+        // finalLock, thirdPicks, elimRealTeams, elimUnlocked, users, finaleData, etc.
+        const recentGeneric = recentWritesRef.current;
+        Object.keys(recentGeneric).forEach(path => {
+          const entry = recentGeneric[path];
+          if (now - entry.ts > 6000) { delete recentGeneric[path]; return; } // expiré
+          setPathValue(normalized, path, entry.value);
+        });
+
         setSt(normalized);
         persist(normalized);
       }, err => {
@@ -4484,7 +4545,7 @@ export default function App() {
       // Écriture scopée sur ce seul nouveau compte : ne touche jamais aux
       // comptes des autres joueurs, même si un autre événement (approbation
       // admin d'un autre joueur, etc.) survient au même instant.
-      if (_fbReady) _fbUpdate(`/users/${u}`, newUserData);
+      if (_fbReady) { _fbUpdate(`/users/${u}`, newUserData); trackWrite(`users.${u}`, newUserData); }
       localStorage.setItem("APP_VERSION", APP_VERSION); setUser(u);
       soundLogin(); stopLoginMusic();
       seen.current = new Set(Object.keys(st.seenAnim||{}));
@@ -4614,7 +4675,7 @@ export default function App() {
     // autres joueurs, ni aux scores/validations en cours (ex: l'admin qui entre
     // un résultat exactement au même instant, ou un autre joueur qui valide une
     // phase élim comme les demis).
-    if (_fbReady) _fbUpdate("/predictions", {[user]: scopedPreds});
+    if (_fbReady) { _fbUpdate("/predictions", {[user]: scopedPreds}); trackWrite(`predictions.${user}`, scopedPreds); }
   }
 
   // ── ADMIN: modifier les pronos d'un joueur ──
@@ -4629,7 +4690,7 @@ export default function App() {
       // Écriture scopée sur ce seul joueur : ne touche jamais aux pronostics
       // des autres joueurs, même si l'état admin local est momentanément
       // en retard par rapport à une validation concurrente d'un autre joueur.
-      if (_fbReady) _fbUpdate(`/predictions/${targetUser}`, updatedUserPreds);
+      if (_fbReady) { _fbUpdate(`/predictions/${targetUser}`, updatedUserPreds); trackWrite(`predictions.${targetUser}`, updatedUserPreds); }
       try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
       return ns;
     });
@@ -4648,7 +4709,7 @@ export default function App() {
       };
       // Écriture scopée sur ce seul joueur : ne touche jamais aux pronostics
       // finale des autres joueurs.
-      if (_fbReady) _fbUpdate(`/finaleData/predictions/${targetUser}`, updatedUserPred);
+      if (_fbReady) { _fbUpdate(`/finaleData/predictions/${targetUser}`, updatedUserPred); trackWrite(`finaleData.predictions.${targetUser}`, updatedUserPred); }
       try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
       return ns;
     });
@@ -4674,7 +4735,7 @@ export default function App() {
         ...prev,
         thirdPicks: { ...(prev.thirdPicks||{}), [targetUser]: updatedUserThirds },
       };
-      if (_fbReady) _fbUpdate(`/thirdPicks/${targetUser}`, updatedUserThirds);
+      if (_fbReady) { _fbUpdate(`/thirdPicks/${targetUser}`, updatedUserThirds); trackWrite(`thirdPicks.${targetUser}`, updatedUserThirds); }
       try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
       return ns;
     });
@@ -4700,7 +4761,7 @@ export default function App() {
       return ns;
     });
     // Écriture scopée sur ce seul joueur
-    if (_fbReady) _fbUpdate(`/thirdPicks/${user}`, scopedThirds);
+    if (_fbReady) { _fbUpdate(`/thirdPicks/${user}`, scopedThirds); trackWrite(`thirdPicks.${user}`, scopedThirds); }
   }
   function setOfficialThird(matchId, side, group) {
     // Vérifier que ce groupe n'est pas déjà utilisé ailleurs dans les seizièmes
@@ -4737,7 +4798,7 @@ export default function App() {
       return ns;
     });
     if (alreadyDone) return;
-    if (scopedVG && _fbReady) _fbUpdate("/validatedGroups", {[user]: scopedVG});
+    if (scopedVG && _fbReady) { _fbUpdate("/validatedGroups", {[user]: scopedVG}); trackWrite(`validatedGroups.${user}`, scopedVG); }
     soundValidate(); celebrate("poules");
     showNotif("success", `✅ Groupe ${g} validé !`);
     // Auto-navigate to next group
@@ -4758,7 +4819,7 @@ export default function App() {
       try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
       return ns;
     });
-    if (scopedVG !== null && _fbReady) _fbUpdate("/validatedGroups", {[user]: scopedVG});
+    if (scopedVG !== null && _fbReady) { _fbUpdate("/validatedGroups", {[user]: scopedVG}); trackWrite(`validatedGroups.${user}`, scopedVG); }
     showNotif("info", `✏️ Groupe ${g} déverrouillé — tu peux modifier tes pronos`);
   }
   // ── FINAL LOCK ──
@@ -4772,7 +4833,7 @@ export default function App() {
     });
     // Écriture scopée sur /finalLock uniquement : ne touche jamais aux pronostics
     // ou validations en cours des autres joueurs.
-    if (_fbReady) _fbUpdate("/finalLock", {[user]: true});
+    if (_fbReady) { _fbUpdate("/finalLock", {[user]: true}); trackWrite(`finalLock.${user}`, true); }
     soundLock(); setModal(false); celebrate("finale");
   }
 
@@ -4786,7 +4847,7 @@ export default function App() {
       return ns;
     });
     // Écriture scopée sur ce seul compte : ne touche jamais aux autres joueurs
-    if (_fbReady) _fbUpdate("/users", {[u]: updatedUser});
+    if (_fbReady) { _fbUpdate("/users", {[u]: updatedUser}); trackWrite(`users.${u}`, updatedUser); }
   }
   function setScore(id, side, val) {
     // Utilise setSt fonctionnel pour éviter la race condition :
@@ -4845,7 +4906,7 @@ export default function App() {
       return ns;
     });
     // Écriture scopée : supprime uniquement ce match précis, jamais le reste.
-    if (_fbReady) _fbUpdate("/", { [`scores/${id}`]: null, [`results/${id}`]: null, [`resultTs/${id}`]: null });
+    if (_fbReady) { _fbUpdate("/", { [`scores/${id}`]: null, [`results/${id}`]: null, [`resultTs/${id}`]: null }); trackDelete(`scores.${id}`); trackDelete(`results.${id}`); trackDelete(`resultTs.${id}`); }
   }
 
   // ── FINALE : sauvegarde du résultat officiel (admin) ──
@@ -5268,7 +5329,7 @@ export default function App() {
             if (toAddResult) {
               // Écriture scopée sur ce seul joueur : ne touche jamais aux validations
               // des autres joueurs, même si l'un d'eux valide une autre phase au même instant.
-              if (_fbReady) _fbUpdate("/validatedGroups", {[user]: toAddResult});
+              if (_fbReady) { _fbUpdate("/validatedGroups", {[user]: toAddResult}); trackWrite(`validatedGroups.${user}`, toAddResult); }
               soundValidate();
               setTimeout(()=>{ celebrate("poules"); setTab("elim"); setEPhase("seiziemes"); },300);
             }
@@ -6549,7 +6610,7 @@ export default function App() {
                   // Écriture scopée sur ce seul joueur : ne touche jamais aux validations
                   // des autres joueurs (ex: un autre joueur qui valide une autre phase élim
                   // au même instant, ou l'admin qui verrouille/réinitialise un compte).
-                  if (scopedVG && _fbReady) _fbUpdate("/validatedGroups", {[user]: scopedVG});
+                  if (scopedVG && _fbReady) { _fbUpdate("/validatedGroups", {[user]: scopedVG}); trackWrite(`validatedGroups.${user}`, scopedVG); }
                 };
 
                 return (
@@ -6744,7 +6805,7 @@ export default function App() {
                                   });
                                   // Écriture scopée : ne touche jamais aux pronostics des autres
                                   // joueurs, ni aux scores saisis par l'admin au même instant.
-                                  if (_fbReady) _fbUpdate("/predictions", {[user]: scopedPreds});
+                                  if (_fbReady) { _fbUpdate("/predictions", {[user]: scopedPreds}); trackWrite(`predictions.${user}`, scopedPreds); }
                                 }}                                  style={{flex:1,padding:"8px",borderRadius:8,border:"none",cursor:"pointer",fontFamily:"inherit",fontWeight:700,fontSize:11,transition:"all .15s",
                                     background:myPred===v?"rgba(245,200,66,.25)":"rgba(255,255,255,.06)",
                                     color:myPred===v?GOLD:MUTED,
@@ -7309,7 +7370,7 @@ export default function App() {
                       try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
                       return ns;
                     });
-                    if (_fbReady) _fbUpdate("/", { forceLogoutSignal: ts });
+                    if (_fbReady) { _fbUpdate("/", { forceLogoutSignal: ts }); trackWrite("forceLogoutSignal", ts); }
                     showNotif("success","✅ Déconnexion envoyée");
                   }}
                   style={{background:"rgba(239,68,68,.15)",border:"1px solid rgba(239,68,68,.4)",color:RED,borderRadius:10,padding:"8px 14px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",flexShrink:0}}>
@@ -7333,7 +7394,7 @@ export default function App() {
                       try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
                       return ns;
                     });
-                    if (_fbReady) _fbUpdate("/", { chatEnabled: newVal });
+                    if (_fbReady) { _fbUpdate("/", { chatEnabled: newVal }); trackWrite("chatEnabled", newVal); }
                   }}
                   style={{
                     background:st.chatEnabled!==false?"rgba(239,68,68,.15)":"rgba(46,204,113,.15)",
@@ -7379,7 +7440,7 @@ export default function App() {
                               // Écriture scopée sur /finalLock uniquement : ne touche jamais aux
                               // pronostics/validations en cours des joueurs, même si l'état admin
                               // local est momentanément en retard.
-                              if (_fbReady) _fbUpdate("/finalLock", lockUpdates);
+                              if (_fbReady) { _fbUpdate("/finalLock", lockUpdates); Object.keys(lockUpdates).forEach(k=>trackWrite(`finalLock.${k}`, lockUpdates[k])); }
                               showNotif("success","🔒 Tous les joueurs verrouillés");
                             }}
                             style={{background:"rgba(239,68,68,.12)",border:"1px solid rgba(239,68,68,.35)",color:RED,borderRadius:10,padding:"7px 12px",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>
@@ -7393,7 +7454,7 @@ export default function App() {
                                 try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
                                 return ns;
                               });
-                              if (_fbReady) _fbUpdate("/finalLock", null);
+                              if (_fbReady) { _fbUpdate("/finalLock", null); trackDelete("finalLock"); }
                               showNotif("success","🔓 Tous les joueurs déverrouillés");
                             }}
                             style={{background:"rgba(34,197,94,.1)",border:"1px solid rgba(34,197,94,.35)",color:GREEN,borderRadius:10,padding:"7px 12px",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>
@@ -7466,7 +7527,7 @@ export default function App() {
                                     try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
                                     return ns;
                                   });
-                                  if (_fbReady) _fbUpdate("/finalLock", {[u]: null});
+                                  if (_fbReady) { _fbUpdate("/finalLock", {[u]: null}); trackDelete(`finalLock.${u}`); }
                                   showNotif("success",`🔓 ${u.toUpperCase()} déverrouillé`);
                                 } else {
                                   // Verrouiller — on ne touche PAS validatedGroups
@@ -7475,7 +7536,7 @@ export default function App() {
                                     try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
                                     return ns;
                                   });
-                                  if (_fbReady) _fbUpdate("/finalLock", {[u]: true});
+                                  if (_fbReady) { _fbUpdate("/finalLock", {[u]: true}); trackWrite(`finalLock.${u}`, true); }
                                   showNotif("success",`🔒 ${u.toUpperCase()} verrouillé`);
                                 }
                               }}>
@@ -7534,7 +7595,7 @@ export default function App() {
                                         try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
                                         return ns;
                                       });
-                                      if (_fbReady) _fbUpdate("/users", {[u]: updatedUser});
+                                      if (_fbReady) { _fbUpdate("/users", {[u]: updatedUser}); trackWrite(`users.${u}`, updatedUser); }
                                       showNotif("success",`✅ MDP de ${u.toUpperCase()} modifié`);
                                       setAdminNewPw(""); setAdminConfirmUser(null);
                                     }}>🔑 Enregistrer</button>
@@ -7572,6 +7633,10 @@ export default function App() {
                                         _fbUpdate("/predictions", {[u]: null});
                                         _fbUpdate("/validatedGroups", {[u]: null});
                                         _fbUpdate("/finalLock", {[u]: null});
+                                        trackDelete(`users.${u}`);
+                                        trackDelete(`predictions.${u}`);
+                                        trackDelete(`validatedGroups.${u}`);
+                                        trackDelete(`finalLock.${u}`);
                                       }
                                       showNotif("success",`✅ ${u.toUpperCase()} supprimé`);
                                       setAdminConfirmUser(null);
@@ -7632,11 +7697,11 @@ export default function App() {
                                         // en cours au même instant (ex: quelqu'un qui valide les demis
                                         // pendant que l'admin réinitialise un autre compte).
                                         if (_fbReady) {
-                                          if (scopedPreds === null) { _fbUpdate("/predictions", {[u]: null}); }
-                                          else { _fbUpdate("/predictions", {[u]: scopedPreds}); }
-                                          if (scopedVG === null) { _fbUpdate("/validatedGroups", {[u]: null}); }
-                                          else { _fbUpdate("/validatedGroups", {[u]: scopedVG}); }
-                                          if (scopedFL === null) { _fbUpdate("/finalLock", {[u]: null}); }
+                                          if (scopedPreds === null) { _fbUpdate("/predictions", {[u]: null}); trackDelete(`predictions.${u}`); }
+                                          else { _fbUpdate("/predictions", {[u]: scopedPreds}); trackWrite(`predictions.${u}`, scopedPreds); }
+                                          if (scopedVG === null) { _fbUpdate("/validatedGroups", {[u]: null}); trackDelete(`validatedGroups.${u}`); }
+                                          else { _fbUpdate("/validatedGroups", {[u]: scopedVG}); trackWrite(`validatedGroups.${u}`, scopedVG); }
+                                          if (scopedFL === null) { _fbUpdate("/finalLock", {[u]: null}); trackDelete(`finalLock.${u}`); }
                                           // scopedFL === undefined → ne rien envoyer (finalLock non concerné par ce scope)
                                         }
                                         showNotif("success",`✅ Reset ${opt.label} pour ${u.toUpperCase()}`);
@@ -8700,7 +8765,7 @@ export default function App() {
                   });
                   // Écriture scopée sur /elimUnlocked uniquement : ne touche jamais aux
                   // pronostics/validations en cours des joueurs.
-                  if (_fbReady) _fbUpdate("/", { elimUnlocked: scopedUnlocked });
+                  if (_fbReady) { _fbUpdate("/", { elimUnlocked: scopedUnlocked }); trackWrite("elimUnlocked", scopedUnlocked); }
                 };
 
                 const saveRealTeams = (phase) => {
@@ -8723,7 +8788,7 @@ export default function App() {
                     return ns;
                   });
                   // Écriture scopée sur /elimRealTeams uniquement
-                  if (_fbReady) _fbUpdate("/", { elimRealTeams: scopedRealTeams });
+                  if (_fbReady) { _fbUpdate("/", { elimRealTeams: scopedRealTeams }); trackWrite("elimRealTeams", scopedRealTeams); }
                 };
 
                 return (
