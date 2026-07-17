@@ -4669,20 +4669,14 @@ export default function App() {
   function pick(id, val) {
     if (locked) return;
     soundClick();
-    let scopedPreds = null;
+    const prevPreds  = (st.predictions?.[user]) || {};
+    const updatedPreds = {...prevPreds, [id]: val};
     setSt(prev => {
-      const prevPreds = prev.predictions?.[user] || {};
-      const updatedPreds = {...prevPreds, [id]:val};
-      scopedPreds = updatedPreds;
       const ns = {...prev, predictions:{...prev.predictions, [user]:updatedPreds}};
       try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
       return ns;
     });
-    // Écriture scopée sur ce seul joueur : ne touche JAMAIS aux pronostics des
-    // autres joueurs, ni aux scores/validations en cours (ex: l'admin qui entre
-    // un résultat exactement au même instant, ou un autre joueur qui valide une
-    // phase élim comme les demis).
-    if (_fbReady) { _fbUpdate("/predictions", {[user]: scopedPreds}); trackWrite(`predictions.${user}`, scopedPreds); }
+    if (_fbReady) { _fbUpdate("/predictions", {[user]: updatedPreds}); trackWrite(`predictions.${user}`, updatedPreds); }
   }
 
   // ── ADMIN: modifier les pronos d'un joueur ──
@@ -4752,23 +4746,14 @@ export default function App() {
   // ── 3e ÉQUIPE (sélection du groupe pour les seizièmes) ──
   function pickThird(matchId, side, group) {
     if (locked) return;
-    let scopedThirds = null;
+    const prevUserThirds    = (st.thirdPicks?.[user]) || {};
+    const updatedUserThirds = { ...prevUserThirds, [matchId+"_"+side]: group };
     setSt(prev => {
-      const prevUserThirds = (prev.thirdPicks||{})[user] || {};
-      const updatedUserThirds = { ...prevUserThirds, [matchId+"_"+side]: group };
-      scopedThirds = updatedUserThirds;
-      const ns = {
-        ...prev,
-        thirdPicks: {
-          ...(prev.thirdPicks||{}),
-          [user]: updatedUserThirds
-        }
-      };
+      const ns = {...prev, thirdPicks: {...(prev.thirdPicks||{}), [user]: updatedUserThirds}};
       try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
       return ns;
     });
-    // Écriture scopée sur ce seul joueur
-    if (_fbReady) { _fbUpdate(`/thirdPicks/${user}`, scopedThirds); trackWrite(`thirdPicks.${user}`, scopedThirds); }
+    if (_fbReady) { _fbUpdate(`/thirdPicks/${user}`, updatedUserThirds); trackWrite(`thirdPicks.${user}`, updatedUserThirds); }
   }
   function setOfficialThird(matchId, side, group) {
     const officialThirdsNow = st.officialThirds || {};
@@ -4857,29 +4842,37 @@ export default function App() {
     if (_fbReady) { _fbUpdate("/users", {[u]: updatedUser}); trackWrite(`users.${u}`, updatedUser); }
   }
   function setScore(id, side, val) {
-    // Utilise setSt fonctionnel pour éviter la race condition :
-    // deux saisies rapides (score dom puis ext) ne s'écrasent plus
-    let scopedScore, scopedResult, scopedResultTs, resultDeleted = false;
+    // Calculer AVANT setSt (synchrone) pour éviter que scopedScore/scopedResult
+    // soient encore undefined quand _fbUpdate est appelé juste après.
+    const prevScores  = st.scores  || {};
+    const prevResults = st.results || {};
+    const prevResultTs = st.resultTs || {};
+    const cur     = prevScores[id] || {h:"", a:""};
+    const updated = {...cur, [side]: val};
+    const match   = MATCHES.find(m=>m.id===id);
+    const outcome = outcomeOf(updated, match?.phase !== "poules");
+
+    const scopedScore = updated;
+    let scopedResult = null, scopedResultTs = null, resultDeleted = false;
+    const newResults  = {...prevResults};
+    const newResultTs = {...prevResultTs};
+    if (outcome) {
+      newResults[id]  = outcome;
+      newResultTs[id] = Date.now();
+      scopedResult    = outcome;
+      scopedResultTs  = newResultTs[id];
+    } else {
+      delete newResults[id];
+      delete newResultTs[id];
+      resultDeleted = true;
+    }
+
     setSt(prev => {
-      const cur = (prev.scores||{})[id] || {h:"", a:""};
-      const updated = {...cur, [side]: val};
-      const ns = {...prev, scores:{...(prev.scores||{}), [id]: updated}};
-      const match = MATCHES.find(m=>m.id===id);
-      const outcome = outcomeOf(updated, match?.phase !== "poules");
-      ns.results = {...(prev.results||{})};
-      if (outcome) {
-        ns.results[id] = outcome;
-        // Stocker le timestamp de saisie pour trier par ordre réel de saisie
-        ns.resultTs = {...(prev.resultTs||{}), [id]: Date.now()};
-        scopedResult = outcome; scopedResultTs = ns.resultTs[id];
-      } else {
-        delete ns.results[id];
-        const ts2 = {...(prev.resultTs||{})};
-        delete ts2[id];
-        ns.resultTs = ts2;
-        resultDeleted = true;
-      }
-      scopedScore = updated;
+      const ns = {...prev,
+        scores:   {...(prev.scores||{}),   [id]: updated},
+        results:  newResults,
+        resultTs: newResultTs,
+      };
       if (updated.h && updated.a) {
         const homeTeam = resolveTeam(match.home, ns.results||{}, {}, ns.officialThirds||{});
         const awayTeam = resolveTeam(match.away, ns.results||{}, {}, ns.officialThirds||{});
@@ -4889,15 +4882,12 @@ export default function App() {
       try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
       return ns;
     });
-    // Écriture scopée sur ce seul match (scores/results/resultTs) : ne touche
-    // JAMAIS aux pronostics, validations ou verrous des joueurs, même si l'un
-    // d'eux valide une phase (ex: demis) exactement au même instant.
+
     if (_fbReady) {
       const updates = { [`scores/${id}`]: scopedScore };
       if (resultDeleted) { updates[`results/${id}`] = null; updates[`resultTs/${id}`] = null; }
       else { updates[`results/${id}`] = scopedResult; updates[`resultTs/${id}`] = scopedResultTs; }
       _fbUpdate("/", updates);
-      // Mémoriser pour protéger contre un snapshot Firebase en retard
       if (resultDeleted) { trackDelete(`results.${id}`); trackDelete(`scores.${id}`); }
       else { trackWrite(`results.${id}`, scopedResult); trackWrite(`scores.${id}`, scopedScore); }
     }
@@ -6831,18 +6821,14 @@ export default function App() {
                             <div style={{display:"flex",gap:6}}>
                               {["1","2"].map(v=>(
                                 <button key={v} onClick={()=>{
-                                  let scopedPreds = null;
+                                  const prevPreds = (st.predictions?.[user]) || {};
+                                  const updatedPreds = {...prevPreds, [m.id]: v};
                                   setSt(prev => {
-                                    const prevPreds = (prev.predictions||{})[user] || {};
-                                    const updatedPreds = {...prevPreds, [m.id]:v};
-                                    scopedPreds = updatedPreds;
                                     const ns = {...prev, predictions:{...prev.predictions, [user]:updatedPreds}};
                                     try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
                                     return ns;
                                   });
-                                  // Écriture scopée : ne touche jamais aux pronostics des autres
-                                  // joueurs, ni aux scores saisis par l'admin au même instant.
-                                  if (_fbReady) { _fbUpdate("/predictions", {[user]: scopedPreds}); trackWrite(`predictions.${user}`, scopedPreds); }
+                                  if (_fbReady) { _fbUpdate("/predictions", {[user]: updatedPreds}); trackWrite(`predictions.${user}`, updatedPreds); }
                                 }}                                  style={{flex:1,padding:"8px",borderRadius:8,border:"none",cursor:"pointer",fontFamily:"inherit",fontWeight:700,fontSize:11,transition:"all .15s",
                                     background:myPred===v?"rgba(245,200,66,.25)":"rgba(255,255,255,.06)",
                                     color:myPred===v?GOLD:MUTED,
@@ -9151,49 +9137,47 @@ export default function App() {
             const isNumeric = typeof score === "number";
             if (!isNumeric) {
               // Cas "buteur" : score = nom du gagnant choisi
-              let scopedGS = null;
+              const updatedGS = { ...((st.gameScores||{})[game]||{}), [user]: score };
               setSt(prev => {
-                const updated = { ...((prev.gameScores||{})[game]||{}), [user]: score };
-                scopedGS = updated;
-                const ns = { ...prev, gameScores: { ...(prev.gameScores||{}), [game]: updated } };
+                const ns = { ...prev, gameScores: { ...(prev.gameScores||{}), [game]: updatedGS } };
                 try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
                 return ns;
               });
-              if (_fbReady) _fbUpdate(`/gameScores/${game}`, scopedGS);
+              if (_fbReady) _fbUpdate(`/gameScores/${game}`, updatedGS);
               return;
             }
 
             const currentCount = getDailyCount(game, user);
             const capped = currentCount >= DAILY_PLAY_LIMIT;
 
-            let scopedPlaysToday, scopedHistory, scopedGameScores, scopedGameScoresTotal;
-            setSt(prev => {
-              const gameHistoryAll = prev.gameHistory || {};
-              const userHistory = (gameHistoryAll[user] || []);
-              const newEntry = { game, score, mode, opponent, won, ts: Date.now() };
-              const cappedHistory = [...userHistory, newEntry].slice(-50); // max 50 entrées
-              const newPlaysToday = bumpDailyCount(game, user);
-              scopedPlaysToday = newPlaysToday[game];
-              scopedHistory = cappedHistory;
+            // Calculer AVANT setSt (synchrone)
+            const gameHistoryAll  = st.gameHistory || {};
+            const userHistory     = gameHistoryAll[user] || [];
+            const newEntry        = { game, score, mode, opponent, won, ts: Date.now() };
+            const cappedHistory   = [...userHistory, newEntry].slice(-50);
+            const newPlaysToday   = bumpDailyCount(game, user);
+            const playsForGame    = newPlaysToday[game];
 
-              let ns;
-              if (capped) {
-                ns = { ...prev, gamePlaysToday: newPlaysToday, gameHistory: { ...gameHistoryAll, [user]: cappedHistory } };
-              } else {
-                const gs = prev.gameScores || {};
-                const gst = prev.gameScoresTotal || {};
-                const prevBest  = (gs[game] || {})[user];
-                const prevTotal = (gst[game] || {})[user] || 0;
-                const newBest = (typeof prevBest === "number" && prevBest > score) ? prevBest : score;
-                scopedGameScores = { ...(gs[game]||{}),  [user]: newBest };
-                scopedGameScoresTotal = { ...(gst[game]||{}), [user]: prevTotal + score };
-                ns = {
-                  ...prev,
-                  gamePlaysToday:  newPlaysToday,
-                  gameScores:      { ...gs,  [game]: scopedGameScores },
-                  gameScoresTotal: { ...gst, [game]: scopedGameScoresTotal },
-                  gameHistory:     { ...gameHistoryAll, [user]: cappedHistory },
-                };
+            let newGameScores = null, newGameScoresTotal = null;
+            if (!capped) {
+              const gs  = st.gameScores  || {};
+              const gst = st.gameScoresTotal || {};
+              const prevBest  = (gs[game]  || {})[user];
+              const prevTotal = (gst[game] || {})[user] || 0;
+              const newBest = (typeof prevBest === "number" && prevBest > score) ? prevBest : score;
+              newGameScores      = { ...(gs[game] ||{}), [user]: newBest };
+              newGameScoresTotal = { ...(gst[game]||{}), [user]: prevTotal + score };
+            }
+
+            setSt(prev => {
+              let ns = {
+                ...prev,
+                gamePlaysToday: newPlaysToday,
+                gameHistory:    { ...(prev.gameHistory||{}), [user]: cappedHistory },
+              };
+              if (!capped) {
+                ns.gameScores      = { ...(prev.gameScores||{}),      [game]: newGameScores };
+                ns.gameScoresTotal = { ...(prev.gameScoresTotal||{}), [game]: newGameScoresTotal };
               }
               try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
               return ns;
@@ -9201,9 +9185,9 @@ export default function App() {
             // Écritures scopées : chaque branche ne touche que ses propres clés
             // (jeu précis / joueur précis), jamais les pronostics ou validations.
             if (_fbReady) {
-              const updates = { [`gamePlaysToday/${game}`]: scopedPlaysToday, [`gameHistory/${user}`]: scopedHistory };
-              if (scopedGameScores) updates[`gameScores/${game}`] = scopedGameScores;
-              if (scopedGameScoresTotal) updates[`gameScoresTotal/${game}`] = scopedGameScoresTotal;
+              const updates = { [`gamePlaysToday/${game}`]: playsForGame, [`gameHistory/${user}`]: cappedHistory };
+              if (newGameScores)      updates[`gameScores/${game}`]      = newGameScores;
+              if (newGameScoresTotal) updates[`gameScoresTotal/${game}`] = newGameScoresTotal;
               _fbUpdate("/", updates);
             }
 
