@@ -2655,25 +2655,28 @@ async function persistFirebase(ns) {
       // d'un autre joueur, supprimer un compte récemment créé, ou annuler un résultat
       // que l'admin vient d'entrer.
       const updates = {
-        validatedGroups:   ns.validatedGroups || {},
-        finalLock:         ns.finalLock       || {},
-        seenAnim:          ns.seenAnim        || {},
-        officialThirds:    ns.officialThirds  || {},
-        thirdPicks:        ns.thirdPicks      || {},
+        // Les champs ci-dessous sont gérés exclusivement par leurs fonctions
+        // dédiées (valGroup, lockFinal, setOfficialThird, pickThird,
+        // saveFinalePrediction, saveFinaleOfficial) via des écritures scopées.
+        // Ils ne doivent JAMAIS être réécrits en masse ici.
+        // validatedGroups → valGroup()
+        // finalLock       → lockFinal()
+        // officialThirds  → setOfficialThird()
+        // thirdPicks      → pickThird()
+        // finaleData      → saveFinalePrediction() + saveFinaleOfficial()
         seenEgg:           ns.seenEgg         || {},
         chatEnabled:       ns.chatEnabled !== false,
         forceLogoutSignal: ns.forceLogoutSignal || 0,
         seenChat:          ns.seenChat         || {},
         appVersion:        ns.appVersion || APP_VERSION,
-        elimUnlocked:      ns.elimUnlocked    || [],
-        elimRealTeams:     ns.elimRealTeams   || {},
+        // elimUnlocked et elimRealTeams : gérés exclusivement par toggleUnlock/saveRealTeams
         gameScores:        ns.gameScores      || {},
         gameScoresTotal:   ns.gameScoresTotal || {},
         gameHistory:       ns.gameHistory     || {},
         gamePlaysToday:    ns.gamePlaysToday   || {},
         challenges:        ns.challenges      || {},
         presence:          ns.presence        || {},
-        finaleData:        ns.finaleData      || { official:null, predictions:{} },
+        // finaleData géré exclusivement par saveFinalePrediction/saveFinaleOfficial
       };
       // Chat / matchComments : jamais réécrits en masse non plus
       const chatHasContent =
@@ -8788,43 +8791,39 @@ export default function App() {
                 const setTeamInputs = setAdminTeamInputs;
 
                 const toggleUnlock = (phase) => {
-                  let scopedUnlocked = null;
+                  // Calculé AVANT setSt (synchrone) pour éviter le bug de callback async
+                  const cur = st.elimUnlocked || [];
+                  const isLocked = cur.includes(phase);
+                  const newUnlocked = isLocked ? cur.filter(p=>p!==phase) : [...cur, phase];
                   setSt(prev => {
-                    const cur = prev.elimUnlocked || [];
-                    const isLocked = cur.includes(phase);
-                    const updated = isLocked ? cur.filter(p=>p!==phase) : [...cur, phase];
-                    scopedUnlocked = updated;
-                    const ns = {...prev, elimUnlocked: updated};
+                    const ns = {...prev, elimUnlocked: newUnlocked};
                     try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
-                    showNotif("success", `${isLocked?"🔒 Verrouillé":"🔓 Déverrouillé"} : ${phaseLabels[phase]}`);
                     return ns;
                   });
-                  // Écriture scopée sur /elimUnlocked uniquement : ne touche jamais aux
-                  // pronostics/validations en cours des joueurs.
-                  if (_fbReady) { _fbUpdate("/", { elimUnlocked: scopedUnlocked }); trackWrite("elimUnlocked", scopedUnlocked); }
+                  showNotif("success", `${isLocked?"🔒 Verrouillé":"🔓 Déverrouillé"} : ${phaseLabels[phase]}`);
+                  if (_fbReady) { _fbUpdate("/", { elimUnlocked: newUnlocked }); trackWrite("elimUnlocked", newUnlocked); }
                 };
 
                 const saveRealTeams = (phase) => {
                   const matchList = MATCHES.filter(m=>m.phase===phase&&m.group==="ELIM");
-                  let scopedRealTeams = null;
+                  // Calculé AVANT setSt (synchrone) — évite que la variable soit null
+                  // quand _fbUpdate est appelé juste après (bug du callback async setSt)
+                  const prevElimRealTeams = st.elimRealTeams || {};
+                  const updates = {};
+                  matchList.forEach(m => {
+                    const h = teamInputs[m.id+"_home"] || (prevElimRealTeams[m.id]?.home) || "";
+                    const a = teamInputs[m.id+"_away"] || (prevElimRealTeams[m.id]?.away) || "";
+                    if (h || a) updates[m.id] = {home:h||m.home, away:a||m.away};
+                  });
+                  const newElimRealTeams = {...prevElimRealTeams, ...updates};
                   setSt(prev => {
-                    const prevElimRealTeams = prev.elimRealTeams || {};
-                    const updates = {};
-                    matchList.forEach(m => {
-                      const h = teamInputs[m.id+"_home"] || (prevElimRealTeams[m.id]?.home) || "";
-                      const a = teamInputs[m.id+"_away"] || (prevElimRealTeams[m.id]?.away) || "";
-                      if (h || a) updates[m.id] = {home:h||m.home, away:a||m.away};
-                    });
-                    const merged = {...prevElimRealTeams, ...updates};
-                    scopedRealTeams = merged;
-                    const ns = {...prev, elimRealTeams: merged};
+                    const ns = {...prev, elimRealTeams: newElimRealTeams};
                     try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
-                    showNotif("success", "✅ Affiches enregistrées !");
-                    setEditPhase(null); setTeamInputs({});
                     return ns;
                   });
-                  // Écriture scopée sur /elimRealTeams uniquement
-                  if (_fbReady) { _fbUpdate("/", { elimRealTeams: scopedRealTeams }); trackWrite("elimRealTeams", scopedRealTeams); }
+                  showNotif("success", "✅ Affiches enregistrées !");
+                  setEditPhase(null); setTeamInputs({});
+                  if (_fbReady) { _fbUpdate("/", { elimRealTeams: newElimRealTeams }); trackWrite("elimRealTeams", newElimRealTeams); }
                 };
 
                 return (
