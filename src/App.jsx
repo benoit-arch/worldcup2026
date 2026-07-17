@@ -4669,14 +4669,16 @@ export default function App() {
   function pick(id, val) {
     if (locked) return;
     soundClick();
-    const prevPreds  = (st.predictions?.[user]) || {};
-    const updatedPreds = {...prevPreds, [id]: val};
     setSt(prev => {
+      const prevPreds = prev.predictions?.[user] || {};
+      const updatedPreds = {...prevPreds, [id]: val};
       const ns = {...prev, predictions:{...prev.predictions, [user]:updatedPreds}};
       try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
       return ns;
     });
-    if (_fbReady) { _fbUpdate("/predictions", {[user]: updatedPreds}); trackWrite(`predictions.${user}`, updatedPreds); }
+    // Écriture atomique sur UNE SEULE CLÉ : predictions/user/matchId
+    // Ne touche JAMAIS aux autres matchs du joueur, ni aux autres joueurs.
+    if (_fbReady) { _fbUpdate("/", {[`predictions/${user}/${id}`]: val}); trackWrite(`predictions.${user}.${id}`, val); }
   }
 
   // ── ADMIN: modifier les pronos d'un joueur ──
@@ -4684,17 +4686,12 @@ export default function App() {
     setSt(prev => {
       const currentPreds = (prev.predictions||{})[targetUser] || {};
       const updatedUserPreds = { ...currentPreds, [matchId]: value };
-      const ns = {
-        ...prev,
-        predictions: { ...(prev.predictions||{}), [targetUser]: updatedUserPreds },
-      };
-      // Écriture scopée sur ce seul joueur : ne touche jamais aux pronostics
-      // des autres joueurs, même si l'état admin local est momentanément
-      // en retard par rapport à une validation concurrente d'un autre joueur.
-      if (_fbReady) { _fbUpdate(`/predictions/${targetUser}`, updatedUserPreds); trackWrite(`predictions.${targetUser}`, updatedUserPreds); }
+      const ns = { ...prev, predictions: { ...(prev.predictions||{}), [targetUser]: updatedUserPreds } };
       try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
       return ns;
     });
+    // Écriture atomique sur UNE SEULE CLÉ : ne touche jamais aux autres matchs
+    if (_fbReady) { _fbUpdate("/", {[`predictions/${targetUser}/${matchId}`]: value}); trackWrite(`predictions.${targetUser}.${matchId}`, value); }
     showNotif("success", `✅ Prono de ${targetUser.toUpperCase()} modifié`);
   }
 
@@ -4746,14 +4743,16 @@ export default function App() {
   // ── 3e ÉQUIPE (sélection du groupe pour les seizièmes) ──
   function pickThird(matchId, side, group) {
     if (locked) return;
-    const prevUserThirds    = (st.thirdPicks?.[user]) || {};
-    const updatedUserThirds = { ...prevUserThirds, [matchId+"_"+side]: group };
+    const key = matchId + "_" + side;
     setSt(prev => {
+      const prevUserThirds = (prev.thirdPicks||{})[user] || {};
+      const updatedUserThirds = { ...prevUserThirds, [key]: group };
       const ns = {...prev, thirdPicks: {...(prev.thirdPicks||{}), [user]: updatedUserThirds}};
       try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
       return ns;
     });
-    if (_fbReady) { _fbUpdate(`/thirdPicks/${user}`, updatedUserThirds); trackWrite(`thirdPicks.${user}`, updatedUserThirds); }
+    // Écriture atomique sur une seule clé
+    if (_fbReady) { _fbUpdate("/", {[`thirdPicks/${user}/${key}`]: group}); trackWrite(`thirdPicks.${user}.${key}`, group); }
   }
   function setOfficialThird(matchId, side, group) {
     const officialThirdsNow = st.officialThirds || {};
@@ -6821,14 +6820,14 @@ export default function App() {
                             <div style={{display:"flex",gap:6}}>
                               {["1","2"].map(v=>(
                                 <button key={v} onClick={()=>{
-                                  const prevPreds = (st.predictions?.[user]) || {};
-                                  const updatedPreds = {...prevPreds, [m.id]: v};
                                   setSt(prev => {
+                                    const prevPreds = (prev.predictions||{})[user] || {};
+                                    const updatedPreds = {...prevPreds, [m.id]: v};
                                     const ns = {...prev, predictions:{...prev.predictions, [user]:updatedPreds}};
                                     try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
                                     return ns;
                                   });
-                                  if (_fbReady) { _fbUpdate("/predictions", {[user]: updatedPreds}); trackWrite(`predictions.${user}`, updatedPreds); }
+                                  if (_fbReady) { _fbUpdate("/", {[`predictions/${user}/${m.id}`]: v}); trackWrite(`predictions.${user}.${m.id}`, v); }
                                 }}                                  style={{flex:1,padding:"8px",borderRadius:8,border:"none",cursor:"pointer",fontFamily:"inherit",fontWeight:700,fontSize:11,transition:"all .15s",
                                     background:myPred===v?"rgba(245,200,66,.25)":"rgba(255,255,255,.06)",
                                     color:myPred===v?GOLD:MUTED,
