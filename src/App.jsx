@@ -8824,7 +8824,13 @@ export default function App() {
                     const ns = {...prev, elimRealTeams: merged};
                     try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
                     showNotif("success", "✅ Affiches enregistrées !");
-                    setEditPhase(null); setTeamInputs({});
+                    // ⚠️ On NE ferme PAS le panneau (pas de setEditPhase(null)) : sinon les
+                    // champs disparaissent instantanément à l'écran juste après le clic,
+                    // ce qui donne l'impression que les affiches viennent d'être effacées —
+                    // alors qu'elles sont bien enregistrées. On vide juste teamInputs pour
+                    // que les select retombent sur la valeur officielle (elimRealTeams),
+                    // preuve visuelle immédiate que ça a bien été pris en compte.
+                    setTeamInputs({});
                     return ns;
                   });
                   // Écriture scopée sur /elimRealTeams uniquement
