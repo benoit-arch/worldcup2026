@@ -4183,8 +4183,15 @@ export default function App() {
         challenges:{...(prev.challenges||{}), [activeChallengeId]: updated},
         gameHistory: updatedGameHistory,
       };
-      persistFirebase(ns);
-      if (_fbReady) _fbUpdate(`/challenges/${activeChallengeId}`, updated); // protection scopée anti-écrasement
+      // ⚠️ NE JAMAIS appeler persistFirebase(ns) ici : ça réécrirait TOUT l'état
+      // (predictions, results, validatedGroups, scores...) avec la copie locale
+      // de CE client, potentiellement périmée — ce qui pouvait effacer les
+      // pronostics tout juste validés par un autre joueur en train de jouer
+      // à un mini-jeu en même temps. Écritures scopées uniquement.
+      if (_fbReady) {
+        _fbUpdate(`/challenges/${activeChallengeId}`, updated); // protection scopée anti-écrasement
+        _fbUpdate("/gameHistory", updatedGameHistory);
+      }
       try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
       return ns;
     });
@@ -4662,8 +4669,10 @@ export default function App() {
     persist(ns);
     if (FB_ENABLED && _fbReady && msg?._key) {
       _fbUpdate("/", { [`chat/${group}/${msg._key}`]: null }).catch(e => console.warn("Delete chat msg error:", e));
-    } else {
-      save(ns); // fallback (ancien format sans _key)
+    } else if (FB_ENABLED && _fbReady) {
+      // Fallback (ancien format sans _key) — écriture scopée sur ce seul groupe de
+      // chat, jamais un save(ns) global qui écraserait pronostics/résultats/etc.
+      _fbUpdate("/", { [`chat/${group}`]: updated }).catch(e => console.warn("Delete chat msg error:", e));
     }
     showNotif("success", "✅ Message supprimé");
   }
@@ -4678,8 +4687,10 @@ export default function App() {
     persist(ns);
     if (FB_ENABLED && _fbReady && msg?._key) {
       _fbUpdate("/", { [`matchComments/${matchId}/${group}/${msg._key}`]: null }).catch(e => console.warn("Delete match comment error:", e));
-    } else {
-      save(ns); // fallback (ancien format sans _key)
+    } else if (FB_ENABLED && _fbReady) {
+      // Fallback (ancien format sans _key) — écriture scopée sur ce seul match/groupe,
+      // jamais un save(ns) global qui écraserait pronostics/résultats/etc.
+      _fbUpdate("/", { [`matchComments/${matchId}/${group}`]: updated }).catch(e => console.warn("Delete match comment error:", e));
     }
     showNotif("success", "✅ Commentaire supprimé");
   }
@@ -5256,8 +5267,14 @@ export default function App() {
         [`${base}/${updatedMsg._key}/reactions`]: newReactions
       }).catch(e => console.warn("Reaction Firebase write error:", e));
     } else if (FB_ENABLED && _fbReady) {
-      // Fallback (message sans _key, ex: ancien format array) → on retombe sur save()
-      save(ns);
+      // Fallback (message sans _key, ex: ancien format array) — écriture scopée sur
+      // ce seul groupe de chat/commentaires. AVANT : save(ns) réécrivait TOUT l'état
+      // (predictions, results, validatedGroups, scores...) avec la copie locale de CE
+      // client — potentiellement périmée par rapport aux pronostics d'un autre joueur
+      // tout juste enregistrés. C'était la cause de la disparition aléatoire des pronos
+      // à chaque réaction emoji sur un vieux message.
+      const base = matchId ? `matchComments/${matchId}/${validChatRole}` : `chat/${validChatRole}`;
+      _fbUpdate("/", { [base]: newMsgs }).catch(e => console.warn("Reaction fallback Firebase write error:", e));
     }
   }
 
