@@ -2640,6 +2640,7 @@ function persist(s) { try { localStorage.setItem(KEY, JSON.stringify(s)); } catc
 async function persistFirebase(ns) {
   if (FB_ENABLED && _fbReady) {
     // 🛡️ PROTECTION CRITIQUE : ne jamais écrire si l'état est vide/blank
+    // Sans ça, un redéploiement ou un chargement partiel efface TOUT Firebase
     const hasUsers = ns.users && Object.keys(ns.users).length > 0;
     if (!hasUsers) {
       console.warn("[persistFirebase] Bloqué : état vide détecté, Firebase protégé");
@@ -2647,43 +2648,47 @@ async function persistFirebase(ns) {
       return;
     }
     try {
-      // ⚠️ RÈGLE ABSOLUE : users / predictions / results / scores ne sont JAMAIS
-      // écrits ici en masse. Chacun est géré par une écriture atomique scopée dans
-      // la fonction métier qui le modifie (pick, setScore, setRole, doRegister…).
-      // Les écrire ici en masse crée des race conditions : l'état local d'un client
-      // peut être légèrement périmé, donc un full-overwrite peut effacer les pronos
-      // d'un autre joueur, supprimer un compte récemment créé, ou annuler un résultat
-      // que l'admin vient d'entrer.
+      // Écriture sélective : on ne touche qu'aux champs réellement renseignés
+      // Cela évite d'écraser des champs vides par accident
       const updates = {
-        // Les champs ci-dessous sont gérés exclusivement par leurs fonctions
-        // dédiées (valGroup, lockFinal, setOfficialThird, pickThird,
-        // saveFinalePrediction, saveFinaleOfficial) via des écritures scopées.
-        // Ils ne doivent JAMAIS être réécrits en masse ici.
-        // validatedGroups → valGroup()
-        // finalLock       → lockFinal()
-        // officialThirds  → setOfficialThird()
-        // thirdPicks      → pickThird()
-        // finaleData      → saveFinalePrediction() + saveFinaleOfficial()
+        users:             ns.users,
+        predictions:       ns.predictions     || {},
+        results:           ns.results         || {},
+        scores:            ns.scores          || {},
+        validatedGroups:   ns.validatedGroups || {},
+        finalLock:         ns.finalLock       || {},
+        seenAnim:          ns.seenAnim        || {},
+        officialThirds:    ns.officialThirds  || {},
+        thirdPicks:        ns.thirdPicks      || {},
         seenEgg:           ns.seenEgg         || {},
         chatEnabled:       ns.chatEnabled !== false,
         forceLogoutSignal: ns.forceLogoutSignal || 0,
         seenChat:          ns.seenChat         || {},
         appVersion:        ns.appVersion || APP_VERSION,
-        // elimUnlocked et elimRealTeams : gérés exclusivement par toggleUnlock/saveRealTeams
+        elimUnlocked:      ns.elimUnlocked    || [],
+        elimRealTeams:     ns.elimRealTeams   || {},
         gameScores:        ns.gameScores      || {},
         gameScoresTotal:   ns.gameScoresTotal || {},
         gameHistory:       ns.gameHistory     || {},
         gamePlaysToday:    ns.gamePlaysToday   || {},
         challenges:        ns.challenges      || {},
         presence:          ns.presence        || {},
-        // finaleData géré exclusivement par saveFinalePrediction/saveFinaleOfficial
+        finaleData:        ns.finaleData      || { official:null, predictions:{} },
       };
-      // Chat / matchComments : jamais réécrits en masse non plus
+      // ⚠️ Le chat ET les commentaires par match ne sont PAS inclus ici —
+      // ils sont gérés via des écritures atomiques (sendChat/addReaction)
+      // pour éviter les race conditions (écrasement mutuel de messages
+      // quand une autre action quelconque appelle save() avec un état local périmé)
       const chatHasContent =
         (ns.chat?.famille?.length  || 0) > 0 ||
         (ns.chat?.collegues?.length || 0) > 0 ||
         (ns.chat?.externe?.length  || 0) > 0;
-      if (!chatHasContent) updates.chat = { famille: [], collegues: [], externe: [] };
+      if (!chatHasContent) {
+        // Première fois ou chat vide → initialiser la structure
+        updates.chat = { famille: [], collegues: [], externe: [] };
+      }
+      // matchComments : jamais réécrit en entier ici (uniquement via écritures
+      // atomiques) — sauf s'il n'existe pas encore du tout côté local (init)
       if (!ns.matchComments || Object.keys(ns.matchComments).length === 0) {
         updates.matchComments = {};
       }
@@ -4058,8 +4063,19 @@ export default function App() {
             [ch.to]:  [...(gh[ch.to]  ||[]),mkE(winner===ch.to,  ch.from)].slice(-50),
           },
         };
-        persistFirebase(ns);
-        if (_fbReady) _fbUpdate(`/challenges/${penChallengeId}`, newCh); // protection scopée anti-écrasement
+        // ⚠️ Pas de persistFirebase(ns) ici — il écraserait users/predictions/results
+        // avec l'état local potentiellement périmé. Écriture scopée uniquement :
+        if (_fbReady) {
+          const scopedUpdates = {
+            [`challenges/${penChallengeId}`]: newCh,
+            gamePlaysToday: ns.gamePlaysToday,
+            gameScores: ns.gameScores,
+            gameScoresTotal: ns.gameScoresTotal,
+            [`gameHistory/${ch.from}`]: ns.gameHistory[ch.from],
+            [`gameHistory/${ch.to}`]:   ns.gameHistory[ch.to],
+          };
+          _fbUpdate("/", scopedUpdates);
+        }
         try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
         return ns;
       });
@@ -4067,8 +4083,8 @@ export default function App() {
     } else {
       setSt(prev => {
         const ns = {...prev, challenges:{...(prev.challenges||{}),[penChallengeId]:newCh}};
-        persistFirebase(ns);
-        if (_fbReady) _fbUpdate(`/challenges/${penChallengeId}`, newCh); // protection scopée anti-écrasement
+        // Écriture scopée uniquement — pas de persistFirebase pour éviter d'écraser users/predictions
+        if (_fbReady) _fbUpdate(`/challenges/${penChallengeId}`, newCh);
         try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
         return ns;
       });
@@ -4515,16 +4531,14 @@ export default function App() {
     if (!u) { showNotif("error", "❌ Entre ton pseudo"); return; }
     if (u === "admin") {
       if (pw !== "2026") { showNotif("error", "❌ Mot de passe incorrect"); return; }
-      const adminData = { role: "admin" };
+      // ⚠️ Ne pas save(ns) avec tout l'état — écriture atomique uniquement sur users/admin
       setSt(prev => {
-        const ns = {...prev, users:{...prev.users, admin: adminData}};
+        const ns = {...prev, users:{...prev.users, admin:{role:"admin"}}};
         try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
         return ns;
       });
-      // Écriture scopée : ne touche qu'au compte admin, jamais aux autres
-      if (_fbReady) { _fbUpdate("/users", { admin: adminData }); trackWrite("users.admin", adminData); }
-      localStorage.setItem("APP_VERSION", APP_VERSION); setUser("admin");
-      soundLogin(); stopLoginMusic();
+      if (_fbReady) _fbUpdate("/users/admin", {role:"admin"});
+      soundLogin(); stopLoginMusic(); localStorage.setItem("APP_VERSION", APP_VERSION); setUser("admin");
       seen.current = new Set(Object.keys(st.seenAnim||{}));
       showNotif("success", "✅ Connecté en tant qu'Admin");
       setTab("home"); setScr("app"); return;
@@ -4588,19 +4602,18 @@ export default function App() {
     if (!pw) { showNotif("error", "❌ Entre ton mot de passe"); return; }
     if (pw !== existingUser.pw) { showNotif("error", "❌ Mot de passe incorrect"); return; }
 
-    // Pas besoin d'écrire en Firebase : les données sont déjà là.
-    // On met juste à jour l'état local et localStorage.
-    const ns = {...st};
-    setSt(ns);
-    persist(ns);
+    // ⚠️ NE PAS appeler save(ns) ici — écrire tout l'état Firebase à la connexion
+    // écrase les données récentes (rôles, résultats, pronos) avec la version locale
+    // potentiellement périmée. On se contente de noter la version et de passer à l'app.
+    try { localStorage.setItem(KEY, JSON.stringify(st)); } catch(e) {}
     localStorage.setItem("APP_VERSION", APP_VERSION); setUser(u);
     soundLogin(); stopLoginMusic();
-    seen.current = new Set(Object.keys(ns.seenAnim||{}));
+    seen.current = new Set(Object.keys(st.seenAnim||{}));
     // Mémoriser les identifiants si demandé
     if (rememberMe) localStorage.setItem("cdm2026_remember", JSON.stringify({uname: u, pw}));
     else localStorage.removeItem("cdm2026_remember");
-    setLogin({uname: "", pw: "", pwConfirm: "", fname: "", lname: "", showPw: false, showPwConfirm: false, rememberMe: false}); // Reset fields
-    if (ns.users[u].role === "waiting") {
+    setLogin({uname: "", pw: "", pwConfirm: "", fname: "", lname: "", showPw: false, showPwConfirm: false, rememberMe: false});
+    if (st.users[u].role === "waiting") {
       setScr("waiting");
       showNotif("info", "⏳ En attente d'assignation par l'admin");
     } else {
@@ -4669,16 +4682,20 @@ export default function App() {
   function pick(id, val) {
     if (locked) return;
     soundClick();
+    let scopedPreds = null;
     setSt(prev => {
       const prevPreds = prev.predictions?.[user] || {};
-      const updatedPreds = {...prevPreds, [id]: val};
+      const updatedPreds = {...prevPreds, [id]:val};
+      scopedPreds = updatedPreds;
       const ns = {...prev, predictions:{...prev.predictions, [user]:updatedPreds}};
       try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
       return ns;
     });
-    // Écriture atomique sur UNE SEULE CLÉ : predictions/user/matchId
-    // Ne touche JAMAIS aux autres matchs du joueur, ni aux autres joueurs.
-    if (_fbReady) { _fbUpdate("/", {[`predictions/${user}/${id}`]: val}); trackWrite(`predictions.${user}.${id}`, val); }
+    // Écriture scopée sur ce seul joueur : ne touche JAMAIS aux pronostics des
+    // autres joueurs, ni aux scores/validations en cours (ex: l'admin qui entre
+    // un résultat exactement au même instant, ou un autre joueur qui valide une
+    // phase élim comme les demis).
+    if (_fbReady) { _fbUpdate("/predictions", {[user]: scopedPreds}); trackWrite(`predictions.${user}`, scopedPreds); }
   }
 
   // ── ADMIN: modifier les pronos d'un joueur ──
@@ -4686,12 +4703,17 @@ export default function App() {
     setSt(prev => {
       const currentPreds = (prev.predictions||{})[targetUser] || {};
       const updatedUserPreds = { ...currentPreds, [matchId]: value };
-      const ns = { ...prev, predictions: { ...(prev.predictions||{}), [targetUser]: updatedUserPreds } };
+      const ns = {
+        ...prev,
+        predictions: { ...(prev.predictions||{}), [targetUser]: updatedUserPreds },
+      };
+      // Écriture scopée sur ce seul joueur : ne touche jamais aux pronostics
+      // des autres joueurs, même si l'état admin local est momentanément
+      // en retard par rapport à une validation concurrente d'un autre joueur.
+      if (_fbReady) { _fbUpdate(`/predictions/${targetUser}`, updatedUserPreds); trackWrite(`predictions.${targetUser}`, updatedUserPreds); }
       try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
       return ns;
     });
-    // Écriture atomique sur UNE SEULE CLÉ : ne touche jamais aux autres matchs
-    if (_fbReady) { _fbUpdate("/", {[`predictions/${targetUser}/${matchId}`]: value}); trackWrite(`predictions.${targetUser}.${matchId}`, value); }
     showNotif("success", `✅ Prono de ${targetUser.toUpperCase()} modifié`);
   }
 
@@ -4743,35 +4765,45 @@ export default function App() {
   // ── 3e ÉQUIPE (sélection du groupe pour les seizièmes) ──
   function pickThird(matchId, side, group) {
     if (locked) return;
-    const key = matchId + "_" + side;
+    let scopedThirds = null;
     setSt(prev => {
       const prevUserThirds = (prev.thirdPicks||{})[user] || {};
-      const updatedUserThirds = { ...prevUserThirds, [key]: group };
-      const ns = {...prev, thirdPicks: {...(prev.thirdPicks||{}), [user]: updatedUserThirds}};
+      const updatedUserThirds = { ...prevUserThirds, [matchId+"_"+side]: group };
+      scopedThirds = updatedUserThirds;
+      const ns = {
+        ...prev,
+        thirdPicks: {
+          ...(prev.thirdPicks||{}),
+          [user]: updatedUserThirds
+        }
+      };
       try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
       return ns;
     });
-    // Écriture atomique sur une seule clé
-    if (_fbReady) { _fbUpdate("/", {[`thirdPicks/${user}/${key}`]: group}); trackWrite(`thirdPicks.${user}.${key}`, group); }
+    // Écriture scopée sur ce seul joueur
+    if (_fbReady) { _fbUpdate(`/thirdPicks/${user}`, scopedThirds); trackWrite(`thirdPicks.${user}`, scopedThirds); }
   }
   function setOfficialThird(matchId, side, group) {
-    const officialThirdsNow = st.officialThirds || {};
-    const alreadyUsed = Object.entries(officialThirdsNow).some(([key, val]) => {
+    // Vérifier que ce groupe n'est pas déjà utilisé ailleurs dans les seizièmes
+    const officialThirds = st.officialThirds || {};
+    const alreadyUsed = Object.entries(officialThirds).some(([key, val]) => {
       const [mId] = key.split("_");
       return mId !== matchId && val === group;
     });
+    
     if (alreadyUsed) {
       showNotif("error", `❌ Le groupe ${group} est déjà utilisé dans un autre match !`);
       return;
     }
-    const newKey = matchId + "_" + side;
+    
+    const key = matchId+"_"+side;
     setSt(prev => {
-      const ns = {...prev, officialThirds: {...(prev.officialThirds||{}), [newKey]: group}};
+      const updated = { ...(prev.officialThirds||{}), [key]: group };
+      const ns = {...prev, officialThirds: updated};
+      if (_fbReady) { _fbUpdate(`/officialThirds/${key}`, group); trackWrite(`officialThirds.${key}`, group); }
       try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
       return ns;
     });
-    // Écriture scopée : ne touche qu'à cette clé, jamais aux users/predictions/results
-    if (_fbReady) { _fbUpdate("/officialThirds", { [newKey]: group }); trackWrite(`officialThirds.${newKey}`, group); }
     showNotif("success", `✅ Groupe ${group} assigné`);
   }
 
@@ -4841,37 +4873,29 @@ export default function App() {
     if (_fbReady) { _fbUpdate("/users", {[u]: updatedUser}); trackWrite(`users.${u}`, updatedUser); }
   }
   function setScore(id, side, val) {
-    // Calculer AVANT setSt (synchrone) pour éviter que scopedScore/scopedResult
-    // soient encore undefined quand _fbUpdate est appelé juste après.
-    const prevScores  = st.scores  || {};
-    const prevResults = st.results || {};
-    const prevResultTs = st.resultTs || {};
-    const cur     = prevScores[id] || {h:"", a:""};
-    const updated = {...cur, [side]: val};
-    const match   = MATCHES.find(m=>m.id===id);
-    const outcome = outcomeOf(updated, match?.phase !== "poules");
-
-    const scopedScore = updated;
-    let scopedResult = null, scopedResultTs = null, resultDeleted = false;
-    const newResults  = {...prevResults};
-    const newResultTs = {...prevResultTs};
-    if (outcome) {
-      newResults[id]  = outcome;
-      newResultTs[id] = Date.now();
-      scopedResult    = outcome;
-      scopedResultTs  = newResultTs[id];
-    } else {
-      delete newResults[id];
-      delete newResultTs[id];
-      resultDeleted = true;
-    }
-
+    // Utilise setSt fonctionnel pour éviter la race condition :
+    // deux saisies rapides (score dom puis ext) ne s'écrasent plus
+    let scopedScore, scopedResult, scopedResultTs, resultDeleted = false;
     setSt(prev => {
-      const ns = {...prev,
-        scores:   {...(prev.scores||{}),   [id]: updated},
-        results:  newResults,
-        resultTs: newResultTs,
-      };
+      const cur = (prev.scores||{})[id] || {h:"", a:""};
+      const updated = {...cur, [side]: val};
+      const ns = {...prev, scores:{...(prev.scores||{}), [id]: updated}};
+      const match = MATCHES.find(m=>m.id===id);
+      const outcome = outcomeOf(updated, match?.phase !== "poules");
+      ns.results = {...(prev.results||{})};
+      if (outcome) {
+        ns.results[id] = outcome;
+        // Stocker le timestamp de saisie pour trier par ordre réel de saisie
+        ns.resultTs = {...(prev.resultTs||{}), [id]: Date.now()};
+        scopedResult = outcome; scopedResultTs = ns.resultTs[id];
+      } else {
+        delete ns.results[id];
+        const ts2 = {...(prev.resultTs||{})};
+        delete ts2[id];
+        ns.resultTs = ts2;
+        resultDeleted = true;
+      }
+      scopedScore = updated;
       if (updated.h && updated.a) {
         const homeTeam = resolveTeam(match.home, ns.results||{}, {}, ns.officialThirds||{});
         const awayTeam = resolveTeam(match.away, ns.results||{}, {}, ns.officialThirds||{});
@@ -4881,14 +4905,14 @@ export default function App() {
       try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
       return ns;
     });
-
+    // Écriture scopée sur ce seul match (scores/results/resultTs) : ne touche
+    // JAMAIS aux pronostics, validations ou verrous des joueurs, même si l'un
+    // d'eux valide une phase (ex: demis) exactement au même instant.
     if (_fbReady) {
       const updates = { [`scores/${id}`]: scopedScore };
       if (resultDeleted) { updates[`results/${id}`] = null; updates[`resultTs/${id}`] = null; }
       else { updates[`results/${id}`] = scopedResult; updates[`resultTs/${id}`] = scopedResultTs; }
       _fbUpdate("/", updates);
-      if (resultDeleted) { trackDelete(`results.${id}`); trackDelete(`scores.${id}`); }
-      else { trackWrite(`results.${id}`, scopedResult); trackWrite(`scores.${id}`, scopedScore); }
     }
   }
 
@@ -5844,31 +5868,15 @@ export default function App() {
     </div>
   );
 
-  // 🛡️ Garde de sécurité : si user est défini mais a disparu de Firebase
-  // (ex: snapshot périmé reçu juste après une écriture), on attend le prochain
-  // onValue plutôt que de crasher le render et d'afficher un écran blanc
-  if (user && !st.users[user]) return (
-    <div style={t.root}>
-      <div style={{...t.loginWrap,gap:16,textAlign:"center"}}>
-        <div style={{fontSize:48}}>🔄</div>
-        <div style={{fontSize:15,color:MUTED}}>Synchronisation en cours…</div>
-        <button style={{...t.btnXS,marginTop:8}} onClick={doLogout}>Retour à l'accueil</button>
-      </div>
-    </div>
-  );
-
   // ─── APP ───
-  // Garde de sécurité : si le compte a disparu de Firebase (suppression ou
-  // race condition), on reste sur l'écran d'attente plutôt que de crasher.
-  if (scr === "app" && user && !st.users[user]) {
+  // Garde anti-crash : si st.users[user] n'est pas encore arrivé via Firebase
+  // (latence de propagation après changement de rôle ou création de compte),
+  // on affiche un écran de chargement plutôt que de crasher.
+  if (scr !== "login" && scr !== "waiting" && user && user !== "admin" && !st.users[user]) {
     return (
-      <div style={t.root}>
-        <div style={{...t.loginWrap,gap:16,textAlign:"center"}}>
-          <div style={{fontSize:48}}>🔄</div>
-          <div style={{fontSize:16,fontWeight:700,color:GOLD}}>Synchronisation…</div>
-          <div style={{fontSize:12,color:MUTED}}>Tes données arrivent dans un instant.</div>
-          <button style={{...t.btnXS,marginTop:8}} onClick={doLogout}>Retour à l'accueil</button>
-        </div>
+      <div style={{minHeight:"100dvh",background:"#0a0e1a",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16}}>
+        <div style={{fontSize:36,animation:"spin 1.2s linear infinite"}}>⚽</div>
+        <div style={{color:"#6b7fa8",fontSize:13}}>Chargement de ton compte…</div>
       </div>
     );
   }
@@ -6820,14 +6828,18 @@ export default function App() {
                             <div style={{display:"flex",gap:6}}>
                               {["1","2"].map(v=>(
                                 <button key={v} onClick={()=>{
+                                  let scopedPreds = null;
                                   setSt(prev => {
                                     const prevPreds = (prev.predictions||{})[user] || {};
-                                    const updatedPreds = {...prevPreds, [m.id]: v};
+                                    const updatedPreds = {...prevPreds, [m.id]:v};
+                                    scopedPreds = updatedPreds;
                                     const ns = {...prev, predictions:{...prev.predictions, [user]:updatedPreds}};
                                     try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
                                     return ns;
                                   });
-                                  if (_fbReady) { _fbUpdate("/", {[`predictions/${user}/${m.id}`]: v}); trackWrite(`predictions.${user}.${m.id}`, v); }
+                                  // Écriture scopée : ne touche jamais aux pronostics des autres
+                                  // joueurs, ni aux scores saisis par l'admin au même instant.
+                                  if (_fbReady) { _fbUpdate("/predictions", {[user]: scopedPreds}); trackWrite(`predictions.${user}`, scopedPreds); }
                                 }}                                  style={{flex:1,padding:"8px",borderRadius:8,border:"none",cursor:"pointer",fontFamily:"inherit",fontWeight:700,fontSize:11,transition:"all .15s",
                                     background:myPred===v?"rgba(245,200,66,.25)":"rgba(255,255,255,.06)",
                                     color:myPred===v?GOLD:MUTED,
@@ -7759,9 +7771,7 @@ export default function App() {
                         style={{flex:1,background:"rgba(239,68,68,.8)",border:"none",color:"#fff",borderRadius:8,padding:"8px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}
                         onClick={()=>{
                           const ns={...st, predictions:{}, results:{}, scores:{}, validatedGroups:{}, finalLock:{}, seenAnim:{}};
-                          setSt(ns); persist(ns);
-                          // Reset complet intentionnel via écritures scopées
-                          if (_fbReady) _fbUpdate("/", { predictions:{}, results:{}, scores:{}, validatedGroups:{}, finalLock:{}, seenAnim:{} });
+                          save(ns);
                           setConfirmReset(false);
                         }}>Confirmer</button>
                       <button
@@ -8776,39 +8786,43 @@ export default function App() {
                 const setTeamInputs = setAdminTeamInputs;
 
                 const toggleUnlock = (phase) => {
-                  // Calculé AVANT setSt (synchrone) pour éviter le bug de callback async
-                  const cur = st.elimUnlocked || [];
-                  const isLocked = cur.includes(phase);
-                  const newUnlocked = isLocked ? cur.filter(p=>p!==phase) : [...cur, phase];
+                  let scopedUnlocked = null;
                   setSt(prev => {
-                    const ns = {...prev, elimUnlocked: newUnlocked};
+                    const cur = prev.elimUnlocked || [];
+                    const isLocked = cur.includes(phase);
+                    const updated = isLocked ? cur.filter(p=>p!==phase) : [...cur, phase];
+                    scopedUnlocked = updated;
+                    const ns = {...prev, elimUnlocked: updated};
                     try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
+                    showNotif("success", `${isLocked?"🔒 Verrouillé":"🔓 Déverrouillé"} : ${phaseLabels[phase]}`);
                     return ns;
                   });
-                  showNotif("success", `${isLocked?"🔒 Verrouillé":"🔓 Déverrouillé"} : ${phaseLabels[phase]}`);
-                  if (_fbReady) { _fbUpdate("/", { elimUnlocked: newUnlocked }); trackWrite("elimUnlocked", newUnlocked); }
+                  // Écriture scopée sur /elimUnlocked uniquement : ne touche jamais aux
+                  // pronostics/validations en cours des joueurs.
+                  if (_fbReady) { _fbUpdate("/", { elimUnlocked: scopedUnlocked }); trackWrite("elimUnlocked", scopedUnlocked); }
                 };
 
                 const saveRealTeams = (phase) => {
                   const matchList = MATCHES.filter(m=>m.phase===phase&&m.group==="ELIM");
-                  // Calculé AVANT setSt (synchrone) — évite que la variable soit null
-                  // quand _fbUpdate est appelé juste après (bug du callback async setSt)
-                  const prevElimRealTeams = st.elimRealTeams || {};
-                  const updates = {};
-                  matchList.forEach(m => {
-                    const h = teamInputs[m.id+"_home"] || (prevElimRealTeams[m.id]?.home) || "";
-                    const a = teamInputs[m.id+"_away"] || (prevElimRealTeams[m.id]?.away) || "";
-                    if (h || a) updates[m.id] = {home:h||m.home, away:a||m.away};
-                  });
-                  const newElimRealTeams = {...prevElimRealTeams, ...updates};
+                  let scopedRealTeams = null;
                   setSt(prev => {
-                    const ns = {...prev, elimRealTeams: newElimRealTeams};
+                    const prevElimRealTeams = prev.elimRealTeams || {};
+                    const updates = {};
+                    matchList.forEach(m => {
+                      const h = teamInputs[m.id+"_home"] || (prevElimRealTeams[m.id]?.home) || "";
+                      const a = teamInputs[m.id+"_away"] || (prevElimRealTeams[m.id]?.away) || "";
+                      if (h || a) updates[m.id] = {home:h||m.home, away:a||m.away};
+                    });
+                    const merged = {...prevElimRealTeams, ...updates};
+                    scopedRealTeams = merged;
+                    const ns = {...prev, elimRealTeams: merged};
                     try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
+                    showNotif("success", "✅ Affiches enregistrées !");
+                    setEditPhase(null); setTeamInputs({});
                     return ns;
                   });
-                  showNotif("success", "✅ Affiches enregistrées !");
-                  setEditPhase(null); setTeamInputs({});
-                  if (_fbReady) { _fbUpdate("/", { elimRealTeams: newElimRealTeams }); trackWrite("elimRealTeams", newElimRealTeams); }
+                  // Écriture scopée sur /elimRealTeams uniquement
+                  if (_fbReady) { _fbUpdate("/", { elimRealTeams: scopedRealTeams }); trackWrite("elimRealTeams", scopedRealTeams); }
                 };
 
                 return (
@@ -9136,47 +9150,49 @@ export default function App() {
             const isNumeric = typeof score === "number";
             if (!isNumeric) {
               // Cas "buteur" : score = nom du gagnant choisi
-              const updatedGS = { ...((st.gameScores||{})[game]||{}), [user]: score };
+              let scopedGS = null;
               setSt(prev => {
-                const ns = { ...prev, gameScores: { ...(prev.gameScores||{}), [game]: updatedGS } };
+                const updated = { ...((prev.gameScores||{})[game]||{}), [user]: score };
+                scopedGS = updated;
+                const ns = { ...prev, gameScores: { ...(prev.gameScores||{}), [game]: updated } };
                 try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
                 return ns;
               });
-              if (_fbReady) _fbUpdate(`/gameScores/${game}`, updatedGS);
+              if (_fbReady) _fbUpdate(`/gameScores/${game}`, scopedGS);
               return;
             }
 
             const currentCount = getDailyCount(game, user);
             const capped = currentCount >= DAILY_PLAY_LIMIT;
 
-            // Calculer AVANT setSt (synchrone)
-            const gameHistoryAll  = st.gameHistory || {};
-            const userHistory     = gameHistoryAll[user] || [];
-            const newEntry        = { game, score, mode, opponent, won, ts: Date.now() };
-            const cappedHistory   = [...userHistory, newEntry].slice(-50);
-            const newPlaysToday   = bumpDailyCount(game, user);
-            const playsForGame    = newPlaysToday[game];
-
-            let newGameScores = null, newGameScoresTotal = null;
-            if (!capped) {
-              const gs  = st.gameScores  || {};
-              const gst = st.gameScoresTotal || {};
-              const prevBest  = (gs[game]  || {})[user];
-              const prevTotal = (gst[game] || {})[user] || 0;
-              const newBest = (typeof prevBest === "number" && prevBest > score) ? prevBest : score;
-              newGameScores      = { ...(gs[game] ||{}), [user]: newBest };
-              newGameScoresTotal = { ...(gst[game]||{}), [user]: prevTotal + score };
-            }
-
+            let scopedPlaysToday, scopedHistory, scopedGameScores, scopedGameScoresTotal;
             setSt(prev => {
-              let ns = {
-                ...prev,
-                gamePlaysToday: newPlaysToday,
-                gameHistory:    { ...(prev.gameHistory||{}), [user]: cappedHistory },
-              };
-              if (!capped) {
-                ns.gameScores      = { ...(prev.gameScores||{}),      [game]: newGameScores };
-                ns.gameScoresTotal = { ...(prev.gameScoresTotal||{}), [game]: newGameScoresTotal };
+              const gameHistoryAll = prev.gameHistory || {};
+              const userHistory = (gameHistoryAll[user] || []);
+              const newEntry = { game, score, mode, opponent, won, ts: Date.now() };
+              const cappedHistory = [...userHistory, newEntry].slice(-50); // max 50 entrées
+              const newPlaysToday = bumpDailyCount(game, user);
+              scopedPlaysToday = newPlaysToday[game];
+              scopedHistory = cappedHistory;
+
+              let ns;
+              if (capped) {
+                ns = { ...prev, gamePlaysToday: newPlaysToday, gameHistory: { ...gameHistoryAll, [user]: cappedHistory } };
+              } else {
+                const gs = prev.gameScores || {};
+                const gst = prev.gameScoresTotal || {};
+                const prevBest  = (gs[game] || {})[user];
+                const prevTotal = (gst[game] || {})[user] || 0;
+                const newBest = (typeof prevBest === "number" && prevBest > score) ? prevBest : score;
+                scopedGameScores = { ...(gs[game]||{}),  [user]: newBest };
+                scopedGameScoresTotal = { ...(gst[game]||{}), [user]: prevTotal + score };
+                ns = {
+                  ...prev,
+                  gamePlaysToday:  newPlaysToday,
+                  gameScores:      { ...gs,  [game]: scopedGameScores },
+                  gameScoresTotal: { ...gst, [game]: scopedGameScoresTotal },
+                  gameHistory:     { ...gameHistoryAll, [user]: cappedHistory },
+                };
               }
               try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
               return ns;
@@ -9184,9 +9200,9 @@ export default function App() {
             // Écritures scopées : chaque branche ne touche que ses propres clés
             // (jeu précis / joueur précis), jamais les pronostics ou validations.
             if (_fbReady) {
-              const updates = { [`gamePlaysToday/${game}`]: playsForGame, [`gameHistory/${user}`]: cappedHistory };
-              if (newGameScores)      updates[`gameScores/${game}`]      = newGameScores;
-              if (newGameScoresTotal) updates[`gameScoresTotal/${game}`] = newGameScoresTotal;
+              const updates = { [`gamePlaysToday/${game}`]: scopedPlaysToday, [`gameHistory/${user}`]: scopedHistory };
+              if (scopedGameScores) updates[`gameScores/${game}`] = scopedGameScores;
+              if (scopedGameScoresTotal) updates[`gameScoresTotal/${game}`] = scopedGameScoresTotal;
               _fbUpdate("/", updates);
             }
 
@@ -9665,7 +9681,7 @@ export default function App() {
                   {myDeclinedChallenges.map(([id,ch])=>(
                     <div key={id} style={{...t.card,marginBottom:6,padding:"8px 12px",display:"flex",justifyContent:"space-between",alignItems:"center",background:"rgba(239,68,68,.06)",border:"1px solid rgba(239,68,68,.25)"}}>
                       <span style={{fontSize:11,color:TXT}}>{({quiz:"Quiz",quisuisje:"Qui suis-je ?",plusmoins:"Plus ou Moins",toptrumps:"Qui a le plus ?",mystere:"Footballeur Mystère"})[ch.game]||ch.game} vs {ch.to.toUpperCase()} — refusé</span>
-                      <button onClick={()=>{setSt(prev=>{const ns={...(prev.challenges||{})};delete ns[id];const ns2={...prev,challenges:ns};persistFirebase(ns2);try{localStorage.setItem(KEY,JSON.stringify(ns2));}catch(e){}return ns2;});}} style={{background:"none",border:"none",color:MUTED,fontSize:14,cursor:"pointer",padding:"0 4px"}}>✕</button>
+                      <button onClick={()=>{setSt(prev=>{const ns={...(prev.challenges||{})};delete ns[id];const ns2={...prev,challenges:ns};if(_fbReady)_fbUpdate("/",{[`challenges/${id}`]:null});try{localStorage.setItem(KEY,JSON.stringify(ns2));}catch(e){}return ns2;});}} style={{background:"none",border:"none",color:MUTED,fontSize:14,cursor:"pointer",padding:"0 4px"}}>✕</button>
                     </div>
                   ))}
                 </div>
