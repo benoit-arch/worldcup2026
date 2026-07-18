@@ -4976,6 +4976,12 @@ export default function App() {
         if (scopedUserPreds) updates[`predictions/${user}`] = scopedUserPreds;
         _fbUpdate("/", updates);
       }
+      // ⚠️ Protection anti-écrasement (comme partout ailleurs dans l'app) : sans ça,
+      // un retour Firebase encore en retard juste après cette écriture pouvait effacer
+      // le pronostic finale tout juste saisi — et avec lui, via le même nœud
+      // predictions/{user}, les pronostics des phases précédentes (quarts, demis, 3e place...).
+      trackWrite(`finaleData.predictions.${user}`, merged);
+      if (scopedUserPreds) trackWrite(`predictions.${user}`, scopedUserPreds);
       return ns;
     });
   }
