@@ -4771,23 +4771,14 @@ export default function App() {
   // ── 3e ÉQUIPE (sélection du groupe pour les seizièmes) ──
   function pickThird(matchId, side, group) {
     if (locked) return;
-    let scopedThirds = null;
+    const prevUserThirds    = (st.thirdPicks||{})[user] || {};
+    const updatedUserThirds = { ...prevUserThirds, [matchId+"_"+side]: group };
     setSt(prev => {
-      const prevUserThirds = (prev.thirdPicks||{})[user] || {};
-      const updatedUserThirds = { ...prevUserThirds, [matchId+"_"+side]: group };
-      scopedThirds = updatedUserThirds;
-      const ns = {
-        ...prev,
-        thirdPicks: {
-          ...(prev.thirdPicks||{}),
-          [user]: updatedUserThirds
-        }
-      };
+      const ns = {...prev, thirdPicks:{...(prev.thirdPicks||{}), [user]: updatedUserThirds}};
       try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
       return ns;
     });
-    // Écriture scopée sur ce seul joueur
-    if (_fbReady) { _fbUpdate(`/thirdPicks/${user}`, scopedThirds); trackWrite(`thirdPicks.${user}`, scopedThirds); }
+    if (_fbReady) { _fbUpdate(`/thirdPicks/${user}`, updatedUserThirds); trackWrite(`thirdPicks.${user}`, updatedUserThirds); }
   }
   function setOfficialThird(matchId, side, group) {
     // Vérifier que ce groupe n'est pas déjà utilisé ailleurs dans les seizièmes
@@ -8792,49 +8783,38 @@ export default function App() {
                 const setTeamInputs = setAdminTeamInputs;
 
                 const toggleUnlock = (phase) => {
-                  let scopedUnlocked = null;
+                  const cur = st.elimUnlocked || [];
+                  const isLocked = cur.includes(phase);
+                  const newUnlocked = isLocked ? cur.filter(p=>p!==phase) : [...cur, phase];
                   setSt(prev => {
-                    const cur = prev.elimUnlocked || [];
-                    const isLocked = cur.includes(phase);
-                    const updated = isLocked ? cur.filter(p=>p!==phase) : [...cur, phase];
-                    scopedUnlocked = updated;
-                    const ns = {...prev, elimUnlocked: updated};
+                    const ns = {...prev, elimUnlocked: newUnlocked};
                     try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
                     showNotif("success", `${isLocked?"🔒 Verrouillé":"🔓 Déverrouillé"} : ${phaseLabels[phase]}`);
                     return ns;
                   });
-                  // Écriture scopée sur /elimUnlocked uniquement : ne touche jamais aux
-                  // pronostics/validations en cours des joueurs.
-                  if (_fbReady) { _fbUpdate("/", { elimUnlocked: scopedUnlocked }); trackWrite("elimUnlocked", scopedUnlocked); }
+                  if (_fbReady) { _fbUpdate("/", { elimUnlocked: newUnlocked }); trackWrite("elimUnlocked", newUnlocked); }
                 };
 
                 const saveRealTeams = (phase) => {
                   const matchList = MATCHES.filter(m=>m.phase===phase&&m.group==="ELIM");
-                  let scopedRealTeams = null;
+                  // Calculé AVANT setSt (synchrone) — évite que la variable soit null
+                  // quand _fbUpdate est appelé (bug du callback async setSt)
+                  const prevElimRealTeams = st.elimRealTeams || {};
+                  const updates = {};
+                  matchList.forEach(m => {
+                    const h = teamInputs[m.id+"_home"] || (prevElimRealTeams[m.id]?.home) || "";
+                    const a = teamInputs[m.id+"_away"] || (prevElimRealTeams[m.id]?.away) || "";
+                    if (h || a) updates[m.id] = {home:h||m.home, away:a||m.away};
+                  });
+                  const newElimRealTeams = {...prevElimRealTeams, ...updates};
                   setSt(prev => {
-                    const prevElimRealTeams = prev.elimRealTeams || {};
-                    const updates = {};
-                    matchList.forEach(m => {
-                      const h = teamInputs[m.id+"_home"] || (prevElimRealTeams[m.id]?.home) || "";
-                      const a = teamInputs[m.id+"_away"] || (prevElimRealTeams[m.id]?.away) || "";
-                      if (h || a) updates[m.id] = {home:h||m.home, away:a||m.away};
-                    });
-                    const merged = {...prevElimRealTeams, ...updates};
-                    scopedRealTeams = merged;
-                    const ns = {...prev, elimRealTeams: merged};
+                    const ns = {...prev, elimRealTeams: newElimRealTeams};
                     try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
                     showNotif("success", "✅ Affiches enregistrées !");
-                    // ⚠️ On NE ferme PAS le panneau (pas de setEditPhase(null)) : sinon les
-                    // champs disparaissent instantanément à l'écran juste après le clic,
-                    // ce qui donne l'impression que les affiches viennent d'être effacées —
-                    // alors qu'elles sont bien enregistrées. On vide juste teamInputs pour
-                    // que les select retombent sur la valeur officielle (elimRealTeams),
-                    // preuve visuelle immédiate que ça a bien été pris en compte.
                     setTeamInputs({});
                     return ns;
                   });
-                  // Écriture scopée sur /elimRealTeams uniquement
-                  if (_fbReady) { _fbUpdate("/", { elimRealTeams: scopedRealTeams }); trackWrite("elimRealTeams", scopedRealTeams); }
+                  if (_fbReady) { _fbUpdate("/", { elimRealTeams: newElimRealTeams }); trackWrite("elimRealTeams", newElimRealTeams); }
                 };
 
                 return (
@@ -9162,15 +9142,13 @@ export default function App() {
             const isNumeric = typeof score === "number";
             if (!isNumeric) {
               // Cas "buteur" : score = nom du gagnant choisi
-              let scopedGS = null;
+              const updatedGS = { ...((st.gameScores||{})[game]||{}), [user]: score };
               setSt(prev => {
-                const updated = { ...((prev.gameScores||{})[game]||{}), [user]: score };
-                scopedGS = updated;
-                const ns = { ...prev, gameScores: { ...(prev.gameScores||{}), [game]: updated } };
+                const ns = { ...prev, gameScores: { ...(prev.gameScores||{}), [game]: updatedGS } };
                 try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
                 return ns;
               });
-              if (_fbReady) _fbUpdate(`/gameScores/${game}`, scopedGS);
+              if (_fbReady) _fbUpdate(`/gameScores/${game}`, updatedGS);
               return;
             }
 
