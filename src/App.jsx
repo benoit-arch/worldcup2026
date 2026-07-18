@@ -4712,7 +4712,7 @@ export default function App() {
     // autres joueurs, ni aux scores/validations en cours (ex: l'admin qui entre
     // un résultat exactement au même instant, ou un autre joueur qui valide une
     // phase élim comme les demis).
-    if (_fbReady) { _fbUpdate("/predictions", {[user]: scopedPreds}); trackWrite(`predictions.${user}`, scopedPreds); }
+    if (_fbReady) { _fbUpdate(`/predictions/${user}`, {[id]: val}); trackWrite(`predictions.${user}.${id}`, val); }
   }
 
   // ── ADMIN: modifier les pronos d'un joueur ──
@@ -4973,26 +4973,25 @@ export default function App() {
       const merged = {...prevMine, ...partial};
       const ns = {...prev, finaleData:{...(prev.finaleData||{}), predictions:{...(prev.finaleData?.predictions||{}), [user]: merged}}};
       // Synchroniser aussi predictions[user]["FIN"] en "1"/"2" pour rester compatible
-      let scopedUserPreds = null;
+      let finPredVal = null;
       if (merged.winner) {
-        const prevPreds = prev.predictions?.[user] || {};
-        scopedUserPreds = {...prevPreds, FIN: merged.winner === "home" ? "1" : "2"};
-        ns.predictions = {...prev.predictions, [user]: scopedUserPreds};
+        finPredVal = merged.winner === "home" ? "1" : "2";
+        ns.predictions = {...prev.predictions, [user]: {...(prev.predictions?.[user]||{}), FIN: finPredVal}};
       }
       try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
-      // Écriture scopée : ne touche qu'à finaleData.predictions/{user} + predictions/{user},
-      // jamais aux pronostics des autres joueurs.
+      // Écriture scopée EN FUSION : ne touche qu'à finaleData.predictions/{user} et à la
+      // seule clé predictions/{user}/FIN — jamais aux pronostics des autres joueurs, ni
+      // (surtout) aux autres matchs déjà pronostiqués par CE joueur (quarts, demis, 3e
+      // place...). Avant : on remplaçait tout le nœud predictions/{user} avec une copie
+      // locale, ce qui pouvait effacer les pronos précédents si un écho Firebase en
+      // retard arrivait après l'expiration de la fenêtre anti-écrasement (6s).
       if (_fbReady) {
         const updates = { [`finaleData/predictions/${user}`]: merged };
-        if (scopedUserPreds) updates[`predictions/${user}`] = scopedUserPreds;
+        if (finPredVal) updates[`predictions/${user}/FIN`] = finPredVal;
         _fbUpdate("/", updates);
       }
-      // ⚠️ Protection anti-écrasement (comme partout ailleurs dans l'app) : sans ça,
-      // un retour Firebase encore en retard juste après cette écriture pouvait effacer
-      // le pronostic finale tout juste saisi — et avec lui, via le même nœud
-      // predictions/{user}, les pronostics des phases précédentes (quarts, demis, 3e place...).
       trackWrite(`finaleData.predictions.${user}`, merged);
-      if (scopedUserPreds) trackWrite(`predictions.${user}`, scopedUserPreds);
+      if (finPredVal) trackWrite(`predictions.${user}.FIN`, finPredVal);
       return ns;
     });
   }
@@ -6859,7 +6858,7 @@ export default function App() {
                                   });
                                   // Écriture scopée : ne touche jamais aux pronostics des autres
                                   // joueurs, ni aux scores saisis par l'admin au même instant.
-                                  if (_fbReady) { _fbUpdate("/predictions", {[user]: scopedPreds}); trackWrite(`predictions.${user}`, scopedPreds); }
+                                  if (_fbReady) { _fbUpdate(`/predictions/${user}`, {[m.id]: v}); trackWrite(`predictions.${user}.${m.id}`, v); }
                                 }}                                  style={{flex:1,padding:"8px",borderRadius:8,border:"none",cursor:"pointer",fontFamily:"inherit",fontWeight:700,fontSize:11,transition:"all .15s",
                                     background:myPred===v?"rgba(245,200,66,.25)":"rgba(255,255,255,.06)",
                                     color:myPred===v?GOLD:MUTED,
