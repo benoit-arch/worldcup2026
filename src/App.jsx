@@ -1463,7 +1463,7 @@ const MATCHES = [
   {id:"SF1",group:"ELIM",phase:"demis",home:"V. S1",away:"V. S2",date:"14 Juil.",dk:"2026-07-14",time:"21h00",city:"Dallas",tv:"beIN / M6"},
   {id:"SF2",group:"ELIM",phase:"demis",home:"V. S3",away:"V. S4",date:"15 Juil.",dk:"2026-07-15",time:"21h00",city:"Atlanta",tv:"beIN / M6"},
   // 3E PLACE & FINALE
-  {id:"P3",group:"ELIM",phase:"p3",home:"Perdant SF1",away:"Perdant SF2",date:"15 Juil.",dk:"2026-07-15",time:"23h00",city:"Miami",tv:"beIN / M6"},
+  {id:"P3",group:"ELIM",phase:"p3",home:"Perdant SF1",away:"Perdant SF2",date:"18 Juil.",dk:"2026-07-18",time:"23h00",city:"Miami",tv:"beIN / M6"},
   {id:"FIN",group:"ELIM",phase:"finale",home:"Vainqueur SF1",away:"Vainqueur SF2",date:"19 Juil.",dk:"2026-07-19",time:"21h00",city:"New York",tv:"beIN / M6"},
 ];
 
@@ -2665,8 +2665,14 @@ async function persistFirebase(ns) {
         forceLogoutSignal: ns.forceLogoutSignal || 0,
         seenChat:          ns.seenChat         || {},
         appVersion:        ns.appVersion || APP_VERSION,
-        elimUnlocked:      ns.elimUnlocked    || [],
-        elimRealTeams:     ns.elimRealTeams   || {},
+        // ⚠️ elimUnlocked / elimRealTeams : VOLONTAIREMENT absents d'ici.
+        // Ces deux champs ont leur propre écriture Firebase scopée + protégée
+        // anti-écrasement (toggleUnlock / saveRealTeams, avec trackWrite).
+        // Les inclure ici permettait à n'importe quelle action anodine faite
+        // sur UN AUTRE appareil (finir un défi, un mini-jeu...) d'écraser les
+        // affiches tout juste saisies par l'admin avec une copie locale périmée
+        // de CET appareil-là (qui n'avait pas encore reçu la dernière saisie).
+        // C'est ce qui causait la disparition "toute seule" des affiches.
         gameScores:        ns.gameScores      || {},
         gameScoresTotal:   ns.gameScoresTotal || {},
         gameHistory:       ns.gameHistory     || {},
