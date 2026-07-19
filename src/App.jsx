@@ -1860,7 +1860,19 @@ async function _initFirebase() {
     const app = getApps().length ? getApps()[0] : initializeApp(FB_CONFIG);
     _db = getDatabase(app);
     _fbRef = p => ref(_db, p);
-    _fbUpdate = (p, d) => update(ref(_db, p), d);
+    _fbUpdate = (p, d) => {
+      // Ne JAMAIS laisser une écriture Firebase planter le rendu React.
+      // ref()/update() lèvent une exception SYNCHRONE si le chemin contient un
+      // caractère interdit ('.', '#', '$', '[', ']', '/') — ex: un pseudo avec
+      // un point. Sans ce filet, ça casse tout l'écran (page blanche) au moment
+      // précis de l'appel, typiquement à la création d'un compte.
+      try {
+        return update(ref(_db, p), d).catch(e => console.warn("Firebase update rejeté:", p, e));
+      } catch (e) {
+        console.warn("Firebase update invalide (chemin ou données) :", p, e);
+        return Promise.resolve();
+      }
+    };
     _fbOnValue = onValue; _fbOff = off;
     _fbReady = true; return true;
   } catch(e) { console.warn("Firebase init failed, using localStorage:", e); return false; }
@@ -4542,6 +4554,7 @@ export default function App() {
 
     const u = uname.trim().toLowerCase();
     if (!u) { showNotif("error", "❌ Entre ton pseudo"); return; }
+    if (/[.#$\[\]/]/.test(u)) { showNotif("error", "❌ Le pseudo ne peut pas contenir . # $ [ ] /"); return; }
     if (u === "admin") {
       if (pw !== "2026") { showNotif("error", "❌ Mot de passe incorrect"); return; }
       // ⚠️ Ne pas save(ns) avec tout l'état — écriture atomique uniquement sur users/admin
@@ -4881,9 +4894,12 @@ export default function App() {
     if (_fbReady) { _fbUpdate("/users", {[u]: updatedUser}); trackWrite(`users.${u}`, updatedUser); }
   }
   function setScore(id, side, val) {
-    // Utilise setSt fonctionnel pour éviter la race condition :
-    // deux saisies rapides (score dom puis ext) ne s'écrasent plus
-    let scopedScore, scopedResult, scopedResultTs, resultDeleted = false;
+    // Tout le calcul ET les écritures (localStorage, tracking anti-écho, Firebase)
+    // se font DANS le updater : `updated`/`outcome` n'existent qu'ici. Les lire
+    // juste après l'appel à setSt() les lisait avant que React n'ait exécuté
+    // ce updater (il tourne au rendu, pas immédiatement) → on envoyait
+    // `undefined` à Firebase, qui rejetait l'écriture silencieusement.
+    // C'est ce qui faisait "disparaître" les résultats saisis (3e place inclus).
     setSt(prev => {
       const cur = (prev.scores||{})[id] || {h:"", a:""};
       const updated = {...cur, [side]: val};
@@ -4891,11 +4907,11 @@ export default function App() {
       const match = MATCHES.find(m=>m.id===id);
       const outcome = outcomeOf(updated, match?.phase !== "poules");
       ns.results = {...(prev.results||{})};
+      let resultDeleted = false;
       if (outcome) {
         ns.results[id] = outcome;
         // Stocker le timestamp de saisie pour trier par ordre réel de saisie
         ns.resultTs = {...(prev.resultTs||{}), [id]: Date.now()};
-        scopedResult = outcome; scopedResultTs = ns.resultTs[id];
       } else {
         delete ns.results[id];
         const ts2 = {...(prev.resultTs||{})};
@@ -4903,7 +4919,6 @@ export default function App() {
         ns.resultTs = ts2;
         resultDeleted = true;
       }
-      scopedScore = updated;
       if (updated.h && updated.a) {
         const homeTeam = resolveTeam(match.home, ns.results||{}, {}, ns.officialThirds||{});
         const awayTeam = resolveTeam(match.away, ns.results||{}, {}, ns.officialThirds||{});
@@ -4911,27 +4926,29 @@ export default function App() {
         soundScore();
       }
       try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
+
+      // Écriture scopée sur ce seul match (scores/results/resultTs) : ne touche
+      // JAMAIS aux pronostics, validations ou verrous des joueurs, même si l'un
+      // d'eux valide une phase (ex: demis) exactement au même instant.
+      // Protection anti-écrasement : si un écho Firebase en retard revient dans
+      // les 6s, on réinjecte notre valeur locale (voir recentWritesRef plus haut).
+      trackWrite(`scores.${id}`, updated);
+      if (resultDeleted) {
+        trackDelete(`results.${id}`);
+        trackDelete(`resultTs.${id}`);
+      } else {
+        trackWrite(`results.${id}`, ns.results[id]);
+        trackWrite(`resultTs.${id}`, ns.resultTs[id]);
+      }
+      if (_fbReady) {
+        const updates = { [`scores/${id}`]: updated };
+        if (resultDeleted) { updates[`results/${id}`] = null; updates[`resultTs/${id}`] = null; }
+        else { updates[`results/${id}`] = ns.results[id]; updates[`resultTs/${id}`] = ns.resultTs[id]; }
+        _fbUpdate("/", updates);
+      }
+
       return ns;
     });
-    // Écriture scopée sur ce seul match (scores/results/resultTs) : ne touche
-    // JAMAIS aux pronostics, validations ou verrous des joueurs, même si l'un
-    // d'eux valide une phase (ex: demis) exactement au même instant.
-    // Protection anti-écrasement : si un écho Firebase en retard revient dans
-    // les 6s, on réinjecte notre valeur locale (voir recentWritesRef plus haut).
-    trackWrite(`scores.${id}`, scopedScore);
-    if (resultDeleted) {
-      trackDelete(`results.${id}`);
-      trackDelete(`resultTs.${id}`);
-    } else {
-      trackWrite(`results.${id}`, scopedResult);
-      trackWrite(`resultTs.${id}`, scopedResultTs);
-    }
-    if (_fbReady) {
-      const updates = { [`scores/${id}`]: scopedScore };
-      if (resultDeleted) { updates[`results/${id}`] = null; updates[`resultTs/${id}`] = null; }
-      else { updates[`results/${id}`] = scopedResult; updates[`resultTs/${id}`] = scopedResultTs; }
-      _fbUpdate("/", updates);
-    }
   }
 
   function clearScore(id) {
