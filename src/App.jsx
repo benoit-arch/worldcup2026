@@ -4916,6 +4916,16 @@ export default function App() {
     // Écriture scopée sur ce seul match (scores/results/resultTs) : ne touche
     // JAMAIS aux pronostics, validations ou verrous des joueurs, même si l'un
     // d'eux valide une phase (ex: demis) exactement au même instant.
+    // Protection anti-écrasement : si un écho Firebase en retard revient dans
+    // les 6s, on réinjecte notre valeur locale (voir recentWritesRef plus haut).
+    trackWrite(`scores.${id}`, scopedScore);
+    if (resultDeleted) {
+      trackDelete(`results.${id}`);
+      trackDelete(`resultTs.${id}`);
+    } else {
+      trackWrite(`results.${id}`, scopedResult);
+      trackWrite(`resultTs.${id}`, scopedResultTs);
+    }
     if (_fbReady) {
       const updates = { [`scores/${id}`]: scopedScore };
       if (resultDeleted) { updates[`results/${id}`] = null; updates[`resultTs/${id}`] = null; }
@@ -4955,6 +4965,13 @@ export default function App() {
       try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
       // Écriture scopée : ne touche qu'à finaleData.official + FIN (results/resultTs),
       // jamais aux pronostics ou validations des joueurs.
+      // Protection anti-écrasement (mêmes 6s que les autres écritures) : sans ça,
+      // un écho Firebase en retard peut effacer le résultat qu'on vient de saisir.
+      trackWrite("finaleData.official", merged);
+      if (merged.winner) {
+        trackWrite("results.FIN", ns.results.FIN);
+        trackWrite("resultTs.FIN", ns.resultTs.FIN);
+      }
       if (_fbReady) {
         const updates = { "finaleData/official": merged };
         if (merged.winner) {
@@ -7196,6 +7213,7 @@ export default function App() {
                   {teammates.map(u=>{
                     const uLocked = !!st.finalLock[u];
                     const uValidated = allPhasesValidated(st.validatedGroups[u]||[]) || uLocked;
+                    const uFinaleValidated = (st.validatedGroups[u]||[]).includes("ELIM_finale") || uLocked;
                     return (
                       <button key={u} disabled={!uValidated} onClick={()=>setGroupPronoPlayer(u)}
                         style={{...t.card,display:"flex",alignItems:"center",justifyContent:"space-between",
@@ -7204,7 +7222,14 @@ export default function App() {
                         <div style={{display:"flex",alignItems:"center",gap:10}}>
                           <div style={{fontSize:20}}>{onlinePlayers.includes(u)?"🟢":"⚪"}</div>
                           <div>
-                            <div style={{fontWeight:800,fontSize:14}}>{u.toUpperCase()}</div>
+                            <div style={{fontWeight:800,fontSize:14,display:"flex",alignItems:"center",gap:6}}>
+                              {u.toUpperCase()}
+                              {uFinaleValidated && (
+                                <span title="Pronostic de la finale validé" style={{fontSize:10,fontWeight:700,color:GOLD,background:"rgba(250,204,21,.12)",border:"1px solid rgba(250,204,21,.35)",borderRadius:6,padding:"1px 6px"}}>
+                                  🏆 Finale
+                                </span>
+                              )}
+                            </div>
                             <div style={{fontSize:11,color:MUTED}}>
                               {uLocked ? "🔒 Pronos verrouillés" : uValidated ? "✅ Tout validé" : "⏳ Pas encore terminé"}
                             </div>
@@ -7270,7 +7295,8 @@ export default function App() {
               <div style={{fontSize:11,color:MUTED,margin:"14px 0 8px",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>🏆 Phase éliminatoire</div>
               {elimPhases.map(ph=>{
                 const pm = MATCHES.filter(m=>m.group==="ELIM" && m.phase===ph.k);
-                if (!pm.some(m=>uPreds[m.id])) return null;
+                const hasFinData = ph.k==="finale" && !!(st.finaleData?.predictions?.[selected]?.winner);
+                if (!pm.some(m=> m.id==="FIN" ? hasFinData : uPreds[m.id])) return null;
                 return (
                   <div key={ph.k} style={{marginBottom:10}}>
                     <div style={{fontSize:11,fontWeight:800,color:GOLD,marginBottom:4}}>{ph.l}</div>
@@ -7280,6 +7306,7 @@ export default function App() {
                         const finPred = st.finaleData?.predictions?.[selected];
                         if (!finPred || !finPred.winner) return null;
                         const finOfficial = st.finaleData?.official;
+                        const finValidated = (st.validatedGroups[selected]||[]).includes("ELIM_finale") || !!st.finalLock[selected];
                         const homeR = resolve(m.home, m.id, "home");
                         const awayR = resolve(m.away, m.id, "away");
                         const winnerName = finPred.winner==="home" ? homeR : awayR;
@@ -7300,7 +7327,14 @@ export default function App() {
                                 {F(winnerName)} {winnerName}{hasResult?(winnerModeOk?" ✓":" ✗"):""}
                               </span>
                             </div>
-                            <div style={{fontSize:11,color:MUTED}}>🏆 Vainqueur {modeLabel}</div>
+                            <div style={{display:"flex",alignItems:"center",gap:6,fontSize:11,color:MUTED}}>
+                              <span>🏆 Vainqueur {modeLabel}</span>
+                              {finValidated && !hasResult && (
+                                <span style={{color:GOLD,fontWeight:700,background:"rgba(250,204,21,.12)",border:"1px solid rgba(250,204,21,.35)",borderRadius:6,padding:"1px 6px"}}>
+                                  ✅ Validé
+                                </span>
+                              )}
+                            </div>
                             {finPred.scoreH!=null && finPred.scoreA!=null && (
                               <div style={{fontSize:11,color:hasResult?(scoreOk?GREEN:MUTED):MUTED,marginTop:2}}>
                                 📊 Score pronostiqué : {finPred.scoreH} – {finPred.scoreA}{hasResult&&scoreOk?" ✓":""}
