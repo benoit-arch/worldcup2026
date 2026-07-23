@@ -1856,8 +1856,14 @@ async function _initFirebase() {
   if (_fbReady || !FB_ENABLED) return false;
   try {
     const { initializeApp, getApps } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
+    const { getAuth, signInAnonymously } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
     const { getDatabase, ref, update, onValue, off } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js");
     const app = getApps().length ? getApps()[0] : initializeApp(FB_CONFIG);
+    // Authentification anonyme requise si les règles de la base sont
+    // passées en "auth != null" (voir console Firebase). Sans ce sign-in,
+    // toute lecture/écriture serait rejetée par ces règles.
+    const auth = getAuth(app);
+    await signInAnonymously(auth);
     _db = getDatabase(app);
     _fbRef = p => ref(_db, p);
     _fbUpdate = (p, d) => {
@@ -4370,6 +4376,7 @@ export default function App() {
   };
   
   const role   = st.users[user]?.role;
+  const isAdmin = role === "admin";
   const locked = !!st.finalLock[user];
   const preds  = st.predictions[user] || {};
   const userThirds = (st.thirdPicks||{})[user] || {}; // choix des meilleurs 3es du joueur
@@ -4831,18 +4838,20 @@ export default function App() {
   // ── VALIDATE GROUP ──
   function valGroup(g) {
     let alreadyDone = false;
-    let scopedVG = null;
     setSt(prev => {
       const prevVal = prev.validatedGroups?.[user] || [];
       if (prevVal.includes(g)) { alreadyDone = true; return prev; }
       const updatedVG = [...prevVal,g];
-      scopedVG = updatedVG;
       const ns = {...prev, validatedGroups:{...prev.validatedGroups, [user]:updatedVG}};
       try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
+      // Même piège que setScore/setRole : envoyer à Firebase DANS le updater,
+      // là où `updatedVG` existe vraiment (sinon on envoyait une valeur jamais
+      // assignée → la validation ne partait jamais vers Firebase, invisible
+      // pour les autres joueurs et perdue au rechargement).
+      if (_fbReady) { _fbUpdate("/validatedGroups", {[user]: updatedVG}); trackWrite(`validatedGroups.${user}`, updatedVG); }
       return ns;
     });
     if (alreadyDone) return;
-    if (scopedVG && _fbReady) { _fbUpdate("/validatedGroups", {[user]: scopedVG}); trackWrite(`validatedGroups.${user}`, scopedVG); }
     soundValidate(); celebrate("poules");
     showNotif("success", `✅ Groupe ${g} validé !`);
     // Auto-navigate to next group
@@ -4854,16 +4863,14 @@ export default function App() {
   }
 
   function unvalGroup(g) {
-    let scopedVG = null;
     setSt(prev => {
       const prevVal = prev.validatedGroups?.[user] || [];
       const updatedVG = prevVal.filter(x=>x!==g);
-      scopedVG = updatedVG;
       const ns = {...prev, validatedGroups:{...prev.validatedGroups, [user]: updatedVG}};
       try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
+      if (_fbReady) { _fbUpdate("/validatedGroups", {[user]: updatedVG}); trackWrite(`validatedGroups.${user}`, updatedVG); }
       return ns;
     });
-    if (scopedVG !== null && _fbReady) { _fbUpdate("/validatedGroups", {[user]: scopedVG}); trackWrite(`validatedGroups.${user}`, scopedVG); }
     showNotif("info", `✏️ Groupe ${g} déverrouillé — tu peux modifier tes pronos`);
   }
   // ── FINAL LOCK ──
@@ -4883,15 +4890,18 @@ export default function App() {
 
   // ── ADMIN ──
   function setRole(u,r) {
-    let updatedUser = null;
+    // Même piège que setScore : calculer `updatedUser` DANS le updater et
+    // envoyer à Firebase là où il existe vraiment. Le faire en dehors envoyait
+    // `null` à Firebase (valeur jamais initialisée) → ça supprimait le compte
+    // au lieu de changer son rôle.
     setSt(prev => {
-      updatedUser = {...(prev.users[u]||{}), role:r};
+      const updatedUser = {...(prev.users[u]||{}), role:r};
       const ns = {...prev, users:{...prev.users,[u]:updatedUser}};
       try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
+      // Écriture scopée sur ce seul compte : ne touche jamais aux autres joueurs
+      if (_fbReady) { _fbUpdate("/users", {[u]: updatedUser}); trackWrite(`users.${u}`, updatedUser); }
       return ns;
     });
-    // Écriture scopée sur ce seul compte : ne touche jamais aux autres joueurs
-    if (_fbReady) { _fbUpdate("/users", {[u]: updatedUser}); trackWrite(`users.${u}`, updatedUser); }
   }
   function setScore(id, side, val) {
     // Tout le calcul ET les écritures (localStorage, tracking anti-écho, Firebase)
@@ -5391,24 +5401,20 @@ export default function App() {
         {/* Bouton valider TOUTES les poules */}
         {allGroupsFilled && !allGroupsVal && (
           <button style={{...t.btnGreen,background:"#7c3aed",marginTop:4}} onClick={()=>{
-            let toAddResult = null;
             setSt(prev => {
               const prevVal = prev.validatedGroups?.[user]||[];
               const toAdd = GROUPS.filter(gr=>!prevVal.includes(gr));
               if (toAdd.length===0) return prev;
               const updatedUserVG = [...prevVal, ...toAdd];
-              toAddResult = updatedUserVG;
               const ns = {...prev, validatedGroups:{...(prev.validatedGroups||{}),[user]:updatedUserVG}};
               try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
-              return ns;
-            });
-            if (toAddResult) {
               // Écriture scopée sur ce seul joueur : ne touche jamais aux validations
               // des autres joueurs, même si l'un d'eux valide une autre phase au même instant.
-              if (_fbReady) { _fbUpdate("/validatedGroups", {[user]: toAddResult}); trackWrite(`validatedGroups.${user}`, toAddResult); }
+              if (_fbReady) { _fbUpdate("/validatedGroups", {[user]: updatedUserVG}); trackWrite(`validatedGroups.${user}`, updatedUserVG); }
               soundValidate();
               setTimeout(()=>{ celebrate("poules"); setTab("elim"); setEPhase("seiziemes"); },300);
-            }
+              return ns;
+            });
           }}>✅ Valider toutes les poules → Phases éliminatoires</button>
         )}
         {allGroupsVal && (
@@ -5933,7 +5939,6 @@ export default function App() {
       </div>
     );
   }
-  const isAdmin = role==="admin";
   const myValidated = st.validatedGroups[user] || [];
   const iFullyValidated = allPhasesValidated(myValidated) || locked;
   const competitionStarted = Object.keys(st.finalLock||{}).length > 0 &&
@@ -6683,21 +6688,20 @@ export default function App() {
 
                 const validatePhase = () => {
                   if(!canEdit) return;
-                  let scopedVG = null;
                   setSt(prev => {
                     const prevVal = (prev.validatedGroups||{})[user] || [];
                     if (prevVal.includes(valKey)) return prev;
                     const updatedVG = [...prevVal, valKey];
-                    scopedVG = updatedVG;
                     const ns = {...prev, validatedGroups:{...prev.validatedGroups, [user]:updatedVG}};
                     try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
                     showNotif("success", `✅ ${phLabel} validés !`);
+                    // Même piège que setScore/setRole/valGroup : envoyer à Firebase ICI,
+                    // où `updatedVG` existe vraiment. Sinon la validation (y compris celle
+                    // de la finale) ne partait jamais vers Firebase — invisible pour les
+                    // autres joueurs dans l'onglet groupe, perdue au rechargement.
+                    if (_fbReady) { _fbUpdate("/validatedGroups", {[user]: updatedVG}); trackWrite(`validatedGroups.${user}`, updatedVG); }
                     return ns;
                   });
-                  // Écriture scopée sur ce seul joueur : ne touche jamais aux validations
-                  // des autres joueurs (ex: un autre joueur qui valide une autre phase élim
-                  // au même instant, ou l'admin qui verrouille/réinitialise un compte).
-                  if (scopedVG && _fbReady) { _fbUpdate("/validatedGroups", {[user]: scopedVG}); trackWrite(`validatedGroups.${user}`, scopedVG); }
                 };
 
                 return (
@@ -7692,14 +7696,13 @@ export default function App() {
                                   <button style={{flex:1,background:"rgba(99,102,241,.8)",border:"none",color:"#fff",borderRadius:8,padding:"8px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}
                                     onClick={()=>{
                                       if (adminNewPw.length < 4) { showNotif("error","❌ Mot de passe trop court (min 4 car.)"); return; }
-                                      let updatedUser = null;
                                       setSt(prev => {
-                                        updatedUser = {...prev.users[u],pw:adminNewPw};
+                                        const updatedUser = {...prev.users[u],pw:adminNewPw};
                                         const ns = {...prev, users:{...prev.users,[u]:updatedUser}};
                                         try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
+                                        if (_fbReady) { _fbUpdate("/users", {[u]: updatedUser}); trackWrite(`users.${u}`, updatedUser); }
                                         return ns;
                                       });
-                                      if (_fbReady) { _fbUpdate("/users", {[u]: updatedUser}); trackWrite(`users.${u}`, updatedUser); }
                                       showNotif("success",`✅ MDP de ${u.toUpperCase()} modifié`);
                                       setAdminNewPw(""); setAdminConfirmUser(null);
                                     }}>🔑 Enregistrer</button>
@@ -7765,11 +7768,14 @@ export default function App() {
                                       onClick={()=>{
                                         const ELIM_KEYS = ["ELIM_seiziemes","ELIM_huitiemes","ELIM_quarts","ELIM_demis","ELIM_p3","ELIM_finale"];
                                         const POULE_KEYS = GROUPS;
-                                        let scopedPreds, scopedVG, scopedFL;
+                                        // Même piège que setScore/setRole : calculer scopedPreds/VG/FL
+                                        // DANS le updater et y envoyer Firebase directement, pas après —
+                                        // sinon on lit ces variables avant que React les ait assignées.
                                         setSt(prev => {
                                           const prevUserPreds = {...(prev.predictions?.[u]||{})};
                                           const prevUserVG = prev.validatedGroups?.[u] || [];
                                           let ns = {...prev};
+                                          let scopedPreds, scopedVG, scopedFL;
                                           if (opt.scope==="all") {
                                             const {[u]:_p,...rP}=prev.predictions||{};
                                             const {[u]:_v,...rV}=prev.validatedGroups||{};
@@ -7793,21 +7799,21 @@ export default function App() {
                                             scopedPreds = prevUserPreds; scopedVG = vg; scopedFL = null;
                                           }
                                           try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
+                                          // Écritures Firebase scopées : chaque branche ne touche QUE
+                                          // la clé de ce joueur précis. Ça garantit que le reset d'un
+                                          // joueur ne peut jamais écraser la validation d'un AUTRE joueur
+                                          // en cours au même instant (ex: quelqu'un qui valide les demis
+                                          // pendant que l'admin réinitialise un autre compte).
+                                          if (_fbReady) {
+                                            if (scopedPreds === null) { _fbUpdate("/predictions", {[u]: null}); trackDelete(`predictions.${u}`); }
+                                            else { _fbUpdate("/predictions", {[u]: scopedPreds}); trackWrite(`predictions.${u}`, scopedPreds); }
+                                            if (scopedVG === null) { _fbUpdate("/validatedGroups", {[u]: null}); trackDelete(`validatedGroups.${u}`); }
+                                            else { _fbUpdate("/validatedGroups", {[u]: scopedVG}); trackWrite(`validatedGroups.${u}`, scopedVG); }
+                                            if (scopedFL === null) { _fbUpdate("/finalLock", {[u]: null}); trackDelete(`finalLock.${u}`); }
+                                            // scopedFL === undefined → ne rien envoyer (finalLock non concerné par ce scope)
+                                          }
                                           return ns;
                                         });
-                                        // Écritures Firebase scopées : chaque branche ne touche QUE
-                                        // la clé de ce joueur précis. Ça garantit que le reset d'un
-                                        // joueur ne peut jamais écraser la validation d'un AUTRE joueur
-                                        // en cours au même instant (ex: quelqu'un qui valide les demis
-                                        // pendant que l'admin réinitialise un autre compte).
-                                        if (_fbReady) {
-                                          if (scopedPreds === null) { _fbUpdate("/predictions", {[u]: null}); trackDelete(`predictions.${u}`); }
-                                          else { _fbUpdate("/predictions", {[u]: scopedPreds}); trackWrite(`predictions.${u}`, scopedPreds); }
-                                          if (scopedVG === null) { _fbUpdate("/validatedGroups", {[u]: null}); trackDelete(`validatedGroups.${u}`); }
-                                          else { _fbUpdate("/validatedGroups", {[u]: scopedVG}); trackWrite(`validatedGroups.${u}`, scopedVG); }
-                                          if (scopedFL === null) { _fbUpdate("/finalLock", {[u]: null}); trackDelete(`finalLock.${u}`); }
-                                          // scopedFL === undefined → ne rien envoyer (finalLock non concerné par ce scope)
-                                        }
                                         showNotif("success",`✅ Reset ${opt.label} pour ${u.toUpperCase()}`);
                                         setAdminConfirmUser(null);
                                       }}>{opt.label}</button>
@@ -9228,15 +9234,15 @@ export default function App() {
             const currentCount = getDailyCount(game, user);
             const capped = currentCount >= DAILY_PLAY_LIMIT;
 
-            let scopedPlaysToday, scopedHistory, scopedGameScores, scopedGameScoresTotal;
             setSt(prev => {
               const gameHistoryAll = prev.gameHistory || {};
               const userHistory = (gameHistoryAll[user] || []);
               const newEntry = { game, score, mode, opponent, won, ts: Date.now() };
               const cappedHistory = [...userHistory, newEntry].slice(-50); // max 50 entrées
               const newPlaysToday = bumpDailyCount(game, user);
-              scopedPlaysToday = newPlaysToday[game];
-              scopedHistory = cappedHistory;
+              const scopedPlaysToday = newPlaysToday[game];
+              const scopedHistory = cappedHistory;
+              let scopedGameScores, scopedGameScoresTotal;
 
               let ns;
               if (capped) {
@@ -9258,16 +9264,18 @@ export default function App() {
                 };
               }
               try { localStorage.setItem(KEY, JSON.stringify(ns)); } catch(e) {}
+              // Écritures scopées : chaque branche ne touche que ses propres clés
+              // (jeu précis / joueur précis), jamais les pronostics ou validations.
+              // Même piège que setScore/setRole/valGroup : on envoie à Firebase ICI,
+              // où ces valeurs existent vraiment (sinon jamais synchronisé ailleurs).
+              if (_fbReady) {
+                const updates = { [`gamePlaysToday/${game}`]: scopedPlaysToday, [`gameHistory/${user}`]: scopedHistory };
+                if (scopedGameScores) updates[`gameScores/${game}`] = scopedGameScores;
+                if (scopedGameScoresTotal) updates[`gameScoresTotal/${game}`] = scopedGameScoresTotal;
+                _fbUpdate("/", updates);
+              }
               return ns;
             });
-            // Écritures scopées : chaque branche ne touche que ses propres clés
-            // (jeu précis / joueur précis), jamais les pronostics ou validations.
-            if (_fbReady) {
-              const updates = { [`gamePlaysToday/${game}`]: scopedPlaysToday, [`gameHistory/${user}`]: scopedHistory };
-              if (scopedGameScores) updates[`gameScores/${game}`] = scopedGameScores;
-              if (scopedGameScoresTotal) updates[`gameScoresTotal/${game}`] = scopedGameScoresTotal;
-              _fbUpdate("/", updates);
-            }
 
             if (capped) {
               showNotif("info", `⏳ Limite quotidienne atteinte (${DAILY_PLAY_LIMIT}/${DAILY_PLAY_LIMIT}) pour ce jeu — cette partie ne compte pas dans ton score.`);
